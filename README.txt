@@ -2,7 +2,7 @@ Phase 1)
 CPU:
 - Declare Registers
 - Flags
-- Address Modes
+- Address Mode
 - Instructions
 
 Phase 2)
