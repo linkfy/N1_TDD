@@ -36,7 +36,7 @@ cpu/
   cpu.py 
   instructions.py 
 
-ram/
+memory/
   ram.py
 
 bus/

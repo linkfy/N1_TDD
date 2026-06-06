@@ -3,6 +3,8 @@ RAM should only provide raw byte storage.
 
 Address mirroring and memory mapping are responsibilities
 of the CpuBus, not the RAM itself.
+
+Focus: Create read/write to a Ram class
 """
 
 from emulator.memory.ram import RAM
