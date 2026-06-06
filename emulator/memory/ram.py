@@ -7,8 +7,8 @@ class RAM:
     
     def write(self, addr: int, value: int) -> None:
         """Write a value to internal ram"""
-        self._memory[addr] = value
+        self._data[addr] = value
 
     def read(self, addr: int) -> int:
         """Get a value from internal ram"""
-        return self._memory[addr]
+        return self._data[addr]
