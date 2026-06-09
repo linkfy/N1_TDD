@@ -48,6 +48,7 @@ def test_cpu_bus_reads_and_writes_internal_ram_mirrors():
             value+=1
     
 def test_cpu_bus_rejects_invalid_addresses():
+    """Addresses should be unsigned 16 bits"""
     bus = CpuBus()
 
     invalid_addresses = [
@@ -62,6 +63,7 @@ def test_cpu_bus_rejects_invalid_addresses():
 
 
 def test_cpu_bus_rejects_invalid_values():
+    """Values should be unsigned 8 bits"""
     bus = CpuBus()
 
     invalid_values = [
