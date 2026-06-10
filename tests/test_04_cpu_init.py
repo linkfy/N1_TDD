@@ -54,6 +54,8 @@ def test_cpu_fetch_word(cpu):
 
     
 def test_cpu_reads_reset_vector():
-    # TODO
-    # Our bus still no has write to 0xFFFC / 0xFFFD
-    assert 0 == 1
+    """
+    CPU Starts with reset -> JMP 0xFFFC
+    Then it fetches a word -> 0xFFFC + 0xFFFD (00, 80)
+    The fetched word contains 0x8000 (PC Start address)
+    """

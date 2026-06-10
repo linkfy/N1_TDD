@@ -28,6 +28,7 @@ Rendering
 
 Steps:
 Install pytest
+use uv run pytest -x # to test one by one
 Let's start by cpu, it is connected to cpu bus and internal ram. Let's create the first element of memory map: RAM <- BUS -> CPU
 
 Declare basic folders: 

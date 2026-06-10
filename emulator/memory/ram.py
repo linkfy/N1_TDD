@@ -1,8 +1,10 @@
 from dataclasses import dataclass, field
 
+from emulator.memory.memory_device import MemoryDevice
+
 
 @dataclass
-class RAM:
+class RAM(MemoryDevice):
     _data: bytearray = field(default_factory=lambda: bytearray(0x800), init=False)
     
     def write(self, addr: int, value: int) -> None:
