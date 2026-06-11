@@ -42,3 +42,9 @@ memory/
 
 bus/
   cpu_bus.py
+
+---
+Next TODO:
+CPU.reset() -> read FFFC + FFFD from ROM
+test_cpu_reset_vector()
+
