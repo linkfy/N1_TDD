@@ -28,11 +28,11 @@ def test_cpu_has_registers(cpu):
     assert hasattr(cpu, "s") # stack register
     assert hasattr(cpu, "p") # status register (Flags)
 
-def test_cpu_registers_are_initialized(cpu):
-    """ Initial register values
-    https://www.nesdev.org/wiki/CPU_power_up_state
+def test_cpu_registers_are_initialized_to_0(cpu):
+    """ Initial register values set to 0
+    Later on future tests we will implement cpu.reset() that put the starting values
     """
-    assert (cpu.a, cpu.x, cpu.y, cpu.pc, cpu.s, cpu.p) == (0, 0, 0, 0xFFFC, 0xFD, 0)
+    assert (cpu.a, cpu.x, cpu.y, cpu.pc, cpu.s, cpu.p) == (0, 0, 0, 0, 0, 0)
 
 def test_cpu_fetch_byte(cpu):
     cpu.pc = 0 # Temporal PC value for testing
@@ -52,10 +52,4 @@ def test_cpu_fetch_word(cpu):
 
     assert cpu.fetch_word() == 0x1234
 
-    
-def test_cpu_reads_reset_vector():
-    """
-    CPU Starts with reset -> JMP 0xFFFC
-    Then it fetches a word -> 0xFFFC + 0xFFFD (00, 80)
-    The fetched word contains 0x8000 (PC Start address)
-    """
+

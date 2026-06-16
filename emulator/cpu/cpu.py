@@ -10,8 +10,8 @@ class CPU:
     a: int = 0
     x: int = 0
     y: int = 0
-    pc: int = 0xFFFC
-    s: int = 0xFD # -3
+    pc: int = 0
+    s: int = 0
     p: int = 0
 
     # Get one byte from bus and increment pc
@@ -25,3 +25,19 @@ class CPU:
         high = self.fetch_byte()
 
         return low | (high << 8)
+
+    def reset(self) -> None:
+        """
+        Read the reset vector stored at addresses
+        0xFFFC and 0xFFFD and initialize the
+        Program Counter.
+        """
+        self.s = 0xFD
+        self.p = 0x04
+        
+        # PC = ($FFFC) -> Value inside address
+        low = self.bus.read(0xFFFC)
+        high = self.bus.read(0xFFFD)
+        self.pc = low | (high << 8)
+
+
