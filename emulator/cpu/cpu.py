@@ -40,4 +40,10 @@ class CPU:
         high = self.bus.read(0xFFFD)
         self.pc = low | (high << 8)
 
+    def step(self) -> None:
+        opcode = self.fetch_byte()
 
+        if opcode == 0xA9: # LDA
+            self.a = self.fetch_byte()
+            return
+        raise NotImplementedError(f"Opcode {opcode:02X} not implemented")

@@ -35,3 +35,22 @@ def test_cpu_reset_initializes_state():
     assert cpu.s == 0xFD
     assert cpu.p == 0x04
 
+
+def test_cpu_fetch_first_opcode():
+    """This should pass if everything is right"""
+
+    rom = FakeROM()
+
+    rom.write(0x7FFC, 0x00)
+    rom.write(0x7FFD, 0x80)
+    rom.write(0x0000, 0xA9)
+
+    bus = CpuBus(program_rom=rom)
+    cpu = CPU(bus)
+
+    cpu.reset()
+
+    opcode = cpu.fetch_byte()
+    assert opcode == 0xA9
+
+
