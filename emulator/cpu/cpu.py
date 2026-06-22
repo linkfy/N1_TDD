@@ -46,9 +46,17 @@ class CPU:
         if opcode == 0xA9: # LDA
             self.a = self.fetch_byte()
             # Set Flags
+
+            # Zero Flag
             if self.a == 0:
-                self.p = self.p | (1 << 1) # set flag Zero
+                self.p |= (1 << 1) # set flag Zero
             else:
-                self.p = self.p & (1 << 1) # unset flag Zero
+                self.p &= ~(1 << 1) # unset flag Zero
+
+            if (self.a & (1 << 7)) != 0: # bit 7 active, then is negative
+                self.p |= (1 << 7)
+            else:
+                self.p &= ~(1 << 7) # bit 7 set to 0
+
             return
         raise NotImplementedError(f"Opcode {opcode:02X} not implemented")
