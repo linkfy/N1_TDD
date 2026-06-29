@@ -43,7 +43,7 @@ class CPU:
     def step(self) -> None:
         opcode = self.fetch_byte()
 
-        if opcode == 0xA9: # LDA
+        if opcode == 0xA9: # LDA Inmediate
             self.a = self.fetch_byte()
             # Set Flags
 
@@ -59,4 +59,22 @@ class CPU:
                 self.p &= ~(1 << 7) # bit 7 set to 0
 
             return
+        elif opcode == 0xAD: # LDA Absolute
+            addr = self.fetch_word()
+            self.a = self.bus.read(addr)
+            # Set Flags [Copy-pasted code from opcode 0xA9]
+
+            # Zero Flag
+            if self.a == 0:
+                self.p |= (1 << 1) # set flag Zero
+            else:
+                self.p &= ~(1 << 1) # unset flag Zero
+
+            if (self.a & (1 << 7)) != 0: # bit 7 active, then is negative
+                self.p |= (1 << 7)
+            else:
+                self.p &= ~(1 << 7) # bit 7 set to 0
+
+            return
+            
         raise NotImplementedError(f"Opcode {opcode:02X} not implemented")
