@@ -8,9 +8,7 @@ import pytest
 from emulator.bus.cpu_bus import CpuBus
 from emulator.cpu.cpu import CPU, NEGATIVE_FLAG, ZERO_FLAG
 
-
-def make_cpu():
-    return CPU(CpuBus())
+from tests.helpers import make_cpu
 
 def test_method_update_zero_and_negative_flags_exists():
     """Optative:
