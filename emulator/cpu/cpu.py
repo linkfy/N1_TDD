@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 
 from emulator.bus.cpu_bus import CpuBus
+from emulator.cpu.addressing_modes import absolute, immediate
 
 ZERO_FLAG = 1 << 1
 NEGATIVE_FLAG = 1 << 7
@@ -64,13 +65,12 @@ class CPU:
         opcode = self.fetch_byte()
 
         if opcode == 0xA9: # LDA Inmediate
-            self.a = self.fetch_byte()
+            self.a = immediate(self)
             self._update_zero_and_negative_flags(self.a)
             return
 
         elif opcode == 0xAD: # LDA Absolute
-            addr = self.fetch_word()
-            self.a = self.bus.read(addr)
+            self.a = absolute(self)
             self._update_zero_and_negative_flags(self.a)
             return
             

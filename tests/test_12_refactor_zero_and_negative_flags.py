@@ -5,10 +5,11 @@ Create a method inside cpu called:
 """
 import pytest
 
-from emulator.bus.cpu_bus import CpuBus
-from emulator.cpu.cpu import CPU, NEGATIVE_FLAG, ZERO_FLAG
-
 from tests.helpers import make_cpu
+
+ZERO_FLAG = 1 << 1
+NEGATIVE_FLAG = 1 << 7
+
 
 def test_method_update_zero_and_negative_flags_exists():
     """Optative:
