@@ -2,6 +2,8 @@ from dataclasses import dataclass
 
 from emulator.bus.cpu_bus import CpuBus
 from emulator.cpu.addressing_modes import absolute, immediate
+from emulator.cpu.instructions import lda
+
 
 ZERO_FLAG = 1 << 1
 NEGATIVE_FLAG = 1 << 7
@@ -65,13 +67,9 @@ class CPU:
         opcode = self.fetch_byte()
 
         if opcode == 0xA9: # LDA Inmediate
-            self.a = immediate(self)
-            self._update_zero_and_negative_flags(self.a)
-            return
+            return lda(self, immediate(self))
 
         elif opcode == 0xAD: # LDA Absolute
-            self.a = absolute(self)
-            self._update_zero_and_negative_flags(self.a)
-            return
-            
+            return lda(self, absolute(self))
+        
         raise NotImplementedError(f"Opcode {opcode:02X} not implemented")
