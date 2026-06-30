@@ -2,6 +2,10 @@ from dataclasses import dataclass
 
 from emulator.bus.cpu_bus import CpuBus
 
+ZERO_FLAG = 1 << 1
+NEGATIVE_FLAG = 1 << 7
+
+
 @dataclass
 class CPU:
     bus: CpuBus
@@ -13,6 +17,21 @@ class CPU:
     pc: int = 0
     s: int = 0
     p: int = 0
+
+    def _update_zero_and_negative_flags(self, value: int):
+
+        if value == 0:
+            self.p |= ZERO_FLAG # Set Z
+        else:
+            self.p &= ~ZERO_FLAG # Unset Z
+        
+        if (value & NEGATIVE_FLAG) != 0: # Set N
+            self.p |= NEGATIVE_FLAG
+        else:
+            self.p &= ~NEGATIVE_FLAG # Unset N
+
+        return
+
 
     # Get one byte from bus and increment pc
     def fetch_byte(self) -> int:
@@ -40,41 +59,19 @@ class CPU:
         high = self.bus.read(0xFFFD)
         self.pc = low | (high << 8)
 
+
     def step(self) -> None:
         opcode = self.fetch_byte()
 
         if opcode == 0xA9: # LDA Inmediate
             self.a = self.fetch_byte()
-            # Set Flags
-
-            # Zero Flag
-            if self.a == 0:
-                self.p |= (1 << 1) # set flag Zero
-            else:
-                self.p &= ~(1 << 1) # unset flag Zero
-
-            if (self.a & (1 << 7)) != 0: # bit 7 active, then is negative
-                self.p |= (1 << 7)
-            else:
-                self.p &= ~(1 << 7) # bit 7 set to 0
-
+            self._update_zero_and_negative_flags(self.a)
             return
+
         elif opcode == 0xAD: # LDA Absolute
             addr = self.fetch_word()
             self.a = self.bus.read(addr)
-            # Set Flags [Copy-pasted code from opcode 0xA9]
-
-            # Zero Flag
-            if self.a == 0:
-                self.p |= (1 << 1) # set flag Zero
-            else:
-                self.p &= ~(1 << 1) # unset flag Zero
-
-            if (self.a & (1 << 7)) != 0: # bit 7 active, then is negative
-                self.p |= (1 << 7)
-            else:
-                self.p &= ~(1 << 7) # bit 7 set to 0
-
+            self._update_zero_and_negative_flags(self.a)
             return
             
         raise NotImplementedError(f"Opcode {opcode:02X} not implemented")
