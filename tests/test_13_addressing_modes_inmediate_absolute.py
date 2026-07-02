@@ -14,7 +14,6 @@ move the code that gets values or addresses out of CPU.step().
 This will make CPU.step() smaller and easier to read.
 """
 import inspect
-from pathlib import Path
 
 from emulator.cpu import addressing_modes
 from tests.helpers import make_cpu
@@ -59,13 +58,11 @@ def test_absolute_addressing_mode_exists():
     - Read the next two bytes from the CPU bus.
     - The first byte is low.
     - The second byte is high.
-    - read that address with cpu bus
-    - return value inside the address
+    - Return the final address.
 
     Example:
     AD 34 12 means LDA $1234.
-    $1234 contains 0x80
-    The function must return 0x80.
+    The function must return address 0x1234.
     """
     cpu = make_cpu()
 
@@ -80,14 +77,12 @@ At this point, code inside cpu step should have something like:
     ...
     ...
     if opcode == 0xA9: # LDA Inmediate
-        self.a = immediate(self)
-        self._update_zero_and_negative_flags(self.a)
-        return
+        return lda(self, immediate(self))
 
     elif opcode == 0xAD: # LDA Absolute
-        self.a = absolute(self)
-        self._update_zero_and_negative_flags(self.a)
-        return
+        addr = absolute(self)
+        value = self.bus.read(addr)
+        return lda(self, value)
     ...
         
 """

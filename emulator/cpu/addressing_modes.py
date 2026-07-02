@@ -11,8 +11,11 @@ def immediate(cpu: CPU) -> int:
 
 def absolute(cpu: CPU) -> int:
     addr = cpu.fetch_word()
-    return cpu.bus.read(addr)
+    return addr  
 
+def zero_page(cpu: CPU) -> int:
+    addr = cpu.fetch_byte()
+    return addr
 
 
 

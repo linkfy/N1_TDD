@@ -10,9 +10,8 @@ The goal is simple:
 move the code that changes register A out of CPU.step().
 CPU.step() should get the value, then call lda(cpu, value).
 """
-from emulator.cpu.cpu import NEGATIVE_FLAG, ZERO_FLAG
 from emulator.cpu import instructions
-from tests.helpers import make_cpu
+from tests.helpers import NEGATIVE_FLAG, ZERO_FLAG, make_cpu
 
 
 def test_lda_instruction_exists():

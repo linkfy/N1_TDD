@@ -44,7 +44,19 @@ bus/
   cpu_bus.py
 
 ---
-Next TODO:
-CPU.reset() -> read FFFC + FFFD from ROM
-test_cpu_reset_vector()
+opcodes.py          -> connect opcode numbers to handlers
+OPCODE_TABLE = {
+    0xA9: lda_immediate,
+    0xA5: lda_zero_page,
+    0xAD: lda_absolute,
+}
+We should define the opcode handler with table
+def step(self):
+    opcode = self.fetch_byte()
 
+    handler = OPCODE_TABLE.get(opcode)
+
+    if handler is None:
+        raise NotImplementedError(f"Opcode {opcode:02X} not implemented")
+
+    return handler(self)
