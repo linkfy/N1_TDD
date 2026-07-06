@@ -9,3 +9,5 @@ if TYPE_CHECKING:
 def lda(cpu: CPU, value):
     cpu.a = value
     cpu._update_zero_and_negative_flags(cpu.a)
+
+

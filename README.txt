@@ -44,19 +44,12 @@ bus/
   cpu_bus.py
 
 ---
-opcodes.py          -> connect opcode numbers to handlers
-OPCODE_TABLE = {
-    0xA9: lda_immediate,
-    0xA5: lda_zero_page,
-    0xAD: lda_absolute,
-}
-We should define the opcode handler with table
-def step(self):
-    opcode = self.fetch_byte()
 
-    handler = OPCODE_TABLE.get(opcode)
+Next LDA opcodes:
+B5 -> LDA Zero Page,X
+BD -> LDA Absolute,X
+B9 -> LDA Absolute,Y
+A1 -> LDA (Indirect,X)
+B1 -> LDA (Indirect),Y
 
-    if handler is None:
-        raise NotImplementedError(f"Opcode {opcode:02X} not implemented")
-
-    return handler(self)
+Build slowly

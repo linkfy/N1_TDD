@@ -1,8 +1,7 @@
 from dataclasses import dataclass
 
 from emulator.bus.cpu_bus import CpuBus
-from emulator.cpu.addressing_modes import absolute, immediate, zero_page
-from emulator.cpu.instructions import lda
+from emulator.cpu.opcodes import OPCODE_TABLE
 
 
 ZERO_FLAG = 1 << 1
@@ -65,18 +64,11 @@ class CPU:
 
     def step(self) -> None:
         opcode = self.fetch_byte()
-
-        if opcode == 0xA9: # LDA Inmediate
-            return lda(self, immediate(self))
-
-        if opcode == 0xA5: # LDA Zero Page
-            addr = zero_page(self)
-            value = self.bus.read(addr)
-            return lda(self, value)
-
-        elif opcode == 0xAD: # LDA Absolute
-            addr = absolute(self)
-            value = self.bus.read(addr)
-            return lda(self, value)
+        handler = OPCODE_TABLE.get(opcode) # Returns None if not exists
+        if handler is None:
+            raise NotImplementedError(f"Opcode {opcode:02X} not implemented")
         
-        raise NotImplementedError(f"Opcode {opcode:02X} not implemented")
+        return handler(self)
+
+
+        
