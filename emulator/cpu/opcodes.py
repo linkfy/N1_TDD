@@ -11,6 +11,8 @@ from emulator.cpu.addressing_modes import (
     zero_page,
     zero_page_x,
     absolute,
+    absolute_x,
+    absolute_y,
 )
 # Opcode Handlers include: decoding/addressing details
 # They are not the same as instructions
@@ -28,15 +30,27 @@ def lda_absolute(cpu: CPU):
     value = cpu.bus.read(addr)
     lda(cpu, value)
 
+def lda_absolute_x(cpu: CPU):
+    addr = absolute_x(cpu)
+    value = cpu.bus.read(addr)
+    lda(cpu, value)
+
+def lda_absolute_y(cpu: CPU):
+    addr = absolute_y(cpu)
+    value = cpu.bus.read(addr)
+    lda(cpu, value)
+
 def lda_zero_page_x(cpu: CPU):
     addr = zero_page_x(cpu)
     value = cpu.bus.read(addr)
     lda(cpu, value)
- 
+
 
 OPCODE_TABLE = {
     0xA9: lda_immediate,
     0xA5: lda_zero_page,
     0xB5: lda_zero_page_x,
     0xAD: lda_absolute,
+    0xBD: lda_absolute_x,
+    0xB9: lda_absolute_y,
 }

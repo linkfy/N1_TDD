@@ -13,6 +13,16 @@ def absolute(cpu: CPU) -> int:
     addr = cpu.fetch_word()
     return addr  
 
+def absolute_x(cpu: CPU) -> int:
+    base = cpu.fetch_word()
+    addr = base + cpu.x
+    return addr
+
+def absolute_y(cpu: CPU) -> int:
+    base = cpu.fetch_word()
+    addr = base + cpu.y
+    return addr
+
 def zero_page(cpu: CPU) -> int:
     addr = cpu.fetch_byte()
     return addr
@@ -23,5 +33,8 @@ def zero_page_x(cpu: CPU) -> int:
     # Alternative:
     # addr = (base + cpu.x) % 256 
     return addr
+
+
+
 
 
