@@ -26,30 +26,5 @@ Rendering
 
 --
 
-Steps:
-Install pytest
-use uv run pytest -x # to test one by one
-Let's start by cpu, it is connected to cpu bus and internal ram. Let's create the first element of memory map: RAM <- BUS -> CPU
-
-Declare basic folders: 
-cpu/
-  addressing_modes.py // Addressing modes 
-  cpu.py 
-  instructions.py 
-
-memory/
-  ram.py
-
-bus/
-  cpu_bus.py
-
----
-
-Next LDA opcodes:
-B5 -> LDA Zero Page,X
-BD -> LDA Absolute,X
-B9 -> LDA Absolute,Y
-A1 -> LDA (Indirect,X)
-B1 -> LDA (Indirect),Y
-
-Build slowly
+Next steps:
+Arithmetic	ADC	SBC	INC	DEC	INX	DEX	INY	DEY
