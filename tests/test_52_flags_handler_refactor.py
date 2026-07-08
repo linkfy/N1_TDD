@@ -1,0 +1,287 @@
+"""
+Refactor CPU flag helpers into a new FlagsHandler class.
+
+Create this file:
+
+    emulator/cpu/flags_handler.py
+
+Inside that file, create:
+
+    class FlagsHandler:
+        ...
+
+The goal is simple:
+move new flag helper logic to a dedicated object, while keeping old CPU
+methods for compatibility with previous tests.
+
+Tradeoff:
+For a short time, cpu._update_zero_and_negative_flags and FlagsHandler will both know how to change some flags.
+That is acceptable during a refactor.
+
+Long term, new code should prefer FlagsHandler, because flag bit logic should
+live in one clear place.
+"""
+import inspect
+from pathlib import Path
+
+from emulator.bus.cpu_bus import CpuBus
+from emulator.cpu.cpu import CPU
+from emulator.cpu.flags_handler import FlagsHandler
+
+
+CARRY_FLAG = 1 << 0
+ZERO_FLAG = 1 << 1
+OVERFLOW_FLAG = 1 << 6
+NEGATIVE_FLAG = 1 << 7
+
+
+def make_cpu():
+    return CPU(CpuBus())
+
+
+def test_flags_handler_file_exists():
+    """
+    Objective:
+    Create this file:
+
+        emulator/cpu/flags_handler.py
+
+    Why:
+    CPU already has many responsibilities.
+    A small FlagsHandler object can group flag-specific helpers in one place.
+
+    Tradeoff:
+    This adds one more object, but it reduces repeated flag bit operations
+    across future instructions like ADC, SBC, CMP, ASL, LSR, and branches.
+    """
+    assert Path("emulator/cpu/flags_handler.py").exists()
+
+
+def test_flags_handler_class_exists():
+    """
+    Objective:
+    Create in flags_handler.py:
+
+        class FlagsHandler:
+            ...
+
+    What it needs:
+    - Store a reference to the CPU.
+    - Read and write cpu.p, because cpu.p is the processor status register.
+
+    Why not store a separate p value here?
+    CPU must keep owning the real processor status register.
+    FlagsHandler only helps modify that register.
+
+    Example:
+        @dataclass
+        class FlagsHandler:
+            cpu: CPU
+    """
+    assert inspect.isclass(FlagsHandler)
+
+
+def test_flags_handler_can_be_created_with_cpu():
+    """
+    Objective:
+    FlagsHandler must receive a CPU instance.
+
+    Example:
+        cpu = CPU(CpuBus())
+        flags = FlagsHandler(cpu)
+
+    Why:
+    The handler modifies cpu.p, not its own local status register.
+
+    Design rule:
+    CPU owns the state.
+    FlagsHandler owns the bit manipulation helpers.
+    """
+    cpu = make_cpu()
+    flags = FlagsHandler(cpu)
+
+    assert flags.cpu is cpu
+
+
+def test_flags_handler_set_methods_exist():
+    """
+    Objective:
+    Define setter methods for the common CPU flags:
+
+        def _set_zero_flag(self, enabled: bool):
+            ...
+
+        def _set_negative_flag(self, enabled: bool):
+            ...
+
+        def _set_overflow_flag(self, enabled: bool):
+            ...
+
+        def _set_carry_flag(self, enabled: bool):
+            ...
+
+    Important:
+    enabled=True means set the flag.
+    enabled=False means clear the flag.
+
+    Why boolean setters?
+    Carry and Overflow are not always based on one bit of the result.
+    Future instructions will decide the condition and then call the setter.
+
+    Example:
+        cpu.flags._set_carry_flag(result > 0xFF)
+    """
+    assert hasattr(FlagsHandler, "_set_zero_flag")
+    assert hasattr(FlagsHandler, "_set_negative_flag")
+    assert hasattr(FlagsHandler, "_set_overflow_flag")
+    assert hasattr(FlagsHandler, "_set_carry_flag")
+
+
+def test_flags_handler_get_methods_exist():
+    """
+    Objective:
+    Define getter methods for the common CPU flags:
+
+        def _get_zero_flag(self) -> bool:
+            ...
+
+        def _get_negative_flag(self) -> bool:
+            ...
+
+        def _get_overflow_flag(self) -> bool:
+            ...
+
+        def _get_carry_flag(self) -> bool:
+            ...
+
+    Example implementation:
+        return bool(self.cpu.p & ZERO_FLAG)
+
+    Why:
+    Later branch instructions can ask if a flag is active.
+
+    Example:
+        if cpu.flags._get_zero_flag():
+            ...
+    """
+    assert hasattr(FlagsHandler, "_get_zero_flag")
+    assert hasattr(FlagsHandler, "_get_negative_flag")
+    assert hasattr(FlagsHandler, "_get_overflow_flag")
+    assert hasattr(FlagsHandler, "_get_carry_flag")
+
+
+def test_flags_handler_sets_and_clears_zero_flag():
+    """Objective: _set_zero_flag(True) sets Z, and False clears Z."""
+    cpu = make_cpu()
+    flags = FlagsHandler(cpu)
+
+    flags._set_zero_flag(True)
+    assert (cpu.p & ZERO_FLAG) != 0
+    assert flags._get_zero_flag() is True
+
+    flags._set_zero_flag(False)
+    assert (cpu.p & ZERO_FLAG) == 0
+    assert flags._get_zero_flag() is False
+
+
+def test_flags_handler_sets_and_clears_negative_flag():
+    """Objective: _set_negative_flag(True) sets N, and False clears N."""
+    cpu = make_cpu()
+    flags = FlagsHandler(cpu)
+
+    flags._set_negative_flag(True)
+    assert (cpu.p & NEGATIVE_FLAG) != 0
+    assert flags._get_negative_flag() is True
+
+    flags._set_negative_flag(False)
+    assert (cpu.p & NEGATIVE_FLAG) == 0
+    assert flags._get_negative_flag() is False
+
+
+def test_flags_handler_sets_and_clears_overflow_flag():
+    """Objective: _set_overflow_flag(True) sets V, and False clears V."""
+    cpu = make_cpu()
+    flags = FlagsHandler(cpu)
+
+    flags._set_overflow_flag(True)
+    assert (cpu.p & OVERFLOW_FLAG) != 0
+    assert flags._get_overflow_flag() is True
+
+    flags._set_overflow_flag(False)
+    assert (cpu.p & OVERFLOW_FLAG) == 0
+    assert flags._get_overflow_flag() is False
+
+
+def test_flags_handler_sets_and_clears_carry_flag():
+    """Objective: _set_carry_flag(True) sets C, and False clears C."""
+    cpu = make_cpu()
+    flags = FlagsHandler(cpu)
+
+    flags._set_carry_flag(True)
+    assert (cpu.p & CARRY_FLAG) != 0
+    assert flags._get_carry_flag() is True
+
+    flags._set_carry_flag(False)
+    assert (cpu.p & CARRY_FLAG) == 0
+    assert flags._get_carry_flag() is False
+
+
+def test_cpu_has_flags_handler_instance():
+    """
+    Objective:
+    Add a CPU attribute called flags.
+
+    Example in cpu.py:
+        flags: FlagsHandler = field(init=False)
+
+        def __post_init__(self):
+            self.flags = FlagsHandler(self)
+
+    Why:
+    FlagsHandler needs the CPU instance, so it cannot be created with
+    default_factory=FlagsHandler.
+
+    Tradeoff:
+    This creates a small circular relationship:
+        CPU -> flags
+        flags -> CPU
+
+    This is acceptable here because FlagsHandler is not an independent CPU.
+    It is a helper object that operates on the CPU status register.
+    """
+    cpu = make_cpu()
+
+    assert hasattr(cpu, "flags")
+    assert isinstance(cpu.flags, FlagsHandler)
+    assert cpu.flags.cpu is cpu
+
+
+def test_cpu_keeps_old_zero_and_negative_update_method_for_compatibility():
+    """
+    Objective:
+    Keep the old CPU method for previous tests:
+
+        _update_zero_and_negative_flags(self, value)
+
+    Why:
+    This refactor adds FlagsHandler, but does not need to break old tests.
+
+    Tradeoff:
+    For now, old instructions can keep calling:
+        cpu._update_zero_and_negative_flags(value)
+
+    But new or refactored code should prefer:
+        cpu.flags._set_zero_flag(value == 0)
+        cpu.flags._set_negative_flag((value & 0x80) != 0)
+
+    Good future cleanup:
+        def _update_zero_and_negative_flags(self, value):
+            self.flags._set_zero_flag(value == 0)
+            self.flags._set_negative_flag((value & 0x80) != 0)
+
+    That keeps compatibility while moving the real flag logic into FlagsHandler.
+    """
+    cpu = make_cpu()
+
+    assert hasattr(cpu, "_update_zero_and_negative_flags")
+    assert callable(cpu._update_zero_and_negative_flags)

@@ -1,8 +1,8 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 
 from emulator.bus.cpu_bus import CpuBus
 from emulator.cpu.opcodes import OPCODE_TABLE
-
+from emulator.cpu.flags_handler import FlagsHandler
 
 ZERO_FLAG = 1 << 1
 NEGATIVE_FLAG = 1 << 7
@@ -11,6 +11,10 @@ NEGATIVE_FLAG = 1 << 7
 @dataclass
 class CPU:
     bus: CpuBus
+    flags: FlagsHandler = field(init=False)
+
+    def __post_init__(self):
+        self.flags = FlagsHandler(self)
     
     # Initial Registers with default value
     a: int = 0
@@ -33,6 +37,7 @@ class CPU:
             self.p &= ~NEGATIVE_FLAG # Unset N
 
         return
+
 
 
     # Get one byte from bus and increment pc
