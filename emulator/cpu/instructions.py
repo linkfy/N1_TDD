@@ -29,3 +29,19 @@ def ldy(cpu: CPU, value):
 def sty(cpu: CPU, address: int):
     value = cpu.y
     cpu.bus.write(address, value)
+
+def tax(cpu: CPU):
+    cpu.x = cpu.a
+    cpu._update_zero_and_negative_flags(cpu.x)
+    
+def txa(cpu: CPU):
+    cpu.a = cpu.x
+    cpu._update_zero_and_negative_flags(cpu.a)
+
+def tay(cpu: CPU):
+    cpu.y = cpu.a
+    cpu._update_zero_and_negative_flags(cpu.y)
+
+def tya(cpu: CPU):
+    cpu.a = cpu.y
+    cpu._update_zero_and_negative_flags(cpu.a)
