@@ -17,3 +17,15 @@ def sta(cpu: CPU, address: int):
 def ldx(cpu: CPU, value):
     cpu.x = value
     cpu._update_zero_and_negative_flags(cpu.x)
+
+def stx(cpu: CPU, address: int):
+    value = cpu.x
+    cpu.bus.write(address, value)
+
+def ldy(cpu: CPU, value):
+    cpu.y = value
+    cpu._update_zero_and_negative_flags(cpu.y)
+
+def sty(cpu: CPU, address: int):
+    value = cpu.y
+    cpu.bus.write(address, value)

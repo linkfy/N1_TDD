@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from emulator.cpu.cpu import CPU
 # ------------------------------------
 
-from emulator.cpu.instructions import lda, sta, ldx
+from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty
 from emulator.cpu.addressing_modes import (
     immediate,
     zero_page,
@@ -114,6 +114,62 @@ def ldx_absolute_y(cpu: CPU):
     value = cpu.bus.read(addr)
     ldx(cpu, value)
 
+# ------ STX Opcodes
+
+def stx_zero_page(cpu: CPU):
+    addr = zero_page(cpu) 
+    stx(cpu, addr)
+
+
+def stx_zero_page_y(cpu: CPU):
+    addr = zero_page_y(cpu) 
+    stx(cpu, addr)
+
+
+def stx_absolute(cpu: CPU):
+    addr = absolute(cpu) 
+    stx(cpu, addr)
+
+# ------ LDY Opcodes
+                 
+def ldy_immediate(cpu: CPU):
+    ldy(cpu, immediate(cpu))
+                 
+def ldy_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    value = cpu.bus.read(addr)
+    ldy(cpu, value)
+
+def ldy_zero_page_x(cpu: CPU):
+    addr = zero_page_x(cpu)
+    value = cpu.bus.read(addr)
+    ldy(cpu, value)
+                 
+def ldy_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    value = cpu.bus.read(addr)
+    ldy(cpu, value)
+                 
+def ldy_absolute_x(cpu: CPU):
+    addr = absolute_x(cpu)
+    value = cpu.bus.read(addr)
+    ldy(cpu, value)
+
+# ------ STY Opcodes
+
+def sty_zero_page(cpu: CPU):
+    addr = zero_page(cpu) 
+    sty(cpu, addr)
+
+
+def sty_zero_page_x(cpu: CPU):
+    addr = zero_page_x(cpu) 
+    sty(cpu, addr)
+
+
+def sty_absolute(cpu: CPU):
+    addr = absolute(cpu) 
+    sty(cpu, addr)
 
 
 OPCODE_TABLE = {
@@ -139,6 +195,20 @@ OPCODE_TABLE = {
     0xB6: ldx_zero_page_y,
     0xAE: ldx_absolute,
     0xBE: ldx_absolute_y,
+    
+    0x86: stx_zero_page,
+    0x96: stx_zero_page_y,
+    0x8E: stx_absolute,
 
+    0xA0: ldy_immediate,
+    0xA4: ldy_zero_page,
+    0xB4: ldy_zero_page_x,
+    0xAC: ldy_absolute,
+    0xBC: ldy_absolute_x,
 
+    0x84: sty_zero_page,
+    0x94: sty_zero_page_x,
+    0x8C: sty_absolute,
+
+    
 }
