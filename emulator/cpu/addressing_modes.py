@@ -34,6 +34,13 @@ def zero_page_x(cpu: CPU) -> int:
     # addr = (base + cpu.x) % 256 
     return addr
 
+def zero_page_y(cpu: CPU) -> int:
+    base = cpu.fetch_byte()
+    addr = (base + cpu.y) & 0xFF
+    # Alternative:
+    # addr = (base + cpu.y) % 256 
+    return addr
+
 def indirect_x(cpu: CPU) -> int:
     base = cpu.fetch_byte()
     ptr = (base + cpu.x) & 0xFF
