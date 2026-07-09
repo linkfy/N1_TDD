@@ -68,5 +68,31 @@ def adc(cpu: CPU, value: int):
     cpu.a = result_8
 
 
+def sbc(cpu: CPU, value: int):
+    
+    # Get actual carry status
+    carry = int(cpu.flags.get_carry_flag())
+    
+    a = cpu.a
+    # ~value -> inverted should be limited to 8 bits
+    # Be careful to not use directly ~value in python, ~0x01 == -2, and we expect 0xFE
+    # We can use (~value) & 0xFF | Also we can use: value ^ 0xFF
+    value_inverted = (~value) & 0xFF
+    result = a + value_inverted + carry
+    result_8 = result & 0xFF
+
+    # Update flags
+    # Result will never be negative if we use value_inverted, 
+    # so is better to test (result > 0xFF) instead of ~(result < 0x00)
+    cpu.flags.set_carry_flag(result > 0xFF)
+    cpu.flags.set_zero_flag(result_8 == 0)
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+
+    # https://www.nesdev.org/wiki/Instruction_reference#SBC -> overflow formula
+    overflow = ((result_8 ^ a) & (result_8 ^ value_inverted)) & 0b1000_0000 # 0b1000_0000 = 0x80
+    cpu.flags.set_overflow_flag(overflow != 0)
+    
+    # Set new A value
+    cpu.a = result_8
 
 
