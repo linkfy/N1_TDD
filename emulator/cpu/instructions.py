@@ -45,3 +45,8 @@ def tay(cpu: CPU):
 def tya(cpu: CPU):
     cpu.a = cpu.y
     cpu._update_zero_and_negative_flags(cpu.a)
+
+#def adc(cpu: CPU, value: int):
+
+
+

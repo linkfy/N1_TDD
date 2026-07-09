@@ -108,16 +108,16 @@ def test_flags_handler_set_methods_exist():
     Objective:
     Define setter methods for the common CPU flags:
 
-        def _set_zero_flag(self, enabled: bool):
+        def set_zero_flag(self, enabled: bool):
             ...
 
-        def _set_negative_flag(self, enabled: bool):
+        def set_negative_flag(self, enabled: bool):
             ...
 
-        def _set_overflow_flag(self, enabled: bool):
+        def set_overflow_flag(self, enabled: bool):
             ...
 
-        def _set_carry_flag(self, enabled: bool):
+        def set_carry_flag(self, enabled: bool):
             ...
 
     Important:
@@ -129,12 +129,12 @@ def test_flags_handler_set_methods_exist():
     Future instructions will decide the condition and then call the setter.
 
     Example:
-        cpu.flags._set_carry_flag(result > 0xFF)
+        cpu.flags.set_carry_flag(result > 0xFF)
     """
-    assert hasattr(FlagsHandler, "_set_zero_flag")
-    assert hasattr(FlagsHandler, "_set_negative_flag")
-    assert hasattr(FlagsHandler, "_set_overflow_flag")
-    assert hasattr(FlagsHandler, "_set_carry_flag")
+    assert hasattr(FlagsHandler, "set_zero_flag")
+    assert hasattr(FlagsHandler, "set_negative_flag")
+    assert hasattr(FlagsHandler, "set_overflow_flag")
+    assert hasattr(FlagsHandler, "set_carry_flag")
 
 
 def test_flags_handler_get_methods_exist():
@@ -142,16 +142,16 @@ def test_flags_handler_get_methods_exist():
     Objective:
     Define getter methods for the common CPU flags:
 
-        def _get_zero_flag(self) -> bool:
+        def get_zero_flag(self) -> bool:
             ...
 
-        def _get_negative_flag(self) -> bool:
+        def get_negative_flag(self) -> bool:
             ...
 
-        def _get_overflow_flag(self) -> bool:
+        def get_overflow_flag(self) -> bool:
             ...
 
-        def _get_carry_flag(self) -> bool:
+        def get_carry_flag(self) -> bool:
             ...
 
     Example implementation:
@@ -161,69 +161,69 @@ def test_flags_handler_get_methods_exist():
     Later branch instructions can ask if a flag is active.
 
     Example:
-        if cpu.flags._get_zero_flag():
+        if cpu.flags.get_zero_flag():
             ...
     """
-    assert hasattr(FlagsHandler, "_get_zero_flag")
-    assert hasattr(FlagsHandler, "_get_negative_flag")
-    assert hasattr(FlagsHandler, "_get_overflow_flag")
-    assert hasattr(FlagsHandler, "_get_carry_flag")
+    assert hasattr(FlagsHandler, "get_zero_flag")
+    assert hasattr(FlagsHandler, "get_negative_flag")
+    assert hasattr(FlagsHandler, "get_overflow_flag")
+    assert hasattr(FlagsHandler, "get_carry_flag")
 
 
 def test_flags_handler_sets_and_clears_zero_flag():
-    """Objective: _set_zero_flag(True) sets Z, and False clears Z."""
+    """Objective: set_zero_flag(True) sets Z, and False clears Z."""
     cpu = make_cpu()
     flags = FlagsHandler(cpu)
 
-    flags._set_zero_flag(True)
+    flags.set_zero_flag(True)
     assert (cpu.p & ZERO_FLAG) != 0
-    assert flags._get_zero_flag() is True
+    assert flags.get_zero_flag() is True
 
-    flags._set_zero_flag(False)
+    flags.set_zero_flag(False)
     assert (cpu.p & ZERO_FLAG) == 0
-    assert flags._get_zero_flag() is False
+    assert flags.get_zero_flag() is False
 
 
 def test_flags_handler_sets_and_clears_negative_flag():
-    """Objective: _set_negative_flag(True) sets N, and False clears N."""
+    """Objective: set_negative_flag(True) sets N, and False clears N."""
     cpu = make_cpu()
     flags = FlagsHandler(cpu)
 
-    flags._set_negative_flag(True)
+    flags.set_negative_flag(True)
     assert (cpu.p & NEGATIVE_FLAG) != 0
-    assert flags._get_negative_flag() is True
+    assert flags.get_negative_flag() is True
 
-    flags._set_negative_flag(False)
+    flags.set_negative_flag(False)
     assert (cpu.p & NEGATIVE_FLAG) == 0
-    assert flags._get_negative_flag() is False
+    assert flags.get_negative_flag() is False
 
 
 def test_flags_handler_sets_and_clears_overflow_flag():
-    """Objective: _set_overflow_flag(True) sets V, and False clears V."""
+    """Objective: set_overflow_flag(True) sets V, and False clears V."""
     cpu = make_cpu()
     flags = FlagsHandler(cpu)
 
-    flags._set_overflow_flag(True)
+    flags.set_overflow_flag(True)
     assert (cpu.p & OVERFLOW_FLAG) != 0
-    assert flags._get_overflow_flag() is True
+    assert flags.get_overflow_flag() is True
 
-    flags._set_overflow_flag(False)
+    flags.set_overflow_flag(False)
     assert (cpu.p & OVERFLOW_FLAG) == 0
-    assert flags._get_overflow_flag() is False
+    assert flags.get_overflow_flag() is False
 
 
 def test_flags_handler_sets_and_clears_carry_flag():
-    """Objective: _set_carry_flag(True) sets C, and False clears C."""
+    """Objective: set_carry_flag(True) sets C, and False clears C."""
     cpu = make_cpu()
     flags = FlagsHandler(cpu)
 
-    flags._set_carry_flag(True)
+    flags.set_carry_flag(True)
     assert (cpu.p & CARRY_FLAG) != 0
-    assert flags._get_carry_flag() is True
+    assert flags.get_carry_flag() is True
 
-    flags._set_carry_flag(False)
+    flags.set_carry_flag(False)
     assert (cpu.p & CARRY_FLAG) == 0
-    assert flags._get_carry_flag() is False
+    assert flags.get_carry_flag() is False
 
 
 def test_cpu_has_flags_handler_instance():
@@ -271,13 +271,13 @@ def test_cpu_keeps_old_zero_and_negative_update_method_for_compatibility():
         cpu._update_zero_and_negative_flags(value)
 
     But new or refactored code should prefer:
-        cpu.flags._set_zero_flag(value == 0)
-        cpu.flags._set_negative_flag((value & 0x80) != 0)
+        cpu.flags.set_zero_flag(value == 0)
+        cpu.flags.set_negative_flag((value & 0x80) != 0)
 
     Good future cleanup:
         def _update_zero_and_negative_flags(self, value):
-            self.flags._set_zero_flag(value == 0)
-            self.flags._set_negative_flag((value & 0x80) != 0)
+            self.flags.set_zero_flag(value == 0)
+            self.flags.set_negative_flag((value & 0x80) != 0)
 
     That keeps compatibility while moving the real flag logic into FlagsHandler.
     """

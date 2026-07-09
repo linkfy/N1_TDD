@@ -15,38 +15,38 @@ NEGATIVE_FLAG = 1 << 7
 class FlagsHandler:
     cpu: CPU
 
-    def _set_zero_flag(self, enabled: bool):
+    def set_zero_flag(self, enabled: bool):
         if enabled:
             self.cpu.p |= ZERO_FLAG 
         else:
             self.cpu.p &= ~ZERO_FLAG
 
-    def _set_negative_flag(self, enabled: bool):
+    def set_negative_flag(self, enabled: bool):
         if enabled:
             self.cpu.p |= NEGATIVE_FLAG
         else:
             self.cpu.p &= ~NEGATIVE_FLAG
 
-    def _set_overflow_flag(self, enabled: bool):
+    def set_overflow_flag(self, enabled: bool):
         if enabled:
             self.cpu.p |= OVERFLOW_FLAG
         else:
             self.cpu.p &= ~OVERFLOW_FLAG
 
-    def _set_carry_flag(self, enabled: bool):
+    def set_carry_flag(self, enabled: bool):
         if enabled:
             self.cpu.p |= CARRY_FLAG
         else:
             self.cpu.p &= ~CARRY_FLAG
 
-    def _get_zero_flag(self) -> bool:
+    def get_zero_flag(self) -> bool:
         return bool(self.cpu.p & ZERO_FLAG)
 
-    def _get_negative_flag(self) -> bool:
+    def get_negative_flag(self) -> bool:
         return bool(self.cpu.p & NEGATIVE_FLAG)
 
-    def _get_overflow_flag(self) -> bool:
+    def get_overflow_flag(self) -> bool:
         return bool(self.cpu.p & OVERFLOW_FLAG)
 
-    def _get_carry_flag(self) -> bool:
+    def get_carry_flag(self) -> bool:
         return bool(self.cpu.p & CARRY_FLAG)
