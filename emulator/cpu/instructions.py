@@ -1,4 +1,5 @@
 from __future__ import annotations
+from os import truncate
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -46,7 +47,26 @@ def tya(cpu: CPU):
     cpu.a = cpu.y
     cpu._update_zero_and_negative_flags(cpu.a)
 
-#def adc(cpu: CPU, value: int):
+def adc(cpu: CPU, value: int):
+    # Get actual carry status
+    carry = int(cpu.flags.get_carry_flag())
+    
+    a = cpu.a
+    result = a + value + carry
+    result_8 = result & 0xFF
+
+    # Update flags
+    cpu.flags.set_carry_flag(result > 0xFF)
+    cpu.flags.set_zero_flag(result_8 == 0)
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+
+    # https://www.nesdev.org/wiki/Instruction_reference#ADC -> overflow formula
+    overflow = ((result_8 ^ a) & (result_8 ^ value)) & 0b1000_0000 # 0b1000_0000 = 0x80
+    cpu.flags.set_overflow_flag(overflow != 0)
+    
+    # Set new A value
+    cpu.a = result_8
+
 
 
 
