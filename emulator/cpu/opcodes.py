@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from emulator.cpu.cpu import CPU
 # ------------------------------------
 
-from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc, sbc, inc
+from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc, sbc, inc, dec
 from emulator.cpu.addressing_modes import (
     immediate,
     zero_page,
@@ -274,6 +274,25 @@ def inc_absolute_x(cpu: CPU):
     inc(cpu, addr)
 
 
+# ------ DEC Opcodes
+
+def dec_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    dec(cpu, addr)
+
+def dec_zero_page_x(cpu: CPU):
+    addr = zero_page_x(cpu)
+    dec(cpu, addr)
+
+def dec_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    dec(cpu, addr)
+
+def dec_absolute_x(cpu: CPU):
+    addr = absolute_x(cpu)
+    dec(cpu, addr)
+
+
 OPCODE_TABLE = {
     0xA9: lda_immediate,
     0xA5: lda_zero_page,
@@ -339,5 +358,10 @@ OPCODE_TABLE = {
     0xF6: inc_zero_page_x,
     0xEE: inc_absolute,
     0xFE: inc_absolute_x,
+    
+    0xC6: dec_zero_page,
+    0xD6: dec_zero_page_x,
+    0xCE: dec_absolute,
+    0xDE: dec_absolute_x,
     
 }
