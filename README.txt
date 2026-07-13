@@ -29,4 +29,4 @@ Rendering
 Next steps:
 Arithmetic	ADC	SBC	INC	DEC	INX	DEX	INY	DEY
 
-Next TODO: Opcodes using our new SBC
+Next TODO: Instruction INC + Opcodes

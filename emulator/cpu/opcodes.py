@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from emulator.cpu.cpu import CPU
 # ------------------------------------
 
-from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc
+from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc, sbc
 from emulator.cpu.addressing_modes import (
     immediate,
     zero_page,
@@ -214,6 +214,48 @@ def adc_indirect_y(cpu: CPU):
     adc(cpu, value)
 
 
+# ------ SBC Opcodes
+
+def sbc_immediate(cpu: CPU):
+    value = immediate(cpu)
+    sbc(cpu, value)
+
+def sbc_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    value = cpu.bus.read(addr)
+    sbc(cpu, value)
+
+def sbc_zero_page_x(cpu: CPU):
+    addr = zero_page_x(cpu)
+    value = cpu.bus.read(addr)
+    sbc(cpu, value)
+
+def sbc_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    value = cpu.bus.read(addr)
+    sbc(cpu, value)
+
+def sbc_absolute_x(cpu: CPU):
+    addr = absolute_x(cpu)
+    value = cpu.bus.read(addr)
+    sbc(cpu, value)
+
+def sbc_absolute_y(cpu: CPU):
+    addr = absolute_y(cpu)
+    value = cpu.bus.read(addr)
+    sbc(cpu, value)
+
+def sbc_indirect_x(cpu: CPU):
+    addr = indirect_x(cpu)
+    value = cpu.bus.read(addr)
+    sbc(cpu, value)
+
+def sbc_indirect_y(cpu: CPU):
+    addr = indirect_y(cpu)
+    value = cpu.bus.read(addr)
+    sbc(cpu, value)
+
+
 OPCODE_TABLE = {
     0xA9: lda_immediate,
     0xA5: lda_zero_page,
@@ -265,5 +307,14 @@ OPCODE_TABLE = {
     0x79: adc_absolute_y,
     0x61: adc_indirect_x,
     0x71: adc_indirect_y,
+
+    0xE9: sbc_immediate,
+    0xE5: sbc_zero_page,
+    0xF5: sbc_zero_page_x,
+    0xED: sbc_absolute,
+    0xFD: sbc_absolute_x,
+    0xF9: sbc_absolute_y,
+    0xE1: sbc_indirect_x,
+    0xF1: sbc_indirect_y,
     
 }
