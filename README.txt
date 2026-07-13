@@ -29,4 +29,4 @@ Rendering
 Next steps:
 Arithmetic	ASL	LSR	ROL	ROR	
 
-Next TODO: ASL Instruction + Opcodes
+Next TODO: LSR Instruction + Opcodes

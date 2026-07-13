@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from emulator.cpu.cpu import CPU
 # ------------------------------------
 
-from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc, sbc, inc, dec, inx, dex, iny, dey
+from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc, sbc, inc, dec, inx, dex, iny, dey, asl, asl_a
 from emulator.cpu.addressing_modes import (
     immediate,
     zero_page,
@@ -292,6 +292,26 @@ def dec_absolute_x(cpu: CPU):
     addr = absolute_x(cpu)
     dec(cpu, addr)
 
+# ------ ASL Opcodes
+# asl_a -> directly mapped on OPCODE_TABLE
+
+def asl_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    asl(cpu, addr)
+
+def asl_zero_page_x(cpu: CPU):
+    addr = zero_page_x(cpu)
+    asl(cpu, addr)
+
+def asl_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    asl(cpu, addr)
+
+def asl_absolute_x(cpu: CPU):
+    addr = absolute_x(cpu)
+    asl(cpu, addr)
+
+
 
 OPCODE_TABLE = {
     0xA9: lda_immediate,
@@ -368,5 +388,10 @@ OPCODE_TABLE = {
     0xCA: dex,
     0xC8: iny,
     0x88: dey,
-    
+
+    0x0A: asl_a,
+    0x06: asl_zero_page,
+    0x16: asl_zero_page_x,
+    0x0E: asl_absolute,
+    0x1E: asl_absolute_x,
 }
