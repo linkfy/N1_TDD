@@ -140,3 +140,24 @@ def dex(cpu: CPU):
     cpu.x = result_8
 
 
+def iny(cpu: CPU):
+    result = cpu.y + 1
+    result_8 = result & 0xFF
+
+    # Set flags
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+    cpu.flags.set_zero_flag(result_8 == 0)
+
+    cpu.y = result_8
+
+def dey(cpu: CPU):
+    result = cpu.y - 1
+    result_8 = result & 0xFF
+
+    # Set flags
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+    cpu.flags.set_zero_flag(result_8 == 0)
+
+    cpu.y = result_8
+
+

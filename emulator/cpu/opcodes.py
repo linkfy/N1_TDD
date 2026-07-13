@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from emulator.cpu.cpu import CPU
 # ------------------------------------
 
-from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc, sbc, inc, dec, inx, dex
+from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc, sbc, inc, dec, inx, dex, iny, dey
 from emulator.cpu.addressing_modes import (
     immediate,
     zero_page,
@@ -366,5 +366,7 @@ OPCODE_TABLE = {
 
     0xE8: inx,
     0xCA: dex,
+    0xC8: iny,
+    0x88: dey,
     
 }

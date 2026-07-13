@@ -27,6 +27,6 @@ Rendering
 --
 
 Next steps:
-Arithmetic	ADC	SBC	INC	DEC	INX	DEX	INY	DEY
+Arithmetic	ASL	LSR	ROL	ROR	
 
-Next TODO: INY/DEY instruction + Opcodes
+Next TODO: ASL Instruction + Opcodes
