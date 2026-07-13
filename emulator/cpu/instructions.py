@@ -119,5 +119,24 @@ def dec(cpu: CPU, address: int):
     # Set value on address
     cpu.bus.write(address, result_8)
 
+def inx(cpu: CPU):
+    result = cpu.x + 1
+    result_8 = result & 0xFF
+
+    # Set flags
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+    cpu.flags.set_zero_flag(result_8 == 0)
+
+    cpu.x = result_8
+
+def dex(cpu: CPU):
+    result = cpu.x - 1
+    result_8 = result & 0xFF
+
+    # Set flags
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+    cpu.flags.set_zero_flag(result_8 == 0)
+
+    cpu.x = result_8
 
 
