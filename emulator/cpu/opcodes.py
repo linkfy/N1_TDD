@@ -5,7 +5,7 @@ if TYPE_CHECKING:
     from emulator.cpu.cpu import CPU
 # ------------------------------------
 
-from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc, sbc
+from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc, sbc, inc
 from emulator.cpu.addressing_modes import (
     immediate,
     zero_page,
@@ -255,6 +255,24 @@ def sbc_indirect_y(cpu: CPU):
     value = cpu.bus.read(addr)
     sbc(cpu, value)
 
+# ------ INC Opcodes
+
+def inc_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    inc(cpu, addr)
+
+def inc_zero_page_x(cpu: CPU):
+    addr = zero_page_x(cpu)
+    inc(cpu, addr)
+
+def inc_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    inc(cpu, addr)
+
+def inc_absolute_x(cpu: CPU):
+    addr = absolute_x(cpu)
+    inc(cpu, addr)
+
 
 OPCODE_TABLE = {
     0xA9: lda_immediate,
@@ -316,5 +334,10 @@ OPCODE_TABLE = {
     0xF9: sbc_absolute_y,
     0xE1: sbc_indirect_x,
     0xF1: sbc_indirect_y,
+
+    0xE6: inc_zero_page,
+    0xF6: inc_zero_page_x,
+    0xEE: inc_absolute,
+    0xFE: inc_absolute_x,
     
 }

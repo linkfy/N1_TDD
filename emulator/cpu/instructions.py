@@ -1,5 +1,4 @@
 from __future__ import annotations
-from os import truncate
 from typing import TYPE_CHECKING
 
 if TYPE_CHECKING:
@@ -94,5 +93,17 @@ def sbc(cpu: CPU, value: int):
     
     # Set new A value
     cpu.a = result_8
+
+def inc(cpu: CPU, address: int):
+    value = cpu.bus.read(address)
+    result = value + 1
+    result_8 = result & 0xFF
+
+    # Set flags
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+    cpu.flags.set_zero_flag(result_8 == 0)
+
+    # Set value on address
+    cpu.bus.write(address, result_8)
 
 
