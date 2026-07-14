@@ -123,4 +123,3 @@ def test_lda_clears_negative_flag():
     assert (cpu.p & ( 1 << 7 )) == 0 # N = 0
 
 
-

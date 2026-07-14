@@ -52,4 +52,3 @@ def test_cpu_fetch_word(cpu):
 
     assert cpu.fetch_word() == 0x1234
 
-

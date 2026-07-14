@@ -67,4 +67,3 @@ def test_ram_uses_memory_device_abstract_class():
     ram = RAM()
     assert isinstance(ram, MemoryDevice)
 
-

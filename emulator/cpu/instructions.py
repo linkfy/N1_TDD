@@ -174,12 +174,38 @@ def asl(cpu: CPU, addr: int):
 
 def asl_a(cpu: CPU):
     value = cpu.a
-    result = cpu.a << 1
+    result = value << 1
     result_8 = result & 0xFF
 
     # Set flags
     cpu.flags.set_carry_flag((value & 0b1000_0000) != 0)
     cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+    cpu.flags.set_zero_flag(result_8 == 0)
+
+    cpu.a = result_8
+
+
+
+def lsr(cpu: CPU, addr: int):
+    value = cpu.bus.read(addr)
+    result = value >> 1
+    result_8 = result & 0xFF
+
+    # Set flags
+    cpu.flags.set_carry_flag((value & 0x01) != 0)
+    cpu.flags.set_negative_flag(False)
+    cpu.flags.set_zero_flag(result_8 == 0)
+
+    cpu.bus.write(addr, result_8)
+
+def lsr_a(cpu: CPU):
+    value = cpu.a
+    result = value >> 1
+    result_8 = result & 0xFF
+
+    # Set flags
+    cpu.flags.set_carry_flag((value & 0x01) != 0)
+    cpu.flags.set_negative_flag(False)
     cpu.flags.set_zero_flag(result_8 == 0)
 
     cpu.a = result_8

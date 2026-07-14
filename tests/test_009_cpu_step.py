@@ -79,4 +79,3 @@ def test_lda_flags():
 
     assert cpu.a == 0x42
 
-

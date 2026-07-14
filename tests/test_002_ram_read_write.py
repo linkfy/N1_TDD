@@ -32,4 +32,3 @@ def test_write_read_ram():
         ram.write(i, test_value)
 
         assert ram.read(i) == test_value
-

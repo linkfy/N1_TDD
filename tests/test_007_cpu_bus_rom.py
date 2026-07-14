@@ -38,4 +38,3 @@ def test_cpu_bus_reads_program_rom():
 
         assert bus.read(cpu_addr) == (offset & 0xFF)
 
-

@@ -5,7 +5,10 @@ if TYPE_CHECKING:
     from emulator.cpu.cpu import CPU
 # ------------------------------------
 
-from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc, sbc, inc, dec, inx, dex, iny, dey, asl, asl_a
+from emulator.cpu.instructions import (lda, sta, ldx, stx, ldy, sty, 
+                                       tax, txa, tay, tya, 
+                                       adc, sbc, inc, dec, inx, dex, iny, dey, 
+                                       asl, asl_a, lsr, lsr_a)
 from emulator.cpu.addressing_modes import (
     immediate,
     zero_page,
@@ -312,6 +315,26 @@ def asl_absolute_x(cpu: CPU):
     asl(cpu, addr)
 
 
+# ------ LSR Opcodes
+# lsr_a -> directly mapped on OPCODE_TABLE
+
+def lsr_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    lsr(cpu, addr)
+
+def lsr_zero_page_x(cpu: CPU):
+    addr = zero_page_x(cpu)
+    lsr(cpu, addr)
+
+def lsr_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    lsr(cpu, addr)
+
+def lsr_absolute_x(cpu: CPU):
+    addr = absolute_x(cpu)
+    lsr(cpu, addr)
+
+
 
 OPCODE_TABLE = {
     0xA9: lda_immediate,
@@ -394,4 +417,10 @@ OPCODE_TABLE = {
     0x16: asl_zero_page_x,
     0x0E: asl_absolute,
     0x1E: asl_absolute_x,
+
+    0x4A: lsr_a,
+    0x46: lsr_zero_page,
+    0x56: lsr_zero_page_x,
+    0x4E: lsr_absolute,
+    0x5E: lsr_absolute_x,
 }

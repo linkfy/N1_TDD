@@ -65,4 +65,3 @@ def test_write_read_fake_rom():
         fake_rom.write(addr, test_value)
 
         assert fake_rom.read(addr) == test_value
-
