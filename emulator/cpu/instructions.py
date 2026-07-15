@@ -211,4 +211,66 @@ def lsr_a(cpu: CPU):
     cpu.a = result_8
 
 
+def rol(cpu: CPU, addr: int):
+    value = cpu.bus.read(addr)
+    old_carry = int(cpu.flags.get_carry_flag())
+
+    result = (value << 1) | old_carry
+    result_8 = result & 0xFF
+
+    # Set flags
+
+    cpu.flags.set_carry_flag((value & 0b1000_0000) != 0)
+    cpu.flags.set_zero_flag(result_8 == 0)
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+
+    cpu.bus.write(addr, result_8)
+
+
+def rol_a(cpu: CPU):
+    value = cpu.a
+    old_carry = int(cpu.flags.get_carry_flag())
+
+    result = (value << 1) | old_carry
+    result_8 = result & 0xFF
+
+    # Set flags
+
+    cpu.flags.set_carry_flag((value & 0b1000_0000) != 0)
+    cpu.flags.set_zero_flag(result_8 == 0)
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+
+    cpu.a = result_8
+
+def ror(cpu: CPU, addr: int):
+    value = cpu.bus.read(addr)
+    old_carry = int(cpu.flags.get_carry_flag())
+
+    result = (value >> 1) | (old_carry << 7)
+    result_8 = result & 0xFF
+
+    # Set flags
+
+    cpu.flags.set_carry_flag((value & 0x1) != 0)
+    cpu.flags.set_zero_flag(result_8 == 0)
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+
+    cpu.bus.write(addr, result_8)
+
+def ror_a(cpu: CPU):
+    value = cpu.a
+    old_carry = int(cpu.flags.get_carry_flag())
+
+    result = (value >> 1) | (old_carry << 7)
+    result_8 = result & 0xFF
+
+    # Set flags
+
+    cpu.flags.set_carry_flag((value & 0x1) != 0)
+    cpu.flags.set_zero_flag(result_8 == 0)
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+
+    cpu.a = result_8
+
+
 

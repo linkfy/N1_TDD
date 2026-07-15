@@ -27,6 +27,6 @@ Rendering
 --
 
 Next steps:
-Arithmetic	ASL	LSR	ROL	ROR	
+Bitwise AND	ORA	EOR	BIT	
 
-Next TODO: LSR Instruction + Opcodes
+Next TODO: AND Instruction + Opcodes

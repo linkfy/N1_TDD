@@ -8,7 +8,7 @@ if TYPE_CHECKING:
 from emulator.cpu.instructions import (lda, sta, ldx, stx, ldy, sty, 
                                        tax, txa, tay, tya, 
                                        adc, sbc, inc, dec, inx, dex, iny, dey, 
-                                       asl, asl_a, lsr, lsr_a)
+                                       asl, asl_a, lsr, lsr_a, rol, rol_a, ror, ror_a)
 from emulator.cpu.addressing_modes import (
     immediate,
     zero_page,
@@ -334,6 +334,48 @@ def lsr_absolute_x(cpu: CPU):
     addr = absolute_x(cpu)
     lsr(cpu, addr)
 
+# ------ ROL Opcodes
+# rol_a -> directly mapped on OPCODE_TABLE
+
+def rol_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    rol(cpu, addr)
+
+def rol_zero_page_x(cpu: CPU):
+    addr = zero_page_x(cpu)
+    rol(cpu, addr)
+
+def rol_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    rol(cpu, addr)
+
+def rol_absolute_x(cpu: CPU):
+    addr = absolute_x(cpu)
+    rol(cpu, addr)
+
+# ------ ROR Opcodes
+# ror_a -> directly mapped on OPCODE_TABLE
+
+def ror_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    ror(cpu, addr)
+
+def ror_zero_page_x(cpu: CPU):
+    addr = zero_page_x(cpu)
+    ror(cpu, addr)
+
+def ror_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    ror(cpu, addr)
+
+def ror_absolute_x(cpu: CPU):
+    addr = absolute_x(cpu)
+    ror(cpu, addr)
+
+
+
+
+
 
 
 OPCODE_TABLE = {
@@ -423,4 +465,18 @@ OPCODE_TABLE = {
     0x56: lsr_zero_page_x,
     0x4E: lsr_absolute,
     0x5E: lsr_absolute_x,
+
+    0x2A: rol_a,
+    0x26: rol_zero_page,
+    0x36: rol_zero_page_x,
+    0x2E: rol_absolute,
+    0x3E: rol_absolute_x,
+
+    0x6A: ror_a,
+    0x66: ror_zero_page,
+    0x76: ror_zero_page_x,
+    0x6E: ror_absolute,
+    0x7E: ror_absolute_x,
+
+
 }
