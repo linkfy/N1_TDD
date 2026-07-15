@@ -272,5 +272,40 @@ def ror_a(cpu: CPU):
 
     cpu.a = result_8
 
+def and_a(cpu: CPU, value: int):
+    result_8 = (cpu.a & value) & 0xFF
+    
+    # Flags:
+    cpu.flags.set_zero_flag(result_8 == 0)
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
 
+    cpu.a = result_8
+
+
+def or_a(cpu: CPU, value: int):
+    result_8 = (cpu.a | value) & 0xFF
+    
+    # Flags:
+    cpu.flags.set_zero_flag(result_8 == 0)
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+
+    cpu.a = result_8
+
+def or_e(cpu: CPU, value: int):
+    result_8 = (cpu.a ^ value) & 0xFF
+    
+    # Flags:
+    cpu.flags.set_zero_flag(result_8 == 0)
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+
+    cpu.a = result_8
+
+
+def bit(cpu: CPU, value: int):
+    result_8 = (cpu.a & value) & 0xFF
+    
+    # Flags:
+    cpu.flags.set_zero_flag(result_8 == 0)
+    cpu.flags.set_negative_flag((value & 0b1000_0000) != 0)
+    cpu.flags.set_overflow_flag((value & 0b0100_0000) != 0)
 

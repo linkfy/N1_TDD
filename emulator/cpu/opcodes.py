@@ -8,7 +8,9 @@ if TYPE_CHECKING:
 from emulator.cpu.instructions import (lda, sta, ldx, stx, ldy, sty, 
                                        tax, txa, tay, tya, 
                                        adc, sbc, inc, dec, inx, dex, iny, dey, 
-                                       asl, asl_a, lsr, lsr_a, rol, rol_a, ror, ror_a)
+                                       asl, asl_a, lsr, lsr_a, rol, rol_a, ror, ror_a,
+                                       and_a, or_a, or_e, bit)
+
 from emulator.cpu.addressing_modes import (
     immediate,
     zero_page,
@@ -20,6 +22,7 @@ from emulator.cpu.addressing_modes import (
     indirect_x,
     indirect_y,
 )
+
 # Opcode Handlers include: decoding/addressing details
 # They are not the same as instructions
 
@@ -373,9 +376,133 @@ def ror_absolute_x(cpu: CPU):
     ror(cpu, addr)
 
 
+# ------ AND Opcodes
+def and_immediate(cpu: CPU):
+    and_a(cpu, immediate(cpu))
 
+def and_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    value = cpu.bus.read(addr)
+    and_a(cpu, value)
 
+def and_zero_page_x(cpu: CPU):
+    addr = zero_page_x(cpu)
+    value = cpu.bus.read(addr)
+    and_a(cpu, value)
 
+def and_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    value = cpu.bus.read(addr)
+    and_a(cpu, value)
+
+def and_absolute_x(cpu: CPU):
+    addr = absolute_x(cpu)
+    value = cpu.bus.read(addr)
+    and_a(cpu, value)
+
+def and_absolute_y(cpu: CPU):
+    addr = absolute_y(cpu)
+    value = cpu.bus.read(addr)
+    and_a(cpu, value)
+
+def and_indirect_x(cpu: CPU):
+    addr = indirect_x(cpu)
+    value = cpu.bus.read(addr)
+    and_a(cpu, value)
+
+def and_indirect_y(cpu: CPU):
+    addr = indirect_y(cpu)
+    value = cpu.bus.read(addr)
+    and_a(cpu, value)
+
+# ------ ORA Opcodes
+def ora_immediate(cpu: CPU):
+    or_a(cpu, immediate(cpu))
+
+def ora_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    value = cpu.bus.read(addr)
+    or_a(cpu, value)
+
+def ora_zero_page_x(cpu: CPU):
+    addr = zero_page_x(cpu)
+    value = cpu.bus.read(addr)
+    or_a(cpu, value)
+
+def ora_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    value = cpu.bus.read(addr)
+    or_a(cpu, value)
+
+def ora_absolute_x(cpu: CPU):
+    addr = absolute_x(cpu)
+    value = cpu.bus.read(addr)
+    or_a(cpu, value)
+
+def ora_absolute_y(cpu: CPU):
+    addr = absolute_y(cpu)
+    value = cpu.bus.read(addr)
+    or_a(cpu, value)
+
+def ora_indirect_x(cpu: CPU):
+    addr = indirect_x(cpu)
+    value = cpu.bus.read(addr)
+    or_a(cpu, value)
+
+def ora_indirect_y(cpu: CPU):
+    addr = indirect_y(cpu)
+    value = cpu.bus.read(addr)
+    or_a(cpu, value)
+
+# ------ EOR Opcodes
+def eor_immediate(cpu: CPU):
+    or_e(cpu, immediate(cpu))
+
+def eor_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    value = cpu.bus.read(addr)
+    or_e(cpu, value)
+
+def eor_zero_page_x(cpu: CPU):
+    addr = zero_page_x(cpu)
+    value = cpu.bus.read(addr)
+    or_e(cpu, value)
+
+def eor_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    value = cpu.bus.read(addr)
+    or_e(cpu, value)
+
+def eor_absolute_x(cpu: CPU):
+    addr = absolute_x(cpu)
+    value = cpu.bus.read(addr)
+    or_e(cpu, value)
+
+def eor_absolute_y(cpu: CPU):
+    addr = absolute_y(cpu)
+    value = cpu.bus.read(addr)
+    or_e(cpu, value)
+
+def eor_indirect_x(cpu: CPU):
+    addr = indirect_x(cpu)
+    value = cpu.bus.read(addr)
+    or_e(cpu, value)
+
+def eor_indirect_y(cpu: CPU):
+    addr = indirect_y(cpu)
+    value = cpu.bus.read(addr)
+    or_e(cpu, value)
+
+# ------ BIT Opcodes
+def bit_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    value = cpu.bus.read(addr)
+    bit(cpu, value)
+
+def bit_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    value = cpu.bus.read(addr)
+    bit(cpu, value)
 
 
 OPCODE_TABLE = {
@@ -478,5 +605,34 @@ OPCODE_TABLE = {
     0x6E: ror_absolute,
     0x7E: ror_absolute_x,
 
+    0x29: and_immediate,
+    0x25: and_zero_page,
+    0x35: and_zero_page_x,
+    0x2D: and_absolute,
+    0x3D: and_absolute_x,
+    0x39: and_absolute_y,
+    0x21: and_indirect_x,
+    0x31: and_indirect_y,
+
+    0x09: ora_immediate,
+    0x05: ora_zero_page,
+    0x15: ora_zero_page_x,
+    0x0D: ora_absolute,
+    0x1D: ora_absolute_x,
+    0x19: ora_absolute_y,
+    0x01: ora_indirect_x,
+    0x11: ora_indirect_y,
+
+    0x49: eor_immediate,
+    0x45: eor_zero_page,
+    0x55: eor_zero_page_x,
+    0x4D: eor_absolute,
+    0x5D: eor_absolute_x,
+    0x59: eor_absolute_y,
+    0x41: eor_indirect_x,
+    0x51: eor_indirect_y,
+
+    0x24: bit_zero_page,
+    0x2C: bit_absolute,
 
 }

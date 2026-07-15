@@ -27,6 +27,5 @@ Rendering
 --
 
 Next steps:
-Bitwise AND	ORA	EOR	BIT	
-
-Next TODO: AND Instruction + Opcodes
+Compare	CMP	CPX	CPY		
+Next TODO: CMP Instruction + Opcodes
