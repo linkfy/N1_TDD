@@ -10,10 +10,12 @@ from emulator.cpu.instructions import (lda, sta, ldx, stx, ldy, sty,
                                        adc, sbc, inc, dec, inx, dex, iny, dey, 
                                        asl, asl_a, lsr, lsr_a, rol, rol_a, ror, ror_a,
                                        and_a, or_a, or_e, bit,
-                                       cmp, cpx, cpy)
+                                       cmp, cpx, cpy,
+                                       bcc, bcs, beq, bne, bpl, bmi, bvc, bvs)
 
 from emulator.cpu.addressing_modes import (
     immediate,
+    relative,
     zero_page,
     zero_page_x,
     zero_page_y,
@@ -573,6 +575,40 @@ def cpy_absolute(cpu: CPU):
     cpy(cpu, value)
 
 
+# ------ Branch Opcodes
+def bcc_relative(cpu: CPU):
+    offset = relative(cpu)
+    bcc(cpu, offset)
+
+def bcs_relative(cpu: CPU):
+    offset = relative(cpu)
+    bcs(cpu, offset)
+
+def beq_relative(cpu: CPU):
+    offset = relative(cpu)
+    beq(cpu, offset)
+
+def bne_relative(cpu: CPU):
+    offset = relative(cpu)
+    bne(cpu, offset)
+
+def bpl_relative(cpu: CPU):
+    offset = relative(cpu)
+    bpl(cpu, offset)
+
+def bmi_relative(cpu: CPU):
+    offset = relative(cpu)
+    bmi(cpu, offset)
+
+def bvc_relative(cpu: CPU):
+    offset = relative(cpu)
+    bvc(cpu, offset)
+
+def bvs_relative(cpu: CPU):
+    offset = relative(cpu)
+    bvs(cpu, offset)
+
+
 
 
 OPCODE_TABLE = {
@@ -721,4 +757,13 @@ OPCODE_TABLE = {
     0xC0: cpy_immediate,
     0xC4: cpy_zero_page,
     0xCC: cpy_absolute,
+
+    0x90: bcc_relative,
+    0xB0: bcs_relative,
+    0xF0: beq_relative,
+    0xD0: bne_relative,
+    0x10: bpl_relative,
+    0x30: bmi_relative,
+    0x50: bvc_relative,
+    0x70: bvs_relative,
 }

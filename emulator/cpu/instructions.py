@@ -339,3 +339,31 @@ def bcc(cpu: CPU, offset: int):
     if not cpu.flags.get_carry_flag():
         cpu.pc = (cpu.pc + offset) & 0xFFFF
 
+def bcs(cpu: CPU, offset: int):
+    if cpu.flags.get_carry_flag():
+        cpu.pc = (cpu.pc + offset) & 0xFFFF
+
+def beq(cpu: CPU, offset: int):
+    if cpu.flags.get_zero_flag():
+        cpu.pc = (cpu.pc + offset) & 0xFFFF
+
+def bne(cpu: CPU, offset: int):
+    if not cpu.flags.get_zero_flag():
+        cpu.pc = (cpu.pc + offset) & 0xFFFF
+
+
+def bpl(cpu: CPU, offset: int):
+    if not cpu.flags.get_negative_flag():
+        cpu.pc = (cpu.pc + offset) & 0xFFFF
+
+def bmi(cpu: CPU, offset: int):
+    if cpu.flags.get_negative_flag():
+        cpu.pc = (cpu.pc + offset) & 0xFFFF
+
+def bvc(cpu: CPU, offset: int):
+    if not cpu.flags.get_overflow_flag():
+        cpu.pc = (cpu.pc + offset) & 0xFFFF
+
+def bvs(cpu: CPU, offset: int):
+    if cpu.flags.get_overflow_flag():
+        cpu.pc = (cpu.pc + offset) & 0xFFFF
