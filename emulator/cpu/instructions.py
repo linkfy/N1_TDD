@@ -334,3 +334,8 @@ def cpy(cpu: CPU, value: int):
     cpu.flags.set_carry_flag(cpu.y >= value)
     cpu.flags.set_zero_flag(cpu.y == value)
     cpu.flags.set_negative_flag((result_8 & 0b1000_0000) !=0)
+
+def bcc(cpu: CPU, offset: int):
+    if not cpu.flags.get_carry_flag():
+        cpu.pc = (cpu.pc + offset) & 0xFFFF
+

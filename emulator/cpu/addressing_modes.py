@@ -57,6 +57,13 @@ def indirect_y(cpu: CPU) -> int:
     return (low | (high << 8)) + cpu.y
 
     
-
-
+def relative(cpu: CPU) -> int:
+    offset = cpu.fetch_byte()
+    # Transform to signed integer
+    # 0x7F -> +127
+    # 0x80 -> -128
+    # 0xFF -> -1
+    if offset & 0x80: # offset has bit 7 active, is negative
+        offset -= 0x100
+    return offset
 
