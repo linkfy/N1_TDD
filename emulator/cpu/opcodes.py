@@ -9,7 +9,8 @@ from emulator.cpu.instructions import (lda, sta, ldx, stx, ldy, sty,
                                        tax, txa, tay, tya, 
                                        adc, sbc, inc, dec, inx, dex, iny, dey, 
                                        asl, asl_a, lsr, lsr_a, rol, rol_a, ror, ror_a,
-                                       and_a, or_a, or_e, bit)
+                                       and_a, or_a, or_e, bit,
+                                       cmp, cpx, cpy)
 
 from emulator.cpu.addressing_modes import (
     immediate,
@@ -504,6 +505,75 @@ def bit_absolute(cpu: CPU):
     value = cpu.bus.read(addr)
     bit(cpu, value)
 
+# ------ CMP Opcodes
+def cmp_immediate(cpu: CPU):
+    cmp(cpu, immediate(cpu))
+
+def cmp_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    value = cpu.bus.read(addr)
+    cmp(cpu, value)
+
+def cmp_zero_page_x(cpu: CPU):
+    addr = zero_page_x(cpu)
+    value = cpu.bus.read(addr)
+    cmp(cpu, value)
+
+def cmp_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    value = cpu.bus.read(addr)
+    cmp(cpu, value)
+
+def cmp_absolute_x(cpu: CPU):
+    addr = absolute_x(cpu)
+    value = cpu.bus.read(addr)
+    cmp(cpu, value)
+
+def cmp_absolute_y(cpu: CPU):
+    addr = absolute_y(cpu)
+    value = cpu.bus.read(addr)
+    cmp(cpu, value)
+
+def cmp_indirect_x(cpu: CPU):
+    addr = indirect_x(cpu)
+    value = cpu.bus.read(addr)
+    cmp(cpu, value)
+
+def cmp_indirect_y(cpu: CPU):
+    addr = indirect_y(cpu)
+    value = cpu.bus.read(addr)
+    cmp(cpu, value)
+
+# ------ CPX Opcodes
+def cpx_immediate(cpu: CPU):
+    cpx(cpu, immediate(cpu))
+
+def cpx_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    value = cpu.bus.read(addr)
+    cpx(cpu, value)
+
+def cpx_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    value = cpu.bus.read(addr)
+    cpx(cpu, value)
+
+# ------ CPY Opcodes
+def cpy_immediate(cpu: CPU):
+    cpy(cpu, immediate(cpu))
+
+def cpy_zero_page(cpu: CPU):
+    addr = zero_page(cpu)
+    value = cpu.bus.read(addr)
+    cpy(cpu, value)
+
+def cpy_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    value = cpu.bus.read(addr)
+    cpy(cpu, value)
+
+
+
 
 OPCODE_TABLE = {
     0xA9: lda_immediate,
@@ -635,4 +705,20 @@ OPCODE_TABLE = {
     0x24: bit_zero_page,
     0x2C: bit_absolute,
 
+    0xC9: cmp_immediate,
+    0xC5: cmp_zero_page,
+    0xD5: cmp_zero_page_x,
+    0xCD: cmp_absolute,
+    0xDD: cmp_absolute_x,
+    0xD9: cmp_absolute_y,
+    0xC1: cmp_indirect_x,
+    0xD1: cmp_indirect_y,
+
+    0xE0: cpx_immediate,
+    0xE4: cpx_zero_page,
+    0xEC: cpx_absolute,
+
+    0xC0: cpy_immediate,
+    0xC4: cpy_zero_page,
+    0xCC: cpy_absolute,
 }

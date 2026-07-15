@@ -309,3 +309,28 @@ def bit(cpu: CPU, value: int):
     cpu.flags.set_negative_flag((value & 0b1000_0000) != 0)
     cpu.flags.set_overflow_flag((value & 0b0100_0000) != 0)
 
+def cmp(cpu: CPU, value: int):
+    result_8 = (cpu.a - value) & 0xFF
+
+    # Flags:
+    cpu.flags.set_carry_flag(cpu.a >= value)
+    cpu.flags.set_zero_flag(cpu.a == value)
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) !=0)
+
+
+def cpx(cpu: CPU, value: int):
+    result_8 = (cpu.x - value) & 0xFF
+
+    # Flags:
+    cpu.flags.set_carry_flag(cpu.x >= value)
+    cpu.flags.set_zero_flag(cpu.x == value)
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) !=0)
+
+
+def cpy(cpu: CPU, value: int):
+    result_8 = (cpu.y - value) & 0xFF
+
+    # Flags:
+    cpu.flags.set_carry_flag(cpu.y >= value)
+    cpu.flags.set_zero_flag(cpu.y == value)
+    cpu.flags.set_negative_flag((result_8 & 0b1000_0000) !=0)

@@ -27,5 +27,5 @@ Rendering
 --
 
 Next steps:
-Compare	CMP	CPX	CPY		
-Next TODO: CMP Instruction + Opcodes
+Branch	BCC	BCS	BEQ	BNE	BPL	BMI	BVC	BVS
+Next TODO: BCC Instruction + Opcodes
