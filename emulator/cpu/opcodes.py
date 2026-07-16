@@ -12,7 +12,7 @@ from emulator.cpu.instructions import (lda, sta, ldx, stx, ldy, sty,
                                        and_a, or_a, or_e, bit,
                                        cmp, cpx, cpy,
                                        bcc, bcs, beq, bne, bpl, bmi, bvc, bvs,
-                                       jmp, jsr)
+                                       jmp, jsr, rts, brk, rti)
 
 from emulator.cpu.addressing_modes import (
     immediate,
@@ -619,7 +619,7 @@ def jmp_indirect(cpu: CPU):
     addr = indirect(cpu)
     jmp(cpu, addr)
 
-# ------ JMP Opcodes
+# ------ JSR Opcodes
 def jsr_absolute(cpu: CPU):
     addr = absolute(cpu)
     jsr(cpu, addr)
@@ -784,4 +784,7 @@ OPCODE_TABLE = {
     0x4C: jmp_absolute,
     0x6C: jmp_indirect,
     0x20: jsr_absolute,
+    0x60: rts,
+    0x00: brk,
+    0x40: rti,
 }

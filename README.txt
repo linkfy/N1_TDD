@@ -27,5 +27,5 @@ Rendering
 --
 
 Next steps:
-Jump	RTS	BRK	RTI	
-Next TODO: RTS instruction + opcode
+Stack	PHA	PLA	PHP	PLP	TXS	TSX	
+Next TODO: PHA instruction + opcode

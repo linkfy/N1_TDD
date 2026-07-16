@@ -388,4 +388,63 @@ def jsr(cpu: CPU, addr: int):
     
     cpu.pc = addr & 0xFFFF
 
+def rts(cpu: CPU):
+    STACK_BASE = 0x0100
+
+    cpu.s = (cpu.s + 1) & 0xFF
+    low = cpu.bus.read(STACK_BASE | cpu.s)
+
+    cpu.s = (cpu.s + 1) & 0xFF
+    high = cpu.bus.read(STACK_BASE | cpu.s)
+
+    addr = (high << 8) | low
+    cpu.pc = (addr + 1) & 0xFFFF
+
+def brk(cpu: CPU):
+    # Why PC + 1? CPU.step already consumed opcode BRK ($00)
+    # So PC points to padding byte after BRK opcode. It can be anything (And ignored)
+    # We need to increment PC to the next real instruction, for when we return.
+    return_addr = (cpu.pc + 1) & 0xFFFF 
+    STACK_BASE = 0x0100
+
+    high = (return_addr >> 8) & 0xFF
+    low = return_addr & 0xFF
+    # Save return address to stack 
+    cpu.bus.write(STACK_BASE | cpu.s, high)
+    cpu.s = (cpu.s - 1) & 0xFF
+
+    cpu.bus.write(STACK_BASE | cpu.s, low)
+    cpu.s = (cpu.s - 1) & 0xFF
+
+    # Set break flag before saving to stack
+    cpu.flags.set_break_flag(True)
+    # Save flags to stack
+    cpu.bus.write(STACK_BASE | cpu.s, cpu.p)
+    cpu.s = (cpu.s - 1) & 0xFF
+    # Set interrupt disable flag
+    cpu.flags.set_interrupt_disable_flag(True)
+    # Clear break flag after saving: B Flag exists only in the flags byte pushed to stack,
+    # not as a real state in the CPU
+    cpu.flags.set_break_flag(False)
+
+    low = cpu.bus.read(0xFFFE)
+    high = cpu.bus.read(0xFFFF)
+    cpu.pc = (high << 8) | low
+
+def rti(cpu: CPU):
+    STACK_BASE = 0x0100
+    
+    cpu.s = (cpu.s + 1) & 0xFF
+    flags = cpu.bus.read(STACK_BASE | cpu.s)
+    #NVxxDIZC bits from stack saved flags
+    cpu.p = flags & 0b11001111 
+    # Retrieve PC from stack
+    cpu.s = (cpu.s + 1) & 0xFF
+    low = cpu.bus.read(STACK_BASE | cpu.s)
+
+    cpu.s = (cpu.s + 1) & 0xFF
+    high = cpu.bus.read(STACK_BASE | cpu.s)
+
+    cpu.pc = (high << 8) | low
+
 
