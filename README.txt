@@ -27,5 +27,5 @@ Rendering
 --
 
 Next steps:
-Branch	BCC	BCS	BEQ	BNE	BPL	BMI	BVC	BVS
-Next TODO: BCC Instruction + Opcodes
+Jump	JMP	JSR	RTS	BRK	RTI	
+Next TODO: JMP instruction + opcode
