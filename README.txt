@@ -27,5 +27,5 @@ Rendering
 --
 
 Next steps:
-Jump	JMP	JSR	RTS	BRK	RTI	
-Next TODO: JMP instruction + opcode
+Jump	RTS	BRK	RTI	
+Next TODO: RTS instruction + opcode

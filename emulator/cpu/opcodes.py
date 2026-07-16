@@ -11,7 +11,8 @@ from emulator.cpu.instructions import (lda, sta, ldx, stx, ldy, sty,
                                        asl, asl_a, lsr, lsr_a, rol, rol_a, ror, ror_a,
                                        and_a, or_a, or_e, bit,
                                        cmp, cpx, cpy,
-                                       bcc, bcs, beq, bne, bpl, bmi, bvc, bvs)
+                                       bcc, bcs, beq, bne, bpl, bmi, bvc, bvs,
+                                       jmp, jsr)
 
 from emulator.cpu.addressing_modes import (
     immediate,
@@ -22,6 +23,7 @@ from emulator.cpu.addressing_modes import (
     absolute,
     absolute_x,
     absolute_y,
+    indirect,
     indirect_x,
     indirect_y,
 )
@@ -608,7 +610,19 @@ def bvs_relative(cpu: CPU):
     offset = relative(cpu)
     bvs(cpu, offset)
 
+# ------ JMP Opcodes
+def jmp_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    jmp(cpu, addr)
 
+def jmp_indirect(cpu: CPU):
+    addr = indirect(cpu)
+    jmp(cpu, addr)
+
+# ------ JMP Opcodes
+def jsr_absolute(cpu: CPU):
+    addr = absolute(cpu)
+    jsr(cpu, addr)
 
 
 OPCODE_TABLE = {
@@ -766,4 +780,8 @@ OPCODE_TABLE = {
     0x30: bmi_relative,
     0x50: bvc_relative,
     0x70: bvs_relative,
+
+    0x4C: jmp_absolute,
+    0x6C: jmp_indirect,
+    0x20: jsr_absolute,
 }

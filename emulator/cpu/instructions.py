@@ -367,3 +367,25 @@ def bvc(cpu: CPU, offset: int):
 def bvs(cpu: CPU, offset: int):
     if cpu.flags.get_overflow_flag():
         cpu.pc = (cpu.pc + offset) & 0xFFFF
+
+def jmp(cpu: CPU, addr: int):
+    cpu.pc = addr & 0xFFFF
+
+def jsr(cpu: CPU, addr: int):
+    # After fetching opcode + 2-byte operand, PC points to the next instruction.
+    # JSR pushes PC-1 because RTS increment the pulled return address to next instruction.
+    return_addr = (cpu.pc -1) & 0xFFFF 
+    STACK_BASE = 0x0100
+
+    high = (return_addr >> 8) & 0xFF
+    low = return_addr & 0xFF
+
+    cpu.bus.write(STACK_BASE | cpu.s, high)
+    cpu.s = (cpu.s - 1) & 0xFF
+
+    cpu.bus.write(STACK_BASE | cpu.s, low)
+    cpu.s = (cpu.s - 1) & 0xFF
+    
+    cpu.pc = addr & 0xFFFF
+
+
