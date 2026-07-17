@@ -476,3 +476,23 @@ def tsx(cpu: CPU):
     cpu.flags.set_zero_flag(cpu.x == 0)
     cpu.flags.set_negative_flag((cpu.x & 0b1000_0000) != 0)
 
+def clc(cpu: CPU):
+    cpu.flags.set_carry_flag(False)
+
+def sec(cpu: CPU):
+    cpu.flags.set_carry_flag(True)
+
+def cli(cpu: CPU):
+    cpu.flags.set_interrupt_disable_flag(False)
+
+def sei(cpu: CPU):
+    cpu.flags.set_interrupt_disable_flag(True)
+
+def cld(cpu: CPU):
+    cpu.flags.set_decimal_flag(False)
+
+def sed(cpu: CPU):
+    cpu.flags.set_decimal_flag(True)
+
+def clv(cpu: CPU):
+    cpu.flags.set_overflow_flag(False)

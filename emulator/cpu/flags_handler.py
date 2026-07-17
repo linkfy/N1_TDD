@@ -9,6 +9,7 @@ from dataclasses import dataclass
 CARRY_FLAG =        1 << 0
 ZERO_FLAG =         1 << 1
 INTERRUPT_FLAG =    1 << 2
+DECIMAL_FLAG =      1 << 3
 B_FLAG =            1 << 5
 OVERFLOW_FLAG =     1 << 6
 NEGATIVE_FLAG =     1 << 7
@@ -52,6 +53,12 @@ class FlagsHandler:
             self.cpu.p |= B_FLAG
         else:
             self.cpu.p &= ~B_FLAG
+    
+    def set_decimal_flag(self, enabled: bool):
+        if enabled:
+            self.cpu.p |= DECIMAL_FLAG
+        else:
+            self.cpu.p &= ~DECIMAL_FLAG
 
     def get_zero_flag(self) -> bool:
         return bool(self.cpu.p & ZERO_FLAG)
@@ -70,5 +77,8 @@ class FlagsHandler:
 
     def get_break_flag(self) -> bool:
         return bool(self.cpu.p & B_FLAG)
+
+    def get_decimal_flag(self) -> bool:
+        return bool(self.cpu.p & DECIMAL_FLAG)
 
 

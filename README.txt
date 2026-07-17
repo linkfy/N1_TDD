@@ -27,5 +27,4 @@ Rendering
 --
 
 Next steps:
-Flags	CLC	SEC	CLI	SEI	CLD	SED	CLV
-Next TODO: CLC instruction + opcode
+Next TODO: NOP opcode
