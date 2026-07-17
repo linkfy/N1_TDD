@@ -14,7 +14,8 @@ from emulator.cpu.instructions import (lda, sta, ldx, stx, ldy, sty,
                                        bcc, bcs, beq, bne, bpl, bmi, bvc, bvs,
                                        jmp, jsr, rts, brk, rti,
                                        pha, pla, php, plp, txs, tsx,
-                                       clc, sec, cli, sei, cld, sed, clv)
+                                       clc, sec, cli, sei, cld, sed, clv,
+                                       nop)
 
 from emulator.cpu.addressing_modes import (
     immediate,
@@ -804,5 +805,6 @@ OPCODE_TABLE = {
     0xD8: cld,
     0xF8: sed,
     0xB8: clv,
-
+    
+    0xEA: nop,
 }

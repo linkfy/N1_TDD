@@ -496,3 +496,6 @@ def sed(cpu: CPU):
 
 def clv(cpu: CPU):
     cpu.flags.set_overflow_flag(False)
+
+def nop(cpu: CPU):
+    pass
