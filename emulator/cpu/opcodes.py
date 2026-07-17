@@ -12,7 +12,8 @@ from emulator.cpu.instructions import (lda, sta, ldx, stx, ldy, sty,
                                        and_a, or_a, or_e, bit,
                                        cmp, cpx, cpy,
                                        bcc, bcs, beq, bne, bpl, bmi, bvc, bvs,
-                                       jmp, jsr, rts, brk, rti)
+                                       jmp, jsr, rts, brk, rti,
+                                       pha, pla, php, plp, txs, tsx)
 
 from emulator.cpu.addressing_modes import (
     immediate,
@@ -787,4 +788,12 @@ OPCODE_TABLE = {
     0x60: rts,
     0x00: brk,
     0x40: rti,
+
+    0x48: pha,
+    0x68: pla,
+    0x08: php,
+    0x28: plp,
+    0x9A: txs,
+    0xBA: tsx,
+
 }

@@ -6,6 +6,8 @@ if TYPE_CHECKING:
 
 # ----------------------------------
 
+STACK_BASE = 0x0100
+
 def lda(cpu: CPU, value):
     cpu.a = value
     cpu._update_zero_and_negative_flags(cpu.a)
@@ -375,7 +377,6 @@ def jsr(cpu: CPU, addr: int):
     # After fetching opcode + 2-byte operand, PC points to the next instruction.
     # JSR pushes PC-1 because RTS increment the pulled return address to next instruction.
     return_addr = (cpu.pc -1) & 0xFFFF 
-    STACK_BASE = 0x0100
 
     high = (return_addr >> 8) & 0xFF
     low = return_addr & 0xFF
@@ -389,8 +390,6 @@ def jsr(cpu: CPU, addr: int):
     cpu.pc = addr & 0xFFFF
 
 def rts(cpu: CPU):
-    STACK_BASE = 0x0100
-
     cpu.s = (cpu.s + 1) & 0xFF
     low = cpu.bus.read(STACK_BASE | cpu.s)
 
@@ -405,7 +404,6 @@ def brk(cpu: CPU):
     # So PC points to padding byte after BRK opcode. It can be anything (And ignored)
     # We need to increment PC to the next real instruction, for when we return.
     return_addr = (cpu.pc + 1) & 0xFFFF 
-    STACK_BASE = 0x0100
 
     high = (return_addr >> 8) & 0xFF
     low = return_addr & 0xFF
@@ -432,7 +430,6 @@ def brk(cpu: CPU):
     cpu.pc = (high << 8) | low
 
 def rti(cpu: CPU):
-    STACK_BASE = 0x0100
     
     cpu.s = (cpu.s + 1) & 0xFF
     flags = cpu.bus.read(STACK_BASE | cpu.s)
@@ -447,4 +444,35 @@ def rti(cpu: CPU):
 
     cpu.pc = (high << 8) | low
 
+def pha(cpu: CPU):
+    cpu.bus.write(STACK_BASE | cpu.s, cpu.a)
+    cpu.s = (cpu.s - 1) & 0xFF
+
+def pla(cpu: CPU):
+    cpu.s = (cpu.s + 1) & 0xFF
+    cpu.a = cpu.bus.read(STACK_BASE | cpu.s)
+    
+    cpu.flags.set_zero_flag(cpu.a == 0)
+    cpu.flags.set_negative_flag((cpu.a & 0b1000_0000) != 0)
+
+def php(cpu: CPU):
+    cpu.flags.set_break_flag(True)
+    cpu.bus.write(STACK_BASE | cpu.s, cpu.p)
+    # Break flag ony pushed to stak, not kept as real CPU state
+    cpu.flags.set_break_flag(False)
+
+    cpu.s = (cpu.s - 1) & 0xFF
+
+def plp(cpu: CPU):
+    cpu.s = (cpu.s + 1) & 0xFF
+    flags = cpu.bus.read(STACK_BASE + cpu.s) 
+    cpu.p = flags & 0b1100_1111 # select only needed flags NVxxDIZC
+
+def txs(cpu: CPU):
+    cpu.s = cpu.x
+
+def tsx(cpu: CPU):
+    cpu.x = cpu.s
+    cpu.flags.set_zero_flag(cpu.x == 0)
+    cpu.flags.set_negative_flag((cpu.x & 0b1000_0000) != 0)
 

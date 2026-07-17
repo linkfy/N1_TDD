@@ -27,5 +27,5 @@ Rendering
 --
 
 Next steps:
-Stack	PHA	PLA	PHP	PLP	TXS	TSX	
-Next TODO: PHA instruction + opcode
+Flags	CLC	SEC	CLI	SEI	CLD	SED	CLV
+Next TODO: CLC instruction + opcode
