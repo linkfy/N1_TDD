@@ -28,7 +28,6 @@ Rendering
 --
 
 Next steps:
-memory/rom.py -> genery byte addressable read-only memory
-cartridge/ines.py -> parses .nes/iNES file format 
-cartridge/cartridge.py -> represents NES cartirdfe data 
+cartridge/cartridge.py -> represents NES cartirdfe data -> Create Cartirdge(prg_rom, chr_rom, mapper_number):
+	- it will have a class method -> from_ines_bytes(cls, data: bytes) -> "Cartirdge" (that uses parse_ines_rom(data) inside)
 cartridge/mapper000.py -> maps cartridge RPG ROM into CPU address space 
