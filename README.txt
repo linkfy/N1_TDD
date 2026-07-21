@@ -13,13 +13,7 @@ Memory Map:
 [] Phase 3)
 Debug trace
 iNES parser file parser .nes
-
--- Current: 
-	-Trace runner (Debug cpu)
-	- Simple ROM loader / mapper 0
-	- Known CPU validation ROM comparision (nestest CPU Validation)
 	
-
 Phase 4)
 NROM mapper (No Bank Switch)
 
@@ -34,6 +28,7 @@ Rendering
 --
 
 Next steps:
-	create emulator/debug/cpu_trace.py
-	def format_cpu_trace(cpu: opcode)
-
+memory/rom.py -> genery byte addressable read-only memory
+cartridge/ines.py -> parses .nes/iNES file format 
+cartridge/cartridge.py -> represents NES cartirdfe data 
+cartridge/mapper000.py -> maps cartridge RPG ROM into CPU address space 
