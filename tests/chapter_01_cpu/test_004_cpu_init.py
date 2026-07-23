@@ -51,4 +51,3 @@ def test_cpu_fetch_word(cpu):
     cpu.bus.write(0x0001, 0x12) # Write 0x34 , 0x12 (Little endian 0x1234)
 
     assert cpu.fetch_word() == 0x1234
-

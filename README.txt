@@ -26,8 +26,12 @@ Rendering
 
 
 --
+Next Steps:
 
-Next steps:
-cartridge/cartridge.py -> represents NES cartirdfe data -> Create Cartirdge(prg_rom, chr_rom, mapper_number):
-	- it will have a class method -> from_ines_bytes(cls, data: bytes) -> "Cartirdge" (that uses parse_ines_rom(data) inside)
-cartridge/mapper000.py -> maps cartridge RPG ROM into CPU address space 
+Add a mapper factory helper emulator/cartridge/mapper_factory.py
+
+def create_mapper(cartridge):
+	if cartridge.mapper == 0 return Mapper000(cartridge.prg_rom, cartridge.chr_rom)
+
+Add Optional CpuBus(cartridge=cartridge) -> in CpuBus.__post__init create mapper if cartridge exists.
+Then Reads $8000-$FFF -> if mapper exists: return ampper.read_prg(addr) else: old behaviour

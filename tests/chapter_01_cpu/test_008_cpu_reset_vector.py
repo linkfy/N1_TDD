@@ -52,4 +52,3 @@ def test_cpu_fetch_first_opcode():
 
     opcode = cpu.fetch_byte()
     assert opcode == 0xA9
-

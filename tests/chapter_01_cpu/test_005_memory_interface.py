@@ -66,4 +66,3 @@ def test_ram_uses_memory_device_abstract_class():
     from emulator.memory.memory_device import MemoryDevice
     ram = RAM()
     assert isinstance(ram, MemoryDevice)
-
