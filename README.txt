@@ -27,6 +27,13 @@ Rendering
 
 --
 Next Steps:
+1) PPU Object
+Implement:
+- PPU
+	- write_register(addr, value)
+	- read_register(addr)
+2) CpuBus routing
+Roite $2000-$3FFF -> Mirrors $2000-$2007 PPU Registers
+CpuBus.write($2000, value) -> ppu.write_register($2000, value)
+CpuBus.read(addr) -> ppu.read_register(addr)
 
-Add Optional CpuBus(cartridge=cartridge) -> in CpuBus.__post__init create mapper if cartridge exists.
-Then Reads $8000-$FFF -> if mapper exists: return ampper.read_prg(addr) else: old behaviour
