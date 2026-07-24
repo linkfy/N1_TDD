@@ -28,10 +28,5 @@ Rendering
 --
 Next Steps:
 
-Add a mapper factory helper emulator/cartridge/mapper_factory.py
-
-def create_mapper(cartridge):
-	if cartridge.mapper == 0 return Mapper000(cartridge.prg_rom, cartridge.chr_rom)
-
 Add Optional CpuBus(cartridge=cartridge) -> in CpuBus.__post__init create mapper if cartridge exists.
 Then Reads $8000-$FFF -> if mapper exists: return ampper.read_prg(addr) else: old behaviour
