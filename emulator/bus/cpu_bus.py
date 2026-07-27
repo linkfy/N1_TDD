@@ -5,12 +5,14 @@ from emulator.cartridge.cartridge import Cartridge
 from emulator.cartridge.mapper_factory import create_mapper
 from emulator.memory.memory_device import MemoryDevice
 from emulator.memory.ram import RAM
+from emulator.ppu.ppu import PPU
 
 @dataclass
 class CpuBus(): 
     program_rom: Optional[MemoryDevice] = None
     cartridge: Optional[Cartridge] = None
     ram: RAM = field(default_factory=RAM)
+    ppu: PPU = field(default_factory=PPU)
 
     def __post_init__(self):
         # Allow only program_rom(for testing) or cartridge
@@ -28,6 +30,10 @@ class CpuBus():
         #Internal RAM
         if 0x0 <= addr <= 0x1FFF:
             return self.ram.read(addr & 0x07FF)
+        # PPU Registers
+        if 0x2000 <= addr <= 0x3FFF:
+            unmirrored_addr = 0x2000 + ((addr - 0x2000) % 8)
+            return self.ppu.read_register(unmirrored_addr)
         # Program ROM
         if 0x8000 <= addr <= 0xFFFF:
             # Cartridges uses a mapper:
@@ -51,6 +57,10 @@ class CpuBus():
         if 0x0 <= addr <= 0x1FFF:
             self.ram.write(addr & 0x07FF, value) 
             return
-
+        # PPU Registers
+        if 0x2000 <= addr <= 0x3FFF:
+            unmirrored_addr = 0x2000 + ((addr - 0x2000) % 8)
+            self.ppu.write_register(unmirrored_addr, value)
+            return
         raise ValueError(f"Unsupported CPU bus write: {addr:04X}")
 

@@ -10,30 +10,42 @@ Memory Map:
 - RAM
 - Cartridge dummy 
 
-[] Phase 3)
+[x] Phase 3)
 Debug trace
 iNES parser file parser .nes
 	
-Phase 4)
+[x] Phase 4)
 NROM mapper (No Bank Switch)
 
 Phase 5)
 PPU Registers dummy
 PPU (Basic)
+PPUSTATUS VBLANK behavior
+PPUADDR/PPUDATA write path
+PPU memory map
+Decode one CHR tile
 
 Phase 6)
-Rendering
-
+Rendering:
+Render one pattern table as debug image
+Render nametable background
+Add palette colors
+Add frame timing/VBlank/NMI
+Add sprites/OAMDMA
 
 --
 Next Steps:
-1) PPU Object
-Implement:
-- PPU
-	- write_register(addr, value)
-	- read_register(addr)
-2) CpuBus routing
-Roite $2000-$3FFF -> Mirrors $2000-$2007 PPU Registers
-CpuBus.write($2000, value) -> ppu.write_register($2000, value)
-CpuBus.read(addr) -> ppu.read_register(addr)
+Write PPU Status side effects:
+Define 	VBLANK_STARTED
+		SPRITE_ZERO_HIT
+		SPRITE_OVERFLOW
+
+Clear VBlank on status read
+		value = self.status
+		self.status &= ~VBLANK_STARTED
+		return value
+
+!! PPUSTATUS read return old value, then clears VBLANK
+
+
 
