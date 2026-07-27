@@ -35,17 +35,60 @@ Add sprites/OAMDMA
 
 --
 Next Steps:
-Write PPU Status side effects:
-Define 	VBLANK_STARTED
-		SPRITE_ZERO_HIT
-		SPRITE_OVERFLOW
+PPUADDR / PPUDATA write path:
 
-Clear VBlank on status read
-		value = self.status
-		self.status &= ~VBLANK_STARTED
-		return value
+Goal:
+Allow CPU writes to PPU memory through PPU registers.
 
-!! PPUSTATUS read return old value, then clears VBLANK
+Important registers:
+$2006 PPUADDR
+	- first write sets high byte of internal PPU address
+	- second write sets low byte of internal PPU address
 
+$2007 PPUDATA
+	- writes value to current PPU memory address
+	- then increments internal PPU address
 
+Required new PPU state:
+	vram_addr
+	addr_latch
+	ppu_memory / vram placeholder
+
+Basic behavior:
+	write_register($2006, high)
+	write_register($2006, low)
+	write_register($2007, value)
+
+Example:
+	write $20 to $2006
+	write $00 to $2006
+	write $AA to $2007
+
+Result:
+	PPU memory[$2000] == $AA
+
+Important:
+	Keep this simple first.
+	Do not implement full nametable mirroring, palette mirroring, rendering,
+	or PPUDATA read buffering yet.
+
+After that:
+	- PPU memory map
+	- Decode one CHR tile
+	- Render one pattern table as debug image
+---------------------------------------------
+Future Notes:
+	- Implement PPUSTATUS:
+		- Sprote 0 Hit flag behavior:
+				- Required:
+					background rendering
+					sprite rendering
+					pixel overlap detection
+					PPU timing
+		- Sprite Overflow flag behavior:
+				- Required:
+					OAM memory
+					sprite evaluation per scanline
+					more than 8 sprites on a scanline
+					quirky NES behavior (buggy real hardware behavior)
 

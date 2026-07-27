@@ -1,5 +1,8 @@
 from dataclasses import dataclass
 
+VBLANK_STARTED = 1 << 7
+SPRITE_ZERO_HIT = 1 << 6
+SPRITE_OVERFLOW = 1 << 5
 
 @dataclass
 class PPU:
@@ -35,8 +38,11 @@ class PPU:
 
     def read_register(self, addr: int) -> int:
         match addr:
-            case 0x2002:
-                return self.status
+            case 0x2002: # PPU_STATUS
+                value = self.status
+                # Clear VBLANK before returning old status
+                self.status &= ~VBLANK_STARTED                
+                return value
             case 0x2004:
                 return self.oam_data
             case 0x2007:
