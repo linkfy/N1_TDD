@@ -104,7 +104,6 @@ def test_mapper000_class_exists_and_stores_prg_and_chr_rom():
     future PPU pattern-table reads.
     """
     assert dataclasses.is_dataclass(Mapper000)
-    assert Mapper000.__dataclass_params__.frozen is True
     assert list(Mapper000.__dataclass_fields__) == ["prg_rom", "chr_rom"]
     assert hasattr(Mapper000, "read_prg")
     assert callable(Mapper000.read_prg)

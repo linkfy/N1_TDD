@@ -15,13 +15,28 @@ The iNES parser understands the .nes file format:
 But the rest of the emulator should not need to work directly with iNES parser
 objects. It should work with a cartridge-level object:
 
-    Cartridge(prg_rom, chr_rom, mapper_number)
+    Cartridge(prg_rom, chr_rom, mapper_number, chr_ram=None)
 
 Responsibilities of Cartridge at this stage:
     - store PRG ROM bytes
     - store CHR ROM bytes
     - store mapper number declared by the ROM
+    - optionally expose CHR RAM storage for cartridges that need it later
     - provide from_ines_bytes(data) as a convenient constructor
+
+Why chr_ram exists now:
+Some cartridges do not contain CHR ROM. In iNES, this usually appears as zero
+CHR ROM banks. Those cartridges use writable CHR RAM instead, so games can upload
+tile graphics at runtime.
+
+We add chr_ram to the Cartridge shape now to keep the future mapper/PPU-bus path
+stable. It is allowed to be None by default because Mapper000 CHR RAM behavior is
+not implemented in this step yet.
+
+Future use:
+    - PpuBus will route PPU $0000-$1FFF to the mapper
+    - mappers may read from CHR ROM or writable CHR RAM
+    - more advanced mappers may use different CHR banking behavior
 
 What Cartridge should NOT do yet:
     - translate CPU addresses
@@ -37,11 +52,12 @@ Expected implementation shape:
     from emulator.cartridge.ines import parse_ines_rom
 
 
-    @dataclass(frozen=True)
+    @dataclass
     class Cartridge:
         prg_rom: bytes
         chr_rom: bytes
         mapper_number: int
+        chr_ram: bytearray | None = None
 
         @classmethod
         def from_ines_bytes(cls, data: bytes) -> "Cartridge":
@@ -50,6 +66,7 @@ Expected implementation shape:
                 prg_rom=ines_rom.prg_rom,
                 chr_rom=ines_rom.chr_rom,
                 mapper_number=ines_rom.header.mapper_number,
+                chr_ram=None,
             )
 """
 
@@ -94,17 +111,17 @@ def test_cartridge_file_exists():
     assert Path("emulator/cartridge/cartridge.py").exists()
 
 
-def test_cartridge_is_frozen_dataclass():
+def test_cartridge_is_dataclass():
     """
     Objective:
-    Cartridge should be a frozen dataclass.
+    Cartridge should be a dataclass.
 
-    Why frozen:
-    PRG ROM, CHR ROM, and mapper number are cartridge facts loaded from a ROM
-    file. They should not mutate during normal emulation.
+    Why not frozen anymore:
+    Cartridge can optionally expose CHR RAM. CHR RAM is writable graphics memory
+    for cartridges that do not provide CHR ROM. Keeping Cartridge non-frozen
+    avoids mixing a frozen container with intentionally mutable CHR RAM state.
     """
     assert dataclasses.is_dataclass(Cartridge)
-    assert Cartridge.__dataclass_params__.frozen is True
 
 
 def test_cartridge_has_required_fields_in_order():
@@ -116,6 +133,7 @@ def test_cartridge_has_required_fields_in_order():
         "prg_rom",
         "chr_rom",
         "mapper_number",
+        "chr_ram",
     ]
 
 
@@ -133,6 +151,28 @@ def test_cartridge_can_be_created_directly():
     assert cartridge.prg_rom == bytes([0xA9, 0x42])
     assert cartridge.chr_rom == bytes([0x00, 0x01])
     assert cartridge.mapper_number == 0
+    assert cartridge.chr_ram is None
+
+
+def test_cartridge_can_optionally_store_chr_ram():
+    """
+    Objective:
+    Cartridge can optionally expose CHR RAM for future mapper/PPU-bus behavior.
+
+    Why optional:
+    Cartridges with CHR ROM do not need writable CHR RAM. Cartridges with no CHR
+    ROM banks may use CHR RAM instead, but that behavior will be wired through
+    mappers and PpuBus in later steps.
+    """
+    chr_ram = bytearray(8 * 1024)
+    cartridge = Cartridge(
+        prg_rom=bytes([0x00]),
+        chr_rom=b"",
+        mapper_number=0,
+        chr_ram=chr_ram,
+    )
+
+    assert cartridge.chr_ram is chr_ram
 
 
 def test_cartridge_has_from_ines_bytes_classmethod():

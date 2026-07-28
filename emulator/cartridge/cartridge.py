@@ -2,11 +2,12 @@ from dataclasses import dataclass
 from emulator.cartridge.ines import parse_ines_rom
 
 
-@dataclass(frozen=True)
+@dataclass
 class Cartridge:
     prg_rom: bytes
     chr_rom: bytes
     mapper_number: int
+    chr_ram: bytearray | None = None
     
     @classmethod
     def from_ines_bytes(cls, data: bytes) -> "Cartridge":

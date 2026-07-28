@@ -1,4 +1,6 @@
-from dataclasses import dataclass
+from dataclasses import dataclass, field
+
+from emulator.bus.ppu_bus import PpuBus
 
 VBLANK_STARTED = 1 << 7
 SPRITE_ZERO_HIT = 1 << 6
@@ -14,6 +16,8 @@ class PPU:
     scroll: int = 0     # Bits XXXX XXXX YYYY YYYY (2 Writes)
     addr: int = 0       # Bits AAAA AAAA AAAA AAAA (2 Writes)
     data: int = 0       # Bits DDDD DDDD (Read/Write)
+
+    ppu_bus: PpuBus = field(default_factory=PpuBus)
 
     
     def write_register(self, addr: int, value: int) -> None:

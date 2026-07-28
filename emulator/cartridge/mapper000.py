@@ -9,7 +9,7 @@ CHR_ROM_START = 0x0000
 CHR_ROM_END = 0x1FFF
 CHR_ROM_SIZE = 8 * 1024
 
-@dataclass(frozen=True)
+@dataclass
 class Mapper000:
     prg_rom: bytes
     chr_rom: bytes

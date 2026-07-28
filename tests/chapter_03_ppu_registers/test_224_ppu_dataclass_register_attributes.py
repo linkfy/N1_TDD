@@ -15,6 +15,10 @@ they are named hardware registers with specific meanings.
 For this first PPU step, we only create the register state. We do not implement
 reads, writes, rendering, VBlank, scrolling, VRAM, or DMA yet.
 
+This test verifies that the original CPU-visible PPU register fields exist. It
+does not require these to be the only fields forever. Later steps may add
+internal PPU state such as ppu_bus, vram_addr, or addr_latch.
+
 CPU-visible PPU register window:
 
     $2000 PPUCTRL   -> ctrl
@@ -78,7 +82,7 @@ def test_ppu_is_dataclass_with_explicit_register_attributes():
     registers $2000-$2007.
     """
     assert dataclasses.is_dataclass(PPU)
-    assert list(PPU.__dataclass_fields__) == [
+    required_register_fields = [
         "ctrl",
         "mask",
         "status",
@@ -88,6 +92,9 @@ def test_ppu_is_dataclass_with_explicit_register_attributes():
         "addr",
         "data",
     ]
+
+    for field_name in required_register_fields:
+        assert field_name in PPU.__dataclass_fields__
 
     ppu = PPU()
 
