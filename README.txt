@@ -46,109 +46,16 @@ Add sprites/OAMDMA
 
 --
 Next Steps:
-PPUADDR / PPUDATA write path:
 
-Goal:
-Allow CPU writes to PPU memory through PPU registers.
+PPUSCROLL two-write behavior
+PPUDATA read behavior
+PPUDATA read buffer
+palette read exception
+PPUCTRL nametable bits interaction with address state
+PPUMASK flags/constants
+PPUSTATUS sprite bits behavior later
+OAMDATA/OAMADDR behavior
 
-Architecture direction:
-	CPU has CpuBus
-	CpuBus has CPU RAM, PPU, and cartridge PRG path
-	PPU has PpuBus
-	PpuBus owns/routes PPU-side memory access
-
-Important dependency direction:
-	PPU -> PpuBus -> VRAM / mapper CHR later
-
-Do not use:
-	PPU -> VRAM -> PpuBus
-
-Reason:
-	PPU should talk to a stable PPU-address-space boundary.
-	Later CHR ROM, nametable mirroring, and palette RAM can be added inside
-	PpuBus without changing PPUDATA register behavior.
-
-Testing rule:
-	Do not update old tests such as test_224 now.
-	Add new PPU fields incrementally only when a new step requires them.
-	This keeps the student path linear and avoids unnecessary old-test churn.
-
-Incremental path:
-
-Step 239) PPUADDR internal address latch
-	File:
-		emulator/ppu/ppu.py
-
-	Add state:
-		vram_addr
-		addr_latch
-
-	Behavior:
-		first write to $2006 sets high byte
-		second write to $2006 sets low byte
-
-	Pseudocode:
-		if not addr_latch:
-			vram_addr = (value & 0x3F) << 8
-			addr_latch = True
-		else:
-			vram_addr = (vram_addr & 0x3F00) | value
-			addr_latch = False
-
-Step 240) PPUSTATUS read resets address latch
-	File:
-		emulator/ppu/ppu.py
-
-	Behavior:
-		read_register($2002)
-			returns old status
-			clears VBLANK_STARTED
-			resets addr_latch = False
-
-	Reason:
-		Real PPUSTATUS reads reset the shared $2005/$2006 write latch.
-
-Step 241) PPUDATA write through PpuBus
-	File:
-		emulator/ppu/ppu.py
-
-	Behavior:
-		write_register($2007, value)
-			ppu_bus.write(vram_addr, value)
-			vram_addr = (vram_addr + 1) & 0x3FFF
-			data = value
-
-Important registers:
-$2006 PPUADDR
-	- first write sets high byte of internal PPU address
-	- second write sets low byte of internal PPU address
-
-$2007 PPUDATA
-	- writes value to current PPU memory address
-	- then increments internal PPU address
-
-Required new PPU state:
-	vram_addr
-	addr_latch
-	ppu_bus
-
-Basic behavior:
-	write_register($2006, high)
-	write_register($2006, low)
-	write_register($2007, value)
-
-Example:
-	write $20 to $2006
-	write $00 to $2006
-	write $AA to $2007
-
-Result:
-	PPU memory[$2000] == $AA
-
-Important:
-	Keep this simple first.
-	Do not implement full nametable mirroring, palette mirroring, rendering,
-	or PPUDATA read buffering yet.
 
 After that:
 	- PPU memory map
@@ -156,6 +63,15 @@ After that:
 	- Render one pattern table as debug image
 ---------------------------------------------
 Future Notes:
+
+Connect cartridge mapper to PPU bus
+Meaning when CpuBus(cartridge=...) creates the mapper, the PPU-side bus should also receive it:
+self.mapper = create_mapper(self.cartridge)
+self.ppu.ppu_bus.mapper = self.mapper
+That will allow:
+PPU $0000-$1FFF -> mapper.read_chr(...)
+and prepares for CHR tile decoding / first pixels.
+
 	- Implement PPUSTATUS:
 		- Sprite 0 Hit flag behavior:
 				- Required:
