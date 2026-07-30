@@ -32,17 +32,36 @@ class PPU:
     def write_register(self, addr: int, value: int) -> None:
         value = value & 0xFF
         match addr:
-            case 0x2000:
+            case 0x2000: # PPUCTRL Write
                 self.ctrl = value
-            case 0x2001:
+            case 0x2001: # PPUSTATUS Write
                 self.mask = value
-            case 0x2003:
+            case 0x2003: # OAM ADDR Write
                 self.oam_addr = value
-            case 0x2004:
+            case 0x2004: # OAM DATA Write
                 self.oam_data = value
-            case 0x2005:
+            case 0x2005: # PPU SCROLL Write
+                # Keep for old compatibility
                 self.scroll = value
-            case 0x2006:
+                # https://www.nesdev.org/wiki/PPU_scrolling#$2005_(PPUSCROLL)_first_write_(w_is_0)
+                if not self.second_write_toggle:
+                    # PPU Scroll first write:
+                    # x register: save last 3 bits  | x:              FGH <- d: .....FGH
+                    self.fine_x = value & 0b000_0111
+                    # t register: save 5 first bits | t: ....... ...ABCDE <- d: ABCDE...
+                    self.temp_vram_addr = (self.temp_vram_addr & 0b1111_1111_1110_0000) | (value >> 3)
+                    # w:                  <- 1
+                    self.second_write_toggle = True
+                # https://www.nesdev.org/wiki/PPU_scrolling#$2005_(PPUSCROLL)_second_write_(w_is_1)
+                else:
+                    # t register: | t: FGH..AB CDE..... <- d: ABCDEFGH
+                    self.temp_vram_addr = self.temp_vram_addr & 0b1000_1100_0001_1111 # KEEP ONLY UNTOUCHED BITS
+                    # Put last 3 bits 0b0000_0111 -> 0b0111_0000_0000_0000 (Move 12 times)
+                    self.temp_vram_addr = self.temp_vram_addr | ((value & 0b0000_0111) << 12)
+                    # Put first 5 bits 0b1111_1000 -> 0b0000_0011_1110_0000 (Move 2 times)
+                    self.temp_vram_addr = self.temp_vram_addr | ((value & 0b1111_1000) << 2)
+                    self.second_write_toggle = False
+            case 0x2006: # PPU ADDR Write
                 # Old behavior (now a placeholder for test compatibility | Not needed):
                 self.addr = value
                 # New Behavior:
@@ -57,7 +76,7 @@ class PPU:
                     )
                     self.vram_addr = self.temp_vram_addr
                     self.second_write_toggle = False
-            case 0x2007:
+            case 0x2007: # PPU DATA Write
                 self.data = value
                 # Write data to Vram addr
                 self.ppu_bus.write(self.vram_addr, value)
@@ -70,15 +89,15 @@ class PPU:
 
     def read_register(self, addr: int) -> int:
         match addr:
-            case 0x2002: # PPU_STATUS
+            case 0x2002: # PPU_STATUS Read
                 value = self.status
                 # Clear VBLANK before returning old status
                 self.status &= ~VBLANK_STARTED            
                 self.second_write_toggle = False
                 return value
-            case 0x2004:
+            case 0x2004: # OAM DATA Read
                 return self.oam_data
-            case 0x2007:
+            case 0x2007: # PPU DATA read
                 return self.data
             case _:
                 raise ValueError(f"Unsupported PPU register read: {addr:04X}")
