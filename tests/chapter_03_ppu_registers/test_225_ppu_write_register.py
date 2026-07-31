@@ -20,7 +20,7 @@ Writable registers for this simplified stage:
     $2000 -> ctrl
     $2001 -> mask
     $2003 -> oam_addr
-    $2004 -> oam_data
+    $2004 -> oam_data / OAMDATA port
     $2005 -> scroll
     $2006 -> addr
     $2007 -> data
@@ -58,6 +58,11 @@ Suggested implementation pseudocode:
                 self.data = value
             case _:
                 raise ValueError(...)
+
+Future note:
+Later, $2004/OAMDATA becomes a port into internal OAM sprite memory. At that
+point, writing $2004 may also increment oam_addr. This early test should not
+require oam_addr to stay unchanged after an OAMDATA write.
 """
 
 import pytest
@@ -75,6 +80,9 @@ def test_ppu_write_register_updates_writeable_cpu_visible_registers():
     ppu.write_register(0x2000, 0x80)
     ppu.write_register(0x2001, 0x1E)
     ppu.write_register(0x2003, 0x02)
+
+    assert ppu.oam_addr == 0x02
+
     ppu.write_register(0x2004, 0xAA)
     ppu.write_register(0x2005, 0x11)
     ppu.write_register(0x2006, 0x22)
@@ -82,7 +90,6 @@ def test_ppu_write_register_updates_writeable_cpu_visible_registers():
 
     assert ppu.ctrl == 0x80
     assert ppu.mask == 0x1E
-    assert ppu.oam_addr == 0x02
     assert ppu.oam_data == 0xAA
     assert ppu.scroll == 0x11
     assert ppu.addr == 0x22

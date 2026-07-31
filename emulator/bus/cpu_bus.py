@@ -24,6 +24,8 @@ class CpuBus():
         # example -> if cartridge.mapper = 0 it uses Mapper000
         if self.cartridge is not None:
             self.mapper = create_mapper(self.cartridge)
+            # Connect the mapper also to ppu_bus: bus.mapper <-> bus.ppu.ppu_bus.mapper
+            self.ppu.ppu_bus.mapper = self.mapper
 
     def read(self, addr: int) -> int:
         """Read from CPU Bus"""

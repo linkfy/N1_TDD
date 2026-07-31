@@ -14,7 +14,7 @@ class PpuBus():
     vram: VRAM = field(default_factory=VRAM)
     mapper: Optional[MapperInterface] = None
     
-    def read(self, addr) -> int:
+    def read(self, addr: int) -> int:
         addr = addr & PPU_ADDRESS_MASK
         
         if CHR_START <= addr <= CHR_END:

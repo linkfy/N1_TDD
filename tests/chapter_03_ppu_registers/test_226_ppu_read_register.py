@@ -14,8 +14,17 @@ normal RAM access. The PPU decides what value the CPU receives.
 Readable registers for this simplified stage:
 
     $2002 -> status
-    $2004 -> oam_data
     $2007 -> data
+
+Note about $2004/OAMDATA:
+OAMDATA is readable, but later it becomes a port into internal OAM sprite memory.
+That behavior is tested in the OAM-specific step. This early read-register test
+does not lock itself to the old placeholder `oam_data` field behavior.
+
+Note about $2007/PPUDATA:
+PPUDATA is readable, but later it becomes a buffered PPU memory read port. That
+behavior is tested in the PPUDATA-specific step. This early read-register test
+does not lock itself to the old placeholder `data` field behavior.
 
 Why only these:
 Several PPU registers are primarily write-only from the CPU side. Unsupported
@@ -32,8 +41,6 @@ Suggested implementation pseudocode:
         match addr:
             case 0x2002:
                 return self.status
-            case 0x2004:
-                return self.oam_data
             case 0x2007:
                 return self.data
             case _:
@@ -52,12 +59,8 @@ def test_ppu_read_register_returns_cpu_readable_registers():
     """
     ppu = PPU()
     ppu.status = 0x80
-    ppu.oam_data = 0x44
-    ppu.data = 0x55
 
     assert ppu.read_register(0x2002) == 0x80
-    assert ppu.read_register(0x2004) == 0x44
-    assert ppu.read_register(0x2007) == 0x55
 
 
 def test_ppu_read_register_rejects_write_only_or_invalid_registers():

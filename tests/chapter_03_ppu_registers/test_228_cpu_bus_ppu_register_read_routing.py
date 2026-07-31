@@ -54,7 +54,25 @@ Suggested implementation pseudocode:
 import pytest
 
 from emulator.bus.cpu_bus import CpuBus
-from emulator.ppu.ppu import PPU
+
+
+class FakePPUForReadRouting:
+    """Small test double that lets this file test CpuBus routing only."""
+
+    def __init__(self):
+        self.values = {
+            0x2002: 0x80,
+            0x2004: 0x44,
+            0x2007: 0x55,
+        }
+
+    def read_register(self, addr: int) -> int:
+        if addr not in self.values:
+            raise ValueError("Unsupported fake PPU read")
+        return self.values[addr]
+
+    def write_register(self, addr: int, value: int) -> None:
+        raise NotImplementedError("This fake is only for read routing tests")
 
 
 def test_cpu_bus_reads_base_ppu_registers():
@@ -62,10 +80,7 @@ def test_cpu_bus_reads_base_ppu_registers():
     Objective:
     CpuBus.read should forward base PPU register reads to PPU.read_register.
     """
-    ppu = PPU()
-    ppu.status = 0x80
-    ppu.oam_data = 0x44
-    ppu.data = 0x55
+    ppu = FakePPUForReadRouting()
     bus = CpuBus(ppu=ppu)
 
     assert bus.read(0x2002) == 0x80
@@ -83,10 +98,7 @@ def test_cpu_bus_reads_mirrored_ppu_registers():
         $200C mirrors $2004
         $3FFF mirrors $2007
     """
-    ppu = PPU()
-    ppu.status = 0x80
-    ppu.oam_data = 0x44
-    ppu.data = 0x55
+    ppu = FakePPUForReadRouting()
     bus = CpuBus(ppu=ppu)
 
     assert bus.read(0x200A) == 0x80
@@ -103,7 +115,7 @@ def test_cpu_bus_ppu_read_preserves_ppu_read_errors():
     Why:
     CpuBus owns address routing. PPU owns register semantics.
     """
-    bus = CpuBus(ppu=PPU())
+    bus = CpuBus(ppu=FakePPUForReadRouting())
 
     with pytest.raises(ValueError):
         bus.read(0x2000)
