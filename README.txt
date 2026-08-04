@@ -43,9 +43,8 @@ PPU registers, PPU bus, and first graphics data path:
 [x] PPUDATA read behavior and read buffer
 [x] Palette read exception for PPUDATA
 [x] Connect cartridge mapper to PPU bus
-[ ] Audit old PpuBus tests to avoid direct internal vram assumptions
-[ ] Palette RAM mapping refinement
-[ ] Nametable VRAM mapping refinement
+[x] Palette RAM mapping using big VRAM backing
+[ ] Nametable VRAM mapping using big VRAM backing
 [ ] CHR ROM/RAM mapper refinement
 [ ] Decode one CHR tile
 
@@ -73,64 +72,55 @@ PPU behavior should be implemented intentionally, not faked.
 Audio/APU can be stubbed later because audio is out of tutorial scope.
 
 Compatibility rule:
-Before changing PpuBus internals, make sure old tests assert public behavior via:
+Old tutorial steps may document the implementation shape they introduced.
+For example, the original PpuBus VRAM test may mention direct vram access because
+that step teaches the first simple backing store.
+
+From the current PPU memory-map refinement onward, new tests should prefer public
+PpuBus behavior via:
 	ppu_bus.read(addr)
 	ppu_bus.write(addr, value)
 
-Avoid old tests depending on:
+Avoid new tests depending on:
 	ppu_bus.vram.read(addr)
 	ppu_bus.vram.write(addr, value)
 
-except in the VRAM-specific test.
+unless the test is intentionally about the low-level VRAM memory device or an old
+historical teaching step.
 
-Step 252) Audit old PpuBus-facing tests for public API usage
-	Files to inspect:
-		tests/chapter_03_ppu_registers/test_235_ppu_bus_vram_read_write.py
-		tests/chapter_03_ppu_registers/test_242_ppudata_writes_through_ppu_bus.py
-		tests/chapter_03_ppu_registers/test_249_ppudata_read_buffer.py
-		tests/chapter_03_ppu_registers/test_250_ppudata_palette_read_exception.py
+Storage policy for this phase:
+Keep using the existing large VRAM backing object for PpuBus storage.
+Do not move palette RAM or nametable RAM into separate storage classes yet.
 
-	Goal:
-		Old tests should verify bus behavior, not internal storage layout.
+The important behavior right now is address normalization/routing:
+	$3F10 should behave like $3F00
+	$3F20 should behave like $3F00
+	$3000 should behave like $2000
 
-	Allowed:
-		assert ppu_bus.read(addr) == value
+The physical Python storage may still be the large VRAM array.
 
-	Avoid:
-		assert ppu_bus.vram.read(addr) == value
-
-Step 253) Palette RAM mapping refinement
+Step 253) Nametable VRAM mapping refinement
 	File:
 		emulator/bus/ppu_bus.py
 
 	Goal:
-		Make $3F00-$3FFF route to palette RAM instead of big VRAM.
-
-	Behavior:
-		palette RAM has 32 bytes
-		$3F20-$3FFF mirrors $3F00-$3F1F
-		special mirrors:
-			$3F10 -> $3F00
-			$3F14 -> $3F04
-			$3F18 -> $3F08
-			$3F1C -> $3F0C
-
-Step 254) Nametable VRAM mapping refinement
-	File:
-		emulator/bus/ppu_bus.py
-
-	Goal:
-		Move $2000-$3EFF from big VRAM behavior toward nametable behavior.
+		Normalize $2000-$3EFF nametable addresses before accessing the current
+		big VRAM backing.
 
 	Initial behavior:
-		2KB nametable VRAM
-		$2000-$2FFF maps into that VRAM
+		2KB nametable window modeled through address normalization
+		$2000-$2FFF maps into the normalized nametable window
 		$3000-$3EFF mirrors $2000-$2EFF
+
+	Storage policy:
+		Do not split nametable RAM into a separate object yet.
+		Keep using the existing large VRAM backing and normalize effective
+		addresses in PpuBus.
 
 	Later refinement:
 		cartridge mirroring modes: horizontal, vertical, four-screen, etc.
 
-Step 255) CHR ROM/RAM mapper refinement
+Step 254) CHR ROM/RAM mapper refinement
 	Files:
 		emulator/cartridge/mapper_interface.py
 		emulator/cartridge/mapper000.py
@@ -144,7 +134,7 @@ Step 255) CHR ROM/RAM mapper refinement
 		Do not make CHR ROM writable.
 		CHR RAM support should be explicit.
 
-Step 256) Decode one CHR tile
+Step 255) Decode one CHR tile
 	File:
 		emulator/ppu/chr_decoder.py or similar
 
