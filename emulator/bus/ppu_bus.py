@@ -12,6 +12,10 @@ PALETTE_START = 0x3F00
 PALETTE_END = 0x3FFF
 PALETTE_SIZE = 0x20
 
+NAMETABLE_START = 0x2000
+NAMETABLE_END = 0x3EFF 
+NAMETABLE_SIZE = 0x800
+
 @dataclass
 class PpuBus():
     """Routes PPU address-space reads/write"""
@@ -32,6 +36,20 @@ class PpuBus():
         if index in (0x10, 0x14, 0x18, 0x1C):
             index -= 0x10
         return PALETTE_START + index
+
+    def normalize_nametable_addr(self, addr: int) -> int:
+        """
+        Nametable: 0x400 Areas of memory with a total of 4 nametables 
+        - [0x2000 - 0x23FF], [0x2400 - 0x27FF]
+        - [0x2800 - 0x2BFF], [0x2C00 - 0x2FFF]
+        - [0x3000...0x3EFF] = Mirrors (Yes, It is not completed to 0x3FFF)
+        $3000-$3EFF mirrors $2000-$2EFF and is rarely used directly.
+        """
+
+        if 0x3000 <= addr <= 0x3EFF:
+            addr -= 0x1000
+        index = (addr - 0x2000) % NAMETABLE_SIZE
+        return 0x2000 + index
     
     def read(self, addr: int) -> int:
         addr = addr & PPU_ADDRESS_MASK
@@ -41,6 +59,10 @@ class PpuBus():
                 return self.mapper.read_chr(addr)
             else:
                 return self.vram.read(addr)
+
+        if NAMETABLE_START <= addr <= NAMETABLE_END:
+            return self.vram.read(self.normalize_nametable_addr(addr))
+
 
         if PALETTE_START <= addr <= PALETTE_END:
             return self.vram.read(self.normalize_palette_addr(addr))
@@ -55,6 +77,10 @@ class PpuBus():
                 # Future implementation self.mapper.write_chr()
                 raise ValueError("CHR writes are not supported yet")
             self.vram.write(addr, value)
+            return
+
+        if NAMETABLE_START <= addr <= NAMETABLE_END:
+            self.vram.write(self.normalize_nametable_addr(addr), value)
             return
 
         if PALETTE_START <= addr <= PALETTE_END:
