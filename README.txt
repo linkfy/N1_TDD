@@ -44,7 +44,7 @@ PPU registers, PPU bus, and first graphics data path:
 [x] Palette read exception for PPUDATA
 [x] Connect cartridge mapper to PPU bus
 [x] Palette RAM mapping using big VRAM backing
-[ ] Nametable VRAM mapping using big VRAM backing
+[x] Nametable VRAM mapping using big VRAM backing
 [ ] CHR ROM/RAM mapper refinement
 [ ] Decode one CHR tile
 
@@ -99,26 +99,6 @@ The important behavior right now is address normalization/routing:
 
 The physical Python storage may still be the large VRAM array.
 
-Step 253) Nametable VRAM mapping refinement
-	File:
-		emulator/bus/ppu_bus.py
-
-	Goal:
-		Normalize $2000-$3EFF nametable addresses before accessing the current
-		big VRAM backing.
-
-	Initial behavior:
-		2KB nametable window modeled through address normalization
-		$2000-$2FFF maps into the normalized nametable window
-		$3000-$3EFF mirrors $2000-$2EFF
-
-	Storage policy:
-		Do not split nametable RAM into a separate object yet.
-		Keep using the existing large VRAM backing and normalize effective
-		addresses in PpuBus.
-
-	Later refinement:
-		cartridge mirroring modes: horizontal, vertical, four-screen, etc.
 
 Step 254) CHR ROM/RAM mapper refinement
 	Files:
