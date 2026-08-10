@@ -41,3 +41,8 @@ class Mapper000:
         offset = addr - CHR_ROM_START
         
         return self.chr_rom[offset]
+
+    def write_chr(self, addr: int, value: int) -> None:
+        if not (CHR_ROM_START <= addr <= CHR_ROM_END):
+            raise ValueError(f"Address out of CHR ROM range: {addr:04X}")
+        raise ValueError("CHR ROM is read-only for official Mapper000")

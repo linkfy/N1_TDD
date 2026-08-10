@@ -29,15 +29,6 @@ PaletteRAM object yet. We can keep using the existing large VRAM backing array a
 the physical storage location, as long as PpuBus normalizes palette addresses
 before reading or writing.
 
-In other words, this step teaches the important bus behavior first:
-
-    $3F10 behaves like $3F00
-    $3F20 behaves like $3F00
-
-even if the byte is currently stored inside the same large VRAM object used by
-earlier tutorial steps. A later refactor may split palette RAM into its own
-storage object without changing the public PpuBus read/write behavior.
-
 Mental model:
 
     PPU.write_register($2007, value)

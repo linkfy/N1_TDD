@@ -74,8 +74,8 @@ class PpuBus():
 
         if CHR_START <= addr <= CHR_END:
             if self.mapper is not None:
-                # Future implementation self.mapper.write_chr()
-                raise ValueError("CHR writes are not supported yet")
+                self.mapper.write_chr(addr, value)
+                return
             self.vram.write(addr, value)
             return
 
