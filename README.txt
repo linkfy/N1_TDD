@@ -45,8 +45,11 @@ PPU registers, PPU bus, and first graphics data path:
 [x] Connect cartridge mapper to PPU bus
 [x] Palette RAM mapping using big VRAM backing
 [x] Nametable VRAM mapping using big VRAM backing
-[ ] CHR ROM/RAM mapper refinement
-[ ] Decode one CHR tile
+[x] CHR write routing through mapper.write_chr
+[x] Decode one CHR tile
+[x] Validate CHR tile decode from tiny iNES ROM through mapper/PpuBus
+[ ] Decode one full pattern table
+[ ] Build pattern table debug grid
 
 Phase 6)
 Rendering:
@@ -60,7 +63,8 @@ Add sprites/OAMDMA
 Next Steps:
 
 Goal:
-Complete safe PPU memory-map refinement and then decode CHR graphics data.
+Move from decoding one CHR tile to decoding a full pattern table, then build a
+debug grid that can become the first visual output.
 
 Important rule:
 Do not implement sprite 0 hit or sprite overflow yet. Those require rendering,
@@ -92,37 +96,56 @@ Storage policy for this phase:
 Keep using the existing large VRAM backing object for PpuBus storage.
 Do not move palette RAM or nametable RAM into separate storage classes yet.
 
-The important behavior right now is address normalization/routing:
+Completed PPU memory-map behavior for this phase:
+	$0000-$1FFF routes CHR reads/writes through mapper when mapper exists
 	$3F10 should behave like $3F00
 	$3F20 should behave like $3F00
 	$3000 should behave like $2000
 
 The physical Python storage may still be the large VRAM array.
 
-
-Step 254) CHR ROM/RAM mapper refinement
-	Files:
-		emulator/cartridge/mapper_interface.py
-		emulator/cartridge/mapper000.py
-		emulator/bus/ppu_bus.py
-
-	Goal:
-		Keep $0000-$1FFF routed through mapper.
-		Add CHR RAM write behavior only when mapper.write_chr is introduced.
-
-	Important:
-		Do not make CHR ROM writable.
-		CHR RAM support should be explicit.
-
-Step 255) Decode one CHR tile
+Step 257A) Decode one full pattern table
 	File:
 		emulator/ppu/chr_decoder.py or similar
 
 	Behavior:
-		decode 16 CHR bytes into an 8x8 grid of color indices 0-3
+		decode 4096 CHR bytes into 256 decoded 8x8 tiles
+
+	Goal:
+		A pattern table is 256 tiles.
+		Each tile is 16 bytes.
+		4096 bytes / 16 bytes = 256 tiles.
+
+		This is still not rendering a screen or image file.
+		It only proves we can decode all tiles from one pattern table.
+
+	Suggested shape:
+		decode_pattern_table(pattern_table_bytes: bytes) -> list[list[list[int]]]
+
+	Important:
+		CHR ROM remains read-only for official Mapper000/NROM in this tutorial.
+		CHR RAM and unlicensed/homebrew Mapper000 variants are out of scope for now.
+
+Step 257B) Build pattern table debug grid
+	File:
+		emulator/ppu/chr_decoder.py or emulator/ppu/pattern_table.py
+
+	Behavior:
+		arrange 256 decoded tiles into a 128x128 grid of color indexes 0-3
+
+	Goal:
+		A pattern table debug view is 16 tiles across by 16 tiles down.
+		Each tile is 8x8 pixels.
+		16 * 8 = 128 pixels wide and high.
+
+		This gives a screen-like data grid before RGB colors, image files,
+		windows, nametables, scrolling, or timing.
+
+	Suggested shape:
+		build_pattern_table_debug_grid(decoded_tiles) -> list[list[int]]
 
 After Phase 5:
-	- Render one pattern table as debug image
+	- Convert pattern table debug grid into an image/debug display
 	- Render nametable background
 ---------------------------------------------
 Future Notes:
