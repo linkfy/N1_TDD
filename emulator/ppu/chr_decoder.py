@@ -2,6 +2,12 @@ PATTERN_TABLE_SIZE = 0x1000
 CHR_TILE_SIZE = 16
 PATTERN_TABLE_TILE_COUNT = 256
 
+#Each pattern table is a 128 by 128 pixel square, with 16 rows and 16 tiles
+PATTERN_TABLE_TILES_PER_ROW = 16
+CHR_TILE_WIDTH = 8
+CHR_TILE_HEIGHT = 8
+PATTERN_TABLE_DEBUG_GRID_SIZE = 128
+
 # Type alias
 PatternTile = list[list[int]]
 # https://www.nesdev.org/wiki/PPU_pattern_tables
@@ -64,4 +70,26 @@ def decode_pattern_table(pattern_table_bytes: bytes) -> PatternTable:
     return tiles
 
 
- 
+# Type Alias:
+PatternTableDebugGrid = list[list[int]]
+def build_pattern_table_debug_grid(decoded_tiles: PatternTable) -> PatternTableDebugGrid:
+    """Each pattern table is a 128 by 128 pixel square, with 16 rows and 16 tiles
+    This debug function helps to verify correct grid construction based on pattern table
+    """
+    if len(decoded_tiles) != PATTERN_TABLE_TILE_COUNT:
+        raise ValueError("Pattern table debug grid requires 256 decoded tiles")
+
+    grid = [
+            [0 for _ in range(PATTERN_TABLE_DEBUG_GRID_SIZE)] 
+            for _ in range(PATTERN_TABLE_DEBUG_GRID_SIZE)
+    ]
+
+    for tile_index, tile in enumerate(decoded_tiles):
+        tile_x = (tile_index % PATTERN_TABLE_TILES_PER_ROW) * CHR_TILE_WIDTH
+        tile_y = (tile_index // PATTERN_TABLE_TILES_PER_ROW) * CHR_TILE_HEIGHT
+
+        for row in range(CHR_TILE_HEIGHT):
+            for col in range(CHR_TILE_WIDTH):
+                grid[tile_y + row][tile_x + col] = tile[row][col]
+
+    return grid

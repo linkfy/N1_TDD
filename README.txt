@@ -48,12 +48,17 @@ PPU registers, PPU bus, and first graphics data path:
 [x] CHR write routing through mapper.write_chr
 [x] Decode one CHR tile
 [x] Validate CHR tile decode from tiny iNES ROM through mapper/PpuBus
-[ ] Decode one full pattern table
-[ ] Build pattern table debug grid
+[x] Decode one full pattern table
+[x] Build pattern table debug grid
+[ ] PPU timing counters: cycle, scanline, frame
+[ ] PPU VBlank generation from timing
+[ ] PPU pre-render VBlank clear from timing
+[ ] PPU NMI request on VBlank when enabled
+[ ] CPU/system integration consumes PPU NMI request
 
 Phase 6)
 Rendering:
-Render one pattern table as debug image
+Render with pygame later
 Render nametable background
 Add palette colors
 Add frame timing/VBlank/NMI
@@ -63,8 +68,8 @@ Add sprites/OAMDMA
 Next Steps:
 
 Goal:
-Move from decoding one CHR tile to decoding a full pattern table, then build a
-debug grid that can become the first visual output.
+Add enough PPU time progression for future ROMs to run frame loops before adding
+controllers or pygame rendering.
 
 Important rule:
 Do not implement sprite 0 hit or sprite overflow yet. Those require rendering,
@@ -104,48 +109,90 @@ Completed PPU memory-map behavior for this phase:
 
 The physical Python storage may still be the large VRAM array.
 
-Step 257A) Decode one full pattern table
+Completed CHR graphics data path for this phase:
+	decode one 16-byte CHR tile into an 8x8 grid of color indexes 0-3
+	validate CHR decode through tiny iNES ROM -> mapper -> PpuBus
+	decode one 4096-byte pattern table into 256 decoded tiles
+	arrange 256 decoded tiles into a 128x128 pattern table debug grid
+
+Rendering policy:
+	Do not add image-output/debug-image generation now.
+	Do not add pygame yet.
+	Pygame rendering can be introduced later when the emulator has enough timing
+	and frame-loop behavior to make visual output useful.
+
+Step 259) PPU timing counters
 	File:
-		emulator/ppu/chr_decoder.py or similar
+		emulator/ppu/ppu.py
 
 	Behavior:
-		decode 4096 CHR bytes into 256 decoded 8x8 tiles
+		add explicit PPU time state:
+			cycle
+			scanline
+			frame
+
+		add a small step/tick method that advances PPU time.
 
 	Goal:
-		A pattern table is 256 tiles.
-		Each tile is 16 bytes.
-		4096 bytes / 16 bytes = 256 tiles.
+		Create the mechanism needed for VBlank and future rendering timing.
 
-		This is still not rendering a screen or image file.
-		It only proves we can decode all tiles from one pattern table.
-
-	Suggested shape:
-		decode_pattern_table(pattern_table_bytes: bytes) -> list[list[list[int]]]
+	Initial timing model:
+		341 PPU cycles per scanline
+		262 scanlines per frame
 
 	Important:
-		CHR ROM remains read-only for official Mapper000/NROM in this tutorial.
-		CHR RAM and unlicensed/homebrew Mapper000 variants are out of scope for now.
+		Do not implement rendering, sprite 0 hit, sprite overflow, or odd-frame
+		cycle skip in this step.
 
-Step 257B) Build pattern table debug grid
+Step 260) VBlank generation from PPU timing
 	File:
-		emulator/ppu/chr_decoder.py or emulator/ppu/pattern_table.py
+		emulator/ppu/ppu.py
 
 	Behavior:
-		arrange 256 decoded tiles into a 128x128 grid of color indexes 0-3
+		set VBLANK_STARTED when timing reaches the VBlank start point
+		clear VBLANK_STARTED on the pre-render scanline
 
 	Goal:
-		A pattern table debug view is 16 tiles across by 16 tiles down.
-		Each tile is 8x8 pixels.
-		16 * 8 = 128 pixels wide and high.
+		Allow ROMs that poll PPUSTATUS $2002 for VBlank to eventually progress.
 
-		This gives a screen-like data grid before RGB colors, image files,
-		windows, nametables, scrolling, or timing.
+	Important:
+		PPUSTATUS reads should still return the old status and clear VBlank,
+		as already implemented.
 
-	Suggested shape:
-		build_pattern_table_debug_grid(decoded_tiles) -> list[list[int]]
+Step 261) PPU NMI request on VBlank
+	Files:
+		emulator/ppu/ppu.py
+		emulator/cpu/cpu.py or system integration later
+
+	Behavior:
+		when VBlank starts and PPUCTRL bit 7 is set, raise an explicit NMI request
+		flag such as:
+			ppu.nmi_requested = True
+
+	Goal:
+		Prepare for games that depend on NMI instead of polling PPUSTATUS.
+
+	Important:
+		The PPU can expose the request first.
+		Full CPU interrupt consumption can be a separate step.
+
+Step 262) CPU/system integration consumes PPU NMI request
+	Files:
+		emulator/cpu/cpu.py
+		emulator/bus/cpu_bus.py or a future system/console coordinator
+
+	Behavior:
+		connect PPU NMI request to CPU NMI handling in a controlled place
+
+	Goal:
+		Make frame-based game loops possible before adding controllers.
+
+	Important:
+		Do not add controller input until basic VBlank/NMI progression exists.
 
 After Phase 5:
-	- Convert pattern table debug grid into an image/debug display
+	- Implement controller $4016 behavior
+	- Add pygame rendering path
 	- Render nametable background
 ---------------------------------------------
 Future Notes:
