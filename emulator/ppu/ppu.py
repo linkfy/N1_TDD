@@ -28,6 +28,10 @@ MASK_EMPHASIZE_BLUE =           1 << 7
 PALETTE_START_ADDR =            0x3F00
 PALETTE_END_ADDR =              0x3FFF
 
+## PPU Timing
+PPU_CYCLES_PER_SCANLINE = 341
+PPU_SCANLINES_PER_FRAME = 262
+
 # OAM_SIZE: 64 Sprites x 4 bytes
 OAM_SIZE = 256
 
@@ -51,6 +55,26 @@ class PPU:
     oam: bytearray = field(default_factory=lambda: bytearray(OAM_SIZE))
     ppu_data_buffer: int = 0 # Internal PPUDATA read buffer
 
+    cycle: int = 0
+    scanline: int = 0
+    frame: int = 0
+    
+    def step(self, cycles: int = 1) -> None:
+        """
+        When cycle reaches 341, scanline +=1, cycle = 0
+        When scanline reaches 262, scanline = 0, frame += 1
+        https://www.nesdev.org/wiki/PPU_rendering#Line-by-line_timing
+        """
+        for _ in range(cycles):
+            self.cycle += 1
+
+            if self.cycle >= PPU_CYCLES_PER_SCANLINE:
+                self.cycle = 0
+                self.scanline += 1
+
+                if self.scanline >= PPU_SCANLINES_PER_FRAME:
+                    self.scanline = 0
+                    self.frame += 1
     
     def write_register(self, addr: int, value: int) -> None:
         value = value & 0xFF

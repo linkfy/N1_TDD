@@ -50,26 +50,43 @@ PPU registers, PPU bus, and first graphics data path:
 [x] Validate CHR tile decode from tiny iNES ROM through mapper/PpuBus
 [x] Decode one full pattern table
 [x] Build pattern table debug grid
-[ ] PPU timing counters: cycle, scanline, frame
+
+Phase 6)
+PPU timing, VBlank, and NMI readiness:
+[x] PPU timing counters: cycle, scanline, frame
 [ ] PPU VBlank generation from timing
 [ ] PPU pre-render VBlank clear from timing
 [ ] PPU NMI request on VBlank when enabled
 [ ] CPU/system integration consumes PPU NMI request
 
-Phase 6)
-Rendering:
-Render with pygame later
-Render nametable background
-Add palette colors
-Add frame timing/VBlank/NMI
-Add sprites/OAMDMA
+Phase 7)
+Rendering pipeline and pygame frontend:
+[ ] Define pure framebuffer data shape
+[ ] Convert color-index grids to RGB/framebuffer data without pygame
+[ ] Render pattern table/debug graphics into framebuffer data
+[ ] Render nametable background into framebuffer data
+[ ] Add palette color lookup
+[ ] Add basic frame loop using PPU timing/VBlank
+[ ] Add thin pygame frontend that displays framebuffer data
+[ ] Add manual pygame smoke runner
+[ ] Add sprites/OAMDMA later
+
+Phase 8)
+Controller input:
+[ ] Controller state object for A/B/Select/Start/Up/Down/Left/Right
+[ ] CpuBus routes $4016 writes to controller strobe
+[ ] CpuBus routes $4016 reads to controller serial data
+[ ] Controller strobe behavior latches button state
+[ ] Controller reads shift one button bit at a time
+[ ] Validate CPU program can read controller bits from $4016
+[ ] Connect pygame keyboard input to controller state
 
 --
 Next Steps:
 
 Goal:
 Add enough PPU time progression for future ROMs to run frame loops before adding
-controllers or pygame rendering.
+pygame rendering or controller input.
 
 Important rule:
 Do not implement sprite 0 hit or sprite overflow yet. Those require rendering,
@@ -97,52 +114,39 @@ Avoid new tests depending on:
 unless the test is intentionally about the low-level VRAM memory device or an old
 historical teaching step.
 
-Storage policy for this phase:
-Keep using the existing large VRAM backing object for PpuBus storage.
-Do not move palette RAM or nametable RAM into separate storage classes yet.
-
-Completed PPU memory-map behavior for this phase:
-	$0000-$1FFF routes CHR reads/writes through mapper when mapper exists
-	$3F10 should behave like $3F00
-	$3F20 should behave like $3F00
-	$3000 should behave like $2000
-
-The physical Python storage may still be the large VRAM array.
-
-Completed CHR graphics data path for this phase:
-	decode one 16-byte CHR tile into an 8x8 grid of color indexes 0-3
-	validate CHR decode through tiny iNES ROM -> mapper -> PpuBus
-	decode one 4096-byte pattern table into 256 decoded tiles
-	arrange 256 decoded tiles into a 128x128 pattern table debug grid
-
 Rendering policy:
 	Do not add image-output/debug-image generation now.
 	Do not add pygame yet.
 	Pygame rendering can be introduced later when the emulator has enough timing
 	and frame-loop behavior to make visual output useful.
 
-Step 259) PPU timing counters
-	File:
-		emulator/ppu/ppu.py
+Pygame/testing policy for Phase 7:
+	Keep pygame outside the emulator core.
+	The emulator core should produce pure framebuffer data.
+	Pygame should be a thin frontend that displays that framebuffer.
 
-	Behavior:
-		add explicit PPU time state:
-			cycle
-			scanline
-			frame
+	Tests should focus on pure data transformations, for example:
+		color-index grid -> RGB/framebuffer data
+		pattern table grid -> framebuffer data
+		nametable data -> framebuffer data
 
-		add a small step/tick method that advances PPU time.
+	Avoid tests that depend on a real pygame window.
+	Manual pygame smoke runners are acceptable for visual confirmation.
 
-	Goal:
-		Create the mechanism needed for VBlank and future rendering timing.
+	Preferred boundary:
+		emulator/ppu or emulator/rendering:
+			pure rendering/framebuffer functions
 
-	Initial timing model:
-		341 PPU cycles per scanline
-		262 scanlines per frame
+		emulator/frontend or tools:
+			pygame window, event loop, keyboard, display upload
 
-	Important:
-		Do not implement rendering, sprite 0 hit, sprite overflow, or odd-frame
-		cycle skip in this step.
+	The emulator core should still be importable/testable without pygame.
+
+Controller policy:
+	Do not add controller input before basic VBlank/NMI progression exists.
+	Controller $4016 behavior becomes useful after games can run frame loops and
+	there is a rendering path where input effects can be observed.
+
 
 Step 260) VBlank generation from PPU timing
 	File:
@@ -191,9 +195,18 @@ Step 262) CPU/system integration consumes PPU NMI request
 		Do not add controller input until basic VBlank/NMI progression exists.
 
 After Phase 5:
-	- Implement controller $4016 behavior
-	- Add pygame rendering path
-	- Render nametable background
+	- Phase 6: PPU timing, VBlank, and NMI readiness
+	- Phase 7: pure rendering pipeline plus thin pygame frontend
+	- Phase 8: controller $4016 behavior
+
+Controller phase outline:
+	Controller state stores 8 buttons in NES read order:
+		A, B, Select, Start, Up, Down, Left, Right
+
+	CPU write $4016 controls strobe/latch behavior.
+	CPU read $4016 returns one button bit at a time.
+	Pygame keyboard input should only be connected after the pure controller
+	protocol is tested.
 ---------------------------------------------
 Future Notes:
 
