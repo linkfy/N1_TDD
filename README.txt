@@ -54,8 +54,8 @@ PPU registers, PPU bus, and first graphics data path:
 Phase 6)
 PPU timing, VBlank, and NMI readiness:
 [x] PPU timing counters: cycle, scanline, frame
-[ ] PPU VBlank generation from timing
-[ ] PPU pre-render VBlank clear from timing
+[x] PPU VBlank generation from timing
+[x] PPU pre-render VBlank clear from timing
 [ ] PPU NMI request on VBlank when enabled
 [ ] CPU/system integration consumes PPU NMI request
 

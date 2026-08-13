@@ -1,5 +1,4 @@
 from dataclasses import dataclass, field
-
 from emulator.bus.ppu_bus import PpuBus
 
 VBLANK_STARTED =                1 << 7
@@ -32,6 +31,10 @@ PALETTE_END_ADDR =              0x3FFF
 PPU_CYCLES_PER_SCANLINE = 341
 PPU_SCANLINES_PER_FRAME = 262
 
+## VBLANK
+PPU_VBLANK_START_SCANLINE = 241
+PPU_PRE_RENDER_SCANLINE = 261
+
 # OAM_SIZE: 64 Sprites x 4 bytes
 OAM_SIZE = 256
 
@@ -58,6 +61,7 @@ class PPU:
     cycle: int = 0
     scanline: int = 0
     frame: int = 0
+    nmi_requested: bool = False
     
     def step(self, cycles: int = 1) -> None:
         """
@@ -75,7 +79,19 @@ class PPU:
                 if self.scanline >= PPU_SCANLINES_PER_FRAME:
                     self.scanline = 0
                     self.frame += 1
-    
+
+                # VBLANK START -> set VBlank on scanline 241
+                if self.scanline == PPU_VBLANK_START_SCANLINE:
+                    self.status |= VBLANK_STARTED
+
+                    if self.ctrl & CTRL_NMI_ENABLE:
+                        self.nmi_requested = True
+
+                # Pre-render clear -> Unset VBlank on scanline 261
+                if self.scanline == PPU_PRE_RENDER_SCANLINE:
+                    self.status &= ~VBLANK_STARTED
+
+        
     def write_register(self, addr: int, value: int) -> None:
         value = value & 0xFF
         match addr:
