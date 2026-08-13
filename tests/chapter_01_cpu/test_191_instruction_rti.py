@@ -68,7 +68,8 @@ from tests.helpers import make_cpu
 CARRY_FLAG = 1 << 0
 ZERO_FLAG = 1 << 1
 INTERRUPT_DISABLE_FLAG = 1 << 2
-BREAK_FLAG = 1 << 5
+BREAK_FLAG = 1 << 4
+ONE_FLAG = 1 << 5
 OVERFLOW_FLAG = 1 << 6
 NEGATIVE_FLAG = 1 << 7
 STACK_BASE = 0x0100
@@ -166,6 +167,7 @@ def test_rti_clears_break_and_unused_status_bits_from_pulled_status():
     rti(cpu)
 
     assert (cpu.p & BREAK_FLAG) == 0
+    assert (cpu.p & ONE_FLAG) == 0
     assert cpu.p == (CARRY_FLAG | NEGATIVE_FLAG)
 
 

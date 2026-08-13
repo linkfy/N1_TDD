@@ -8,7 +8,8 @@ BRK is a software interrupt instruction. To implement it clearly, the CPU needs
 helpers for two status flags:
 
     I flag -> Interrupt Disable, bit 2
-    B flag -> Break, bit 5
+    B flag -> Break, bit 4
+    ONE flag -> unused/status bit 5 used in pushed status bytes
 
 BRK will need them because:
     - it sets the Interrupt Disable flag after entering the interrupt handler
@@ -29,7 +30,8 @@ Common mistake:
 Do not confuse the BRK opcode with the Break flag.
 
     BRK opcode: 0x00, the instruction byte in memory
-    B flag:     bit 5 inside the status byte pushed to the stack
+    B flag:     bit 4 inside the status byte pushed to the stack
+    ONE flag:   bit 5, usually set in pushed status bytes
 """
 
 import inspect
@@ -39,7 +41,8 @@ from tests.helpers import make_cpu
 
 
 INTERRUPT_DISABLE_FLAG = 1 << 2
-BREAK_FLAG = 1 << 5
+BREAK_FLAG = 1 << 4
+ONE_FLAG = 1 << 5
 
 
 def test_flags_handler_has_interrupt_disable_helpers():
@@ -88,6 +91,29 @@ def test_flags_handler_has_break_flag_helpers():
     assert list(inspect.signature(FlagsHandler.get_break_flag).parameters) == ["self"]
 
 
+def test_flags_handler_has_one_flag_helpers():
+    """
+    Objective:
+    Add helpers for the ONE/unused status bit.
+
+    Required API:
+        set_one_flag(enabled: bool)
+        get_one_flag() -> bool
+
+    Why:
+    BRK/PHP/NMI pushed status bytes should have bit 5 set even though this bit has
+    no normal CPU behavior effect.
+    """
+    assert hasattr(FlagsHandler, "set_one_flag")
+    assert hasattr(FlagsHandler, "get_one_flag")
+
+    assert list(inspect.signature(FlagsHandler.set_one_flag).parameters) == [
+        "self",
+        "enabled",
+    ]
+    assert list(inspect.signature(FlagsHandler.get_one_flag).parameters) == ["self"]
+
+
 def test_flags_handler_sets_and_clears_interrupt_disable_flag():
     """
     Objective:
@@ -112,8 +138,8 @@ def test_flags_handler_sets_and_clears_interrupt_disable_flag():
 def test_flags_handler_sets_and_clears_break_flag():
     """
     Objective:
-    set_break_flag(True) sets bit 5.
-    set_break_flag(False) clears bit 5.
+    set_break_flag(True) sets bit 4.
+    set_break_flag(False) clears bit 4.
 
     Why this matters for BRK:
     The pushed status byte must indicate that the interrupt came from BRK.
@@ -127,6 +153,27 @@ def test_flags_handler_sets_and_clears_break_flag():
     cpu.flags.set_break_flag(False)
     assert (cpu.p & BREAK_FLAG) == 0
     assert cpu.flags.get_break_flag() is False
+
+
+def test_flags_handler_sets_and_clears_one_flag():
+    """
+    Objective:
+    set_one_flag(True) sets bit 5.
+    set_one_flag(False) clears bit 5.
+
+    Why this matters:
+    Bit 5 is forced into pushed status bytes, but it is distinct from the Break
+    flag at bit 4.
+    """
+    cpu = make_cpu()
+
+    cpu.flags.set_one_flag(True)
+    assert (cpu.p & ONE_FLAG) != 0
+    assert cpu.flags.get_one_flag() is True
+
+    cpu.flags.set_one_flag(False)
+    assert (cpu.p & ONE_FLAG) == 0
+    assert cpu.flags.get_one_flag() is False
 
 
 def test_interrupt_disable_and_break_helpers_preserve_other_flags():

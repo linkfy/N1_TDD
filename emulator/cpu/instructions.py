@@ -416,14 +416,17 @@ def brk(cpu: CPU):
 
     # Set break flag before saving to stack
     cpu.flags.set_break_flag(True)
+    # Ensure that One flag is always set
+    cpu.flags.set_one_flag(True)
     # Save flags to stack
     cpu.bus.write(STACK_BASE | cpu.s, cpu.p)
     cpu.s = (cpu.s - 1) & 0xFF
     # Set interrupt disable flag
     cpu.flags.set_interrupt_disable_flag(True)
     # Clear break flag after saving: B Flag exists only in the flags byte pushed to stack,
-    # not as a real state in the CPU
+    # not as a real state in the CPU, same for One flag
     cpu.flags.set_break_flag(False)
+    cpu.flags.set_one_flag(False)
 
     low = cpu.bus.read(0xFFFE)
     high = cpu.bus.read(0xFFFF)
@@ -457,9 +460,13 @@ def pla(cpu: CPU):
 
 def php(cpu: CPU):
     cpu.flags.set_break_flag(True)
+    # Ensure that One flag is always set
+    cpu.flags.set_one_flag(True)
+    # Write status to stack
     cpu.bus.write(STACK_BASE | cpu.s, cpu.p)
-    # Break flag ony pushed to stak, not kept as real CPU state
+    # Break flag ony pushed to stak, not kept as real CPU state, same for One Flag
     cpu.flags.set_break_flag(False)
+    cpu.flags.set_one_flag(False)
 
     cpu.s = (cpu.s - 1) & 0xFF
 

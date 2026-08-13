@@ -35,7 +35,8 @@ from emulator.memory.fake_rom import FakeROM
 
 
 CARRY_FLAG = 1 << 0
-BREAK_FLAG = 1 << 5
+BREAK_FLAG = 1 << 4
+ONE_FLAG = 1 << 5
 NEGATIVE_FLAG = 1 << 7
 STACK_BASE = 0x0100
 
@@ -75,19 +76,20 @@ def test_opcode_28_plp_restores_processor_status_from_stack():
 def test_opcode_28_plp_masks_break_from_restored_status():
     """
     Objective:
-    If the saved status byte has Break set, PLP does not keep Break as persistent
-    CPU state in this emulator model.
+    If the saved status byte has Break/ONE set, PLP does not keep those bits as
+    persistent CPU state in this emulator model.
     """
     cpu, bus, rom = make_cpu_with_rom()
     rom.write(0x0000, 0x28)
 
     cpu.reset()
     cpu.s = 0xFC
-    bus.write(STACK_BASE | 0xFD, BREAK_FLAG | CARRY_FLAG)
+    bus.write(STACK_BASE | 0xFD, BREAK_FLAG | ONE_FLAG | CARRY_FLAG)
     cpu.step()
 
     assert cpu.p == CARRY_FLAG
     assert cpu.flags.get_break_flag() is False
+    assert cpu.flags.get_one_flag() is False
 
 
 def test_opcode_28_plp_does_not_fetch_operand_bytes():

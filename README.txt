@@ -56,7 +56,7 @@ PPU timing, VBlank, and NMI readiness:
 [x] PPU timing counters: cycle, scanline, frame
 [x] PPU VBlank generation from timing
 [x] PPU pre-render VBlank clear from timing
-[ ] PPU NMI request on VBlank when enabled
+[x] PPU NMI request on VBlank when enabled
 [ ] CPU/system integration consumes PPU NMI request
 
 Phase 7)

@@ -40,7 +40,8 @@ from emulator.memory.fake_rom import FakeROM
 
 
 CARRY_FLAG = 1 << 0
-BREAK_FLAG = 1 << 5
+BREAK_FLAG = 1 << 4
+ONE_FLAG = 1 << 5
 STACK_BASE = 0x0100
 
 
@@ -128,15 +129,15 @@ def test_opcode_40_rti_does_not_fetch_operand_bytes():
 def test_opcode_40_rti_clears_break_from_restored_cpu_status():
     """
     Objective:
-    If the saved status byte has Break set, RTI does not keep Break as a
-    persistent CPU status bit in this emulator model.
+    If the saved status byte has Break/ONE set, RTI does not keep those bits as
+    persistent CPU status in this emulator model.
     """
     cpu, bus, rom = make_cpu_with_rom()
     rom.write(0x0000, 0x40)
 
     cpu.reset()
     cpu.s = 0xFA
-    bus.write(STACK_BASE | 0xFB, BREAK_FLAG | CARRY_FLAG)
+    bus.write(STACK_BASE | 0xFB, BREAK_FLAG | ONE_FLAG | CARRY_FLAG)
     bus.write(STACK_BASE | 0xFC, 0x34)
     bus.write(STACK_BASE | 0xFD, 0x12)
 
@@ -145,3 +146,4 @@ def test_opcode_40_rti_clears_break_from_restored_cpu_status():
     assert cpu.pc == 0x1234
     assert cpu.p == CARRY_FLAG
     assert cpu.flags.get_break_flag() is False
+    assert cpu.flags.get_one_flag() is False

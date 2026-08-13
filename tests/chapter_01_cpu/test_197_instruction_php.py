@@ -18,7 +18,7 @@ So if:
     S = $FD
 
 Then PHP must:
-    1. create a status byte with Break set
+    1. create a status byte with Break set and ONE/unused bit set
     2. write that status byte to $01FD
     3. decrement S to $FC
 
@@ -35,8 +35,10 @@ Common mistakes:
 Implementation shape:
 
     cpu.flags.set_break_flag(True)
+    cpu.flags.set_one_flag(True)
     cpu.bus.write(0x0100 | cpu.s, cpu.p)
     cpu.flags.set_break_flag(False)
+    cpu.flags.set_one_flag(False)
     cpu.s = (cpu.s - 1) & 0xFF
 """
 
@@ -47,7 +49,8 @@ from tests.helpers import make_cpu
 CARRY_FLAG = 1 << 0
 ZERO_FLAG = 1 << 1
 INTERRUPT_DISABLE_FLAG = 1 << 2
-BREAK_FLAG = 1 << 5
+BREAK_FLAG = 1 << 4
+ONE_FLAG = 1 << 5
 OVERFLOW_FLAG = 1 << 6
 NEGATIVE_FLAG = 1 << 7
 STACK_BASE = 0x0100
@@ -82,6 +85,7 @@ def test_php_pushes_status_with_break_flag_set():
 
     pushed_status = cpu.bus.read(STACK_BASE | 0xFD)
     assert (pushed_status & BREAK_FLAG) != 0
+    assert (pushed_status & ONE_FLAG) != 0
 
 
 def test_php_clears_break_flag_from_cpu_state_after_push():
@@ -97,7 +101,9 @@ def test_php_clears_break_flag_from_cpu_state_after_push():
 
     pushed_status = cpu.bus.read(STACK_BASE | 0xFD)
     assert (pushed_status & BREAK_FLAG) != 0
+    assert (pushed_status & ONE_FLAG) != 0
     assert cpu.flags.get_break_flag() is False
+    assert cpu.flags.get_one_flag() is False
 
 
 def test_php_decrements_stack_pointer_after_push():
@@ -122,6 +128,7 @@ def test_php_stack_pointer_wraps_to_8_bits():
     pushed_status = cpu.bus.read(STACK_BASE | 0x00)
     assert (pushed_status & CARRY_FLAG) != 0
     assert (pushed_status & BREAK_FLAG) != 0
+    assert (pushed_status & ONE_FLAG) != 0
     assert cpu.s == 0xFF
 
 

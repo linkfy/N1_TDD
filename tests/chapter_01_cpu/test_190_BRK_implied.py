@@ -39,7 +39,8 @@ from emulator.memory.fake_rom import FakeROM
 
 
 INTERRUPT_DISABLE_FLAG = 1 << 2
-BREAK_FLAG = 1 << 5
+BREAK_FLAG = 1 << 4
+ONE_FLAG = 1 << 5
 STACK_BASE = 0x0100
 
 
@@ -101,7 +102,7 @@ def test_opcode_00_brk_pushes_address_after_padding_byte():
 
 
 def test_opcode_00_brk_pushes_status_with_break_flag_set():
-    """Objective: opcode BRK pushes P with the Break flag set."""
+    """Objective: opcode BRK pushes P with Break and ONE bits set."""
     cpu, bus, rom = make_cpu_with_rom()
     rom.write(0x0000, 0x00)
     rom.write(0x0001, 0xAB)
@@ -112,6 +113,7 @@ def test_opcode_00_brk_pushes_status_with_break_flag_set():
 
     pushed_status = bus.read(STACK_BASE | 0xFB)
     assert (pushed_status & BREAK_FLAG) != 0
+    assert (pushed_status & ONE_FLAG) != 0
 
 
 def test_opcode_00_brk_sets_interrupt_disable_and_clears_cpu_break_state():
@@ -131,6 +133,7 @@ def test_opcode_00_brk_sets_interrupt_disable_and_clears_cpu_break_state():
     assert (cpu.p & INTERRUPT_DISABLE_FLAG) != 0
     assert cpu.flags.get_interrupt_disable_flag() is True
     assert cpu.flags.get_break_flag() is False
+    assert cpu.flags.get_one_flag() is False
 
 
 def test_opcode_00_brk_padding_byte_is_ignored_not_executed():

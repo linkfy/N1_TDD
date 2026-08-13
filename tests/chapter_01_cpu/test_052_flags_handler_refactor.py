@@ -31,6 +31,7 @@ from emulator.cpu.flags_handler import FlagsHandler
 
 CARRY_FLAG = 1 << 0
 ZERO_FLAG = 1 << 1
+ONE_FLAG = 1 << 5
 OVERFLOW_FLAG = 1 << 6
 NEGATIVE_FLAG = 1 << 7
 
@@ -120,6 +121,9 @@ def test_flags_handler_set_methods_exist():
         def set_carry_flag(self, enabled: bool):
             ...
 
+        def set_one_flag(self, enabled: bool):
+            ...
+
     Important:
     enabled=True means set the flag.
     enabled=False means clear the flag.
@@ -135,6 +139,7 @@ def test_flags_handler_set_methods_exist():
     assert hasattr(FlagsHandler, "set_negative_flag")
     assert hasattr(FlagsHandler, "set_overflow_flag")
     assert hasattr(FlagsHandler, "set_carry_flag")
+    assert hasattr(FlagsHandler, "set_one_flag")
 
 
 def test_flags_handler_get_methods_exist():
@@ -154,6 +159,9 @@ def test_flags_handler_get_methods_exist():
         def get_carry_flag(self) -> bool:
             ...
 
+        def get_one_flag(self) -> bool:
+            ...
+
     Example implementation:
         return bool(self.cpu.p & ZERO_FLAG)
 
@@ -168,6 +176,7 @@ def test_flags_handler_get_methods_exist():
     assert hasattr(FlagsHandler, "get_negative_flag")
     assert hasattr(FlagsHandler, "get_overflow_flag")
     assert hasattr(FlagsHandler, "get_carry_flag")
+    assert hasattr(FlagsHandler, "get_one_flag")
 
 
 def test_flags_handler_sets_and_clears_zero_flag():
@@ -224,6 +233,27 @@ def test_flags_handler_sets_and_clears_carry_flag():
     flags.set_carry_flag(False)
     assert (cpu.p & CARRY_FLAG) == 0
     assert flags.get_carry_flag() is False
+
+
+def test_flags_handler_sets_and_clears_one_flag():
+    """
+    Objective:
+    set_one_flag(True) sets bit 5, and False clears bit 5.
+
+    Important:
+    This bit has no normal CPU behavior effect in this tutorial model. It is used
+    when creating pushed status bytes for BRK/PHP/NMI.
+    """
+    cpu = make_cpu()
+    flags = FlagsHandler(cpu)
+
+    flags.set_one_flag(True)
+    assert (cpu.p & ONE_FLAG) != 0
+    assert flags.get_one_flag() is True
+
+    flags.set_one_flag(False)
+    assert (cpu.p & ONE_FLAG) == 0
+    assert flags.get_one_flag() is False
 
 
 def test_cpu_has_flags_handler_instance():

@@ -17,7 +17,7 @@ The instruction knows what to push from its name:
 Execution steps:
     1. CPU.step() fetches opcode 0x08.
     2. OPCODE_TABLE dispatches directly to php(cpu).
-    3. PHP pushes a status byte with Break set.
+    3. PHP pushes a status byte with Break set and ONE/unused bit set.
     4. PHP decrements S.
 
 Common mistake:
@@ -34,7 +34,8 @@ from emulator.memory.fake_rom import FakeROM
 
 
 CARRY_FLAG = 1 << 0
-BREAK_FLAG = 1 << 5
+BREAK_FLAG = 1 << 4
+ONE_FLAG = 1 << 5
 STACK_BASE = 0x0100
 
 
@@ -57,7 +58,7 @@ def test_php_instruction_signature_takes_only_cpu():
 
 
 def test_opcode_08_php_pushes_status_to_stack():
-    """Objective: executing opcode 0x08 pushes P with Break set."""
+    """Objective: executing opcode 0x08 pushes P with Break and ONE set."""
     cpu, bus, rom = make_cpu_with_rom()
     rom.write(0x0000, 0x08)
 
@@ -68,6 +69,7 @@ def test_opcode_08_php_pushes_status_to_stack():
     pushed_status = bus.read(STACK_BASE | 0xFD)
     assert (pushed_status & CARRY_FLAG) != 0
     assert (pushed_status & BREAK_FLAG) != 0
+    assert (pushed_status & ONE_FLAG) != 0
     assert cpu.s == 0xFC
 
 
@@ -106,7 +108,9 @@ def test_opcode_08_php_does_not_leave_break_set_in_cpu_state():
 
     pushed_status = bus.read(STACK_BASE | 0xFD)
     assert (pushed_status & BREAK_FLAG) != 0
+    assert (pushed_status & ONE_FLAG) != 0
     assert cpu.flags.get_break_flag() is False
+    assert cpu.flags.get_one_flag() is False
 
 
 def test_opcode_08_php_preserves_existing_cpu_flags_except_temporary_break():

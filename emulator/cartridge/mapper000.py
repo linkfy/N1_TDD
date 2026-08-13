@@ -30,6 +30,13 @@ class Mapper000:
         
         return self.prg_rom[offset]
 
+    def write_prg(self, addr: int, value: int) -> None:
+        if not (PRG_ROM_START <= addr <= PRG_ROM_END):
+            raise ValueError(f"Address out of PRG ROM range: {addr:04X}")
+        # Mapper000/NROM has no writable PRG registers.
+        # Real hardware ignores writes to PRG ROM space, so we ignore them too.
+        return
+
     def read_chr(self, addr: int) -> int:
         # 1. Verify addr is in Mapper000 CHR-ROM area range
         if not (CHR_ROM_START <= addr <= CHR_ROM_END):

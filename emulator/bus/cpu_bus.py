@@ -64,5 +64,15 @@ class CpuBus():
             unmirrored_addr = 0x2000 + ((addr - 0x2000) % 8)
             self.ppu.write_register(unmirrored_addr, value)
             return
+        # PROGRAM ROM
+        if 0x8000 <= addr <= 0xFFFF:
+            if self.mapper is not None:
+                self.mapper.write_prg(addr, value)
+                return
+            # For old program_rom=FakeROM tests 
+            if self.program_rom is not None:
+                self.program_rom.write(addr - 0x8000, value)
+                return
+
         raise ValueError(f"Unsupported CPU bus write: {addr:04X}")
 

@@ -32,7 +32,7 @@ BRK must:
     1. Compute return address as PC + 1.
     2. Push return address high byte.
     3. Push return address low byte.
-    4. Push status with Break flag set.
+    4. Push status with Break flag set and ONE/unused bit set.
     5. Set Interrupt Disable flag.
     6. Clear Break again if your emulator models B only in the pushed status byte.
     7. Load PC from IRQ/BRK vector $FFFE/$FFFF.
@@ -51,7 +51,8 @@ from emulator.memory.fake_rom import FakeROM
 
 
 INTERRUPT_DISABLE_FLAG = 1 << 2
-BREAK_FLAG = 1 << 5
+BREAK_FLAG = 1 << 4
+ONE_FLAG = 1 << 5
 STACK_BASE = 0x0100
 
 
@@ -116,7 +117,7 @@ def test_brk_pushes_status_with_break_flag_set():
     Objective:
     The status byte pushed by BRK must have the Break flag set.
 
-    This is different from saying BRK's opcode is $00. The B flag is bit 5 in
+    This is different from saying BRK's opcode is $00. The B flag is bit 4 in
     the pushed status byte.
     """
     cpu, bus, rom = make_cpu_with_rom()
@@ -129,6 +130,7 @@ def test_brk_pushes_status_with_break_flag_set():
 
     pushed_status = bus.read(STACK_BASE | 0xFB)
     assert (pushed_status & BREAK_FLAG) != 0
+    assert (pushed_status & ONE_FLAG) != 0
 
 
 def test_brk_sets_interrupt_disable_flag_after_pushing_status():
@@ -165,7 +167,9 @@ def test_brk_clears_break_flag_from_cpu_state_after_pushing_status():
 
     pushed_status = bus.read(STACK_BASE | 0xFB)
     assert (pushed_status & BREAK_FLAG) != 0
+    assert (pushed_status & ONE_FLAG) != 0
     assert cpu.flags.get_break_flag() is False
+    assert cpu.flags.get_one_flag() is False
 
 
 def test_brk_stack_pointer_wraps_to_8_bits():
@@ -180,4 +184,5 @@ def test_brk_stack_pointer_wraps_to_8_bits():
     assert bus.read(STACK_BASE | 0x01) == 0x80
     assert bus.read(STACK_BASE | 0x00) == 0x02
     assert bus.read(STACK_BASE | 0xFF) & BREAK_FLAG
+    assert bus.read(STACK_BASE | 0xFF) & ONE_FLAG
     assert cpu.s == 0xFE
