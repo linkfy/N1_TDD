@@ -1,7 +1,7 @@
 from dataclasses import dataclass, field
 
 from emulator.bus.cpu_bus import CpuBus
-from emulator.cpu.opcodes import OPCODE_TABLE
+from emulator.cpu.opcodes import OPCODE_CYCLES, OPCODE_TABLE
 from emulator.cpu.flags_handler import FlagsHandler
 from emulator.cpu.flags_handler import  (
         ZERO_FLAG, 
@@ -75,13 +75,14 @@ class CPU:
         self.pc = low | (high << 8)
 
 
-    def step(self) -> None:
+    def step(self) -> int:
         opcode = self.fetch_byte()
         handler = OPCODE_TABLE.get(opcode) # Returns None if not exists
         if handler is None:
             raise NotImplementedError(f"Opcode {opcode:02X} not implemented")
         
-        return handler(self)
+        handler(self)
+        return OPCODE_CYCLES[opcode]
     
     
     def push_stack(self, value: int) -> None:

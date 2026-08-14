@@ -105,21 +105,27 @@ def test_cpu_step_uses_opcode_table():
     Objective:
     Refactor CPU.step() so it uses OPCODE_TABLE.
 
-    CPU.step() should look like this:
+    CPU.step() should follow this shape:
 
-        def step(self) -> None:
+        def step(self):
             opcode = self.fetch_byte()
             handler = OPCODE_TABLE.get(opcode) # Returns None if not exists
             if handler is None:
                 raise NotImplementedError(f"Opcode {opcode:02X} not implemented")
-            
-            return handler(self)
+             
+            handler(self)
+
+            # Later tutorial steps may return extra metadata, such as the base
+            # cycle count for this opcode.
+            # Example:
+            #     return OPCODE_CYCLES[opcode]
 
     Why:
     CPU.step() is now responsible for:
     - fetch opcode
     - find handler
     - run handler
+    - optionally return step metadata added by later chapters
 
     The opcode handler is responsible for:
     - use the addressing mode
@@ -131,4 +137,4 @@ def test_cpu_step_uses_opcode_table():
     assert "OPCODE_TABLE.get(opcode)" in step_source
     assert "handler is None" in step_source
     assert "NotImplementedError" in step_source
-    assert "return handler(self)" in step_source
+    assert "handler(self)" in step_source

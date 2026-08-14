@@ -57,7 +57,14 @@ PPU timing, VBlank, and NMI readiness:
 [x] PPU VBlank generation from timing
 [x] PPU pre-render VBlank clear from timing
 [x] PPU NMI request on VBlank when enabled
-[ ] CPU/system integration consumes PPU NMI request
+[x] CPU stack helpers and shared interrupt flag constants
+[x] CPU bus PRG-space write routing through mapper/FakeROM
+[x] Mapper000 ignores valid PRG ROM writes for compatibility
+[x] CPU-side interrupt_nmi mechanics
+[x] Console coordinator consumes PPU NMI request exactly once
+[x] Opcode base cycle table metadata
+[x] CPU.step returns base instruction cycles
+[ ] Console.step advances PPU by CPU cycles * 3
 
 Phase 7)
 Rendering pipeline and pygame frontend:
@@ -85,8 +92,8 @@ Controller input:
 Next Steps:
 
 Goal:
-Add enough PPU time progression for future ROMs to run frame loops before adding
-pygame rendering or controller input.
+Use CPU.step() cycle returns to let Console.step() advance the PPU at the NES
+CPU:PPU timing ratio before adding pygame rendering or controller input.
 
 Important rule:
 Do not implement sprite 0 hit or sprite overflow yet. Those require rendering,
@@ -148,54 +155,32 @@ Controller policy:
 	there is a rendering path where input effects can be observed.
 
 
-Step 260) VBlank generation from PPU timing
-	File:
-		emulator/ppu/ppu.py
+Next tutorial step:
 
-	Behavior:
-		set VBLANK_STARTED when timing reaches the VBlank start point
-		clear VBLANK_STARTED on the pre-render scanline
-
-	Goal:
-		Allow ROMs that poll PPUSTATUS $2002 for VBlank to eventually progress.
-
-	Important:
-		PPUSTATUS reads should still return the old status and clear VBlank,
-		as already implemented.
-
-Step 261) PPU NMI request on VBlank
+Step 268) Console.step advances PPU by CPU cycles * 3
 	Files:
+		emulator/console.py
 		emulator/ppu/ppu.py
-		emulator/cpu/cpu.py or system integration later
-
-	Behavior:
-		when VBlank starts and PPUCTRL bit 7 is set, raise an explicit NMI request
-		flag such as:
-			ppu.nmi_requested = True
-
-	Goal:
-		Prepare for games that depend on NMI instead of polling PPUSTATUS.
-
-	Important:
-		The PPU can expose the request first.
-		Full CPU interrupt consumption can be a separate step.
-
-Step 262) CPU/system integration consumes PPU NMI request
-	Files:
 		emulator/cpu/cpu.py
-		emulator/bus/cpu_bus.py or a future system/console coordinator
 
 	Behavior:
-		connect PPU NMI request to CPU NMI handling in a controlled place
+		Console.step() executes one CPU instruction, receives its base CPU cycle count,
+		advances the PPU by cpu_cycles * 3, then consumes any PPU NMI request.
 
 	Goal:
-		Make frame-based game loops possible before adding controllers.
+		Connect CPU execution time to PPU time progression so frame loops can move
+		toward real VBlank/NMI behavior.
 
 	Important:
+		Use the existing boundary:
+			CPU.step() returns CPU cycles
+			PPU.step(cycles) advances PPU time
+			Console connects them using 1 CPU cycle = 3 PPU cycles
+		Do not add dynamic CPU cycle penalties in this step.
+		Do not add rendering, pygame, APU, or controller input in this step.
 		Do not add controller input until basic VBlank/NMI progression exists.
 
-After Phase 5:
-	- Phase 6: PPU timing, VBlank, and NMI readiness
+After Phase 6:
 	- Phase 7: pure rendering pipeline plus thin pygame frontend
 	- Phase 8: controller $4016 behavior
 
