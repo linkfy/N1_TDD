@@ -64,7 +64,8 @@ PPU timing, VBlank, and NMI readiness:
 [x] Console coordinator consumes PPU NMI request exactly once
 [x] Opcode base cycle table metadata
 [x] CPU.step returns base instruction cycles
-[ ] Console.step advances PPU by CPU cycles * 3
+[x] Console.step advances PPU by CPU cycles * 3
+[x] VALIDATION: tiny CPU program reaches VBlank NMI through Console.step
 
 Phase 7)
 Rendering pipeline and pygame frontend:
@@ -92,8 +93,8 @@ Controller input:
 Next Steps:
 
 Goal:
-Use CPU.step() cycle returns to let Console.step() advance the PPU at the NES
-CPU:PPU timing ratio before adding pygame rendering or controller input.
+Start Phase 7 by defining a pure framebuffer data shape before adding pygame,
+controllers, or sprite behavior.
 
 Important rule:
 Do not implement sprite 0 hit or sprite overflow yet. Those require rendering,
@@ -157,28 +158,23 @@ Controller policy:
 
 Next tutorial step:
 
-Step 268) Console.step advances PPU by CPU cycles * 3
+Step 270) Define pure framebuffer data shape
 	Files:
-		emulator/console.py
-		emulator/ppu/ppu.py
-		emulator/cpu/cpu.py
+		likely emulator/rendering/framebuffer.py or emulator/ppu/framebuffer.py
 
 	Behavior:
-		Console.step() executes one CPU instruction, receives its base CPU cycle count,
-		advances the PPU by cpu_cycles * 3, then consumes any PPU NMI request.
+		define a small, pygame-free framebuffer representation for future rendering
+		steps.
 
 	Goal:
-		Connect CPU execution time to PPU time progression so frame loops can move
-		toward real VBlank/NMI behavior.
+		Make emulator core rendering output pure data that tests can inspect without
+		opening a window.
 
 	Important:
-		Use the existing boundary:
-			CPU.step() returns CPU cycles
-			PPU.step(cycles) advances PPU time
-			Console connects them using 1 CPU cycle = 3 PPU cycles
-		Do not add dynamic CPU cycle penalties in this step.
-		Do not add rendering, pygame, APU, or controller input in this step.
-		Do not add controller input until basic VBlank/NMI progression exists.
+		Do not add pygame yet.
+		Do not render background/sprites yet.
+		Do not add controller input yet.
+		Keep the emulator core importable/testable without frontend dependencies.
 
 After Phase 6:
 	- Phase 7: pure rendering pipeline plus thin pygame frontend
