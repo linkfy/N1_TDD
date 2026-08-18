@@ -69,11 +69,14 @@ PPU timing, VBlank, and NMI readiness:
 
 Phase 7)
 Rendering pipeline and pygame frontend:
-[ ] Define pure framebuffer data shape
-[ ] Convert color-index grids to RGB/framebuffer data without pygame
-[ ] Render pattern table/debug graphics into framebuffer data
+[x] Define pure framebuffer data shape
+[x] Framebuffer get_pixel/set_pixel helpers
+[x] Convert color-index grids to RGB/framebuffer data without pygame
+[x] Render pattern table/debug graphics into framebuffer data
+[x] Define minimal NES RGB palette approximation
+[x] Render pattern table/debug graphics using default NES palette
 [ ] Render nametable background into framebuffer data
-[ ] Add palette color lookup
+[ ] Add PPU palette RAM lookup for background colors
 [ ] Add basic frame loop using PPU timing/VBlank
 [ ] Add thin pygame frontend that displays framebuffer data
 [ ] Add manual pygame smoke runner
@@ -93,8 +96,8 @@ Controller input:
 Next Steps:
 
 Goal:
-Start Phase 7 by defining a pure framebuffer data shape before adding pygame,
-controllers, or sprite behavior.
+Continue Phase 7 by rendering nametable background data into a pure framebuffer
+before adding pygame, controllers, or sprite behavior.
 
 Important rule:
 Do not implement sprite 0 hit or sprite overflow yet. Those require rendering,
@@ -158,21 +161,25 @@ Controller policy:
 
 Next tutorial step:
 
-Step 270) Define pure framebuffer data shape
+Step 276) Render nametable background into framebuffer data
 	Files:
-		likely emulator/rendering/framebuffer.py or emulator/ppu/framebuffer.py
+		likely emulator/rendering/nametable_renderer.py
+		emulator/rendering/framebuffer.py
+		emulator/rendering/nes_palette.py
+		emulator/ppu/chr_decoder.py
 
 	Behavior:
-		define a small, pygame-free framebuffer representation for future rendering
-		steps.
+		convert nametable tile IDs plus pattern table CHR data into a framebuffer using
+		the existing pure rendering helpers.
 
 	Goal:
-		Make emulator core rendering output pure data that tests can inspect without
-		opening a window.
+		Start rendering actual background layout data as pure RGB pixels without pygame.
 
 	Important:
 		Do not add pygame yet.
-		Do not render background/sprites yet.
+		Do not add sprites yet.
+		Do not add OAMDMA yet.
+		Keep palette attribute-table behavior simple or defer it to a separate step.
 		Do not add controller input yet.
 		Keep the emulator core importable/testable without frontend dependencies.
 

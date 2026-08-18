@@ -11,7 +11,7 @@ def main():
     cartridge = Cartridge.from_ines_bytes(nesfile)
     cpu_bus = CpuBus(cartridge=cartridge)
     cpu = CPU(cpu_bus)
-    ppu = PPU()
+    ppu = cpu.ppu
     console = Console(cpu, ppu)
     print("Starting")
     while True:
