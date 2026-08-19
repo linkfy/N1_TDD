@@ -27,6 +27,7 @@ Simplified step by step operative:
 
 from emulator.ppu.chr_decoder import CHR_TILE_HEIGHT, CHR_TILE_WIDTH, decode_pattern_table
 from emulator.rendering.framebuffer import Framebuffer, RGBColor
+from emulator.rendering.nes_palette import NES_PALETTE_RGB
 
 NAMETABLE_ROWS = 30
 NAMETABLE_TILES_PER_ROW = 32
@@ -69,4 +70,23 @@ def nametable_to_framebuffer(
                     framebuffer.set_pixel(pixel_x, pixel_y, rgb)
 
     return framebuffer
+
+
+def nametable_to_nes_framebuffer(
+    nametable_bytes: bytes, 
+    pattern_table_bytes: bytes,
+) -> Framebuffer:
+    """
+     Helper for default NES nametable rendering
+     Remember:
+       - nametable_bytes: contains 8x8 tile_ids for background
+       - pattern_table_bytes: contains the tiles
+    """
+
+    return nametable_to_framebuffer(
+        nametable_bytes,
+        pattern_table_bytes,
+        NES_PALETTE_RGB
+    )
+
 
