@@ -28,6 +28,8 @@ Simplified step by step operative:
 from emulator.ppu.chr_decoder import CHR_TILE_HEIGHT, CHR_TILE_WIDTH, decode_pattern_table
 from emulator.rendering.framebuffer import Framebuffer, RGBColor
 from emulator.rendering.nes_palette import NES_PALETTE_RGB
+from emulator.rendering.attribute_table import get_attribute_palette_id
+from emulator.rendering.palette_ram import build_background_palettes_from_palette_ram
 
 NAMETABLE_ROWS = 30
 NAMETABLE_TILES_PER_ROW = 32
@@ -61,10 +63,52 @@ def nametable_to_framebuffer(
             for row in range(CHR_TILE_HEIGHT):
                 for col in range(CHR_TILE_WIDTH):
                     # Select color for each pixel in tile
+                    # Simple renderer: Every tile uses the same 4-color palette.
                     color_index = tile[row][col]
                     rgb = palette[color_index]
                     
                     # Paste color in framebuffer
+                    pixel_x = tile_x * CHR_TILE_WIDTH + col
+                    pixel_y = tile_y * CHR_TILE_HEIGHT + row
+                    framebuffer.set_pixel(pixel_x, pixel_y, rgb)
+
+    return framebuffer
+
+# Improved nametable_to_framebuffer renderer. 
+# More accurate renderer with background palettes
+BackgroundPalettes = list[list[RGBColor]]
+def nametable_with_attributes_to_framebuffer(
+    nametable_bytes: bytes,
+    attribute_table: bytes,
+    pattern_table_bytes: bytes,
+    background_palettes: BackgroundPalettes,
+) -> Framebuffer:
+    if len(nametable_bytes) != NAMETABLE_SIZE:
+        raise ValueError("Nametable visible tile area must be 960 bytes")
+
+    decoded_tiles = decode_pattern_table(pattern_table_bytes)
+
+    framebuffer = Framebuffer(
+        width=BACKGROUND_WIDTH,
+        height=BACKGROUND_HEIGHT
+    )
+    
+    for tile_y in range(NAMETABLE_ROWS):
+        for tile_x in range(NAMETABLE_TILES_PER_ROW):
+            nametable_index = tile_y * NAMETABLE_TILES_PER_ROW + tile_x
+            tile_id = nametable_bytes[nametable_index]
+            tile = decoded_tiles[tile_id]
+
+            ##### Attribute table selects which 4-color background palette this tile uses
+            palette_id = get_attribute_palette_id(attribute_table, tile_x, tile_y)
+            palette = background_palettes[palette_id]
+            #####
+
+            for row in range(CHR_TILE_HEIGHT):
+                for col in range(CHR_TILE_WIDTH):
+                    color_index = tile[row][col]
+                    rgb = palette[color_index]
+                    
                     pixel_x = tile_x * CHR_TILE_WIDTH + col
                     pixel_y = tile_y * CHR_TILE_HEIGHT + row
                     framebuffer.set_pixel(pixel_x, pixel_y, rgb)
@@ -89,4 +133,20 @@ def nametable_to_nes_framebuffer(
         NES_PALETTE_RGB
     )
 
+# Helper function to use background palettes
+# On framebuffer
+def nametable_with_palette_ram_to_framebuffer(
+    nametable_bytes: bytes,
+    attribute_table: bytes,
+    pattern_table_bytes: bytes,
+    palette_ram: bytes,
+) -> Framebuffer:
+    # Use background palettes from PPU VRAM
+    background_palettes = build_background_palettes_from_palette_ram(palette_ram)
 
+    return nametable_with_attributes_to_framebuffer(
+            nametable_bytes,
+            attribute_table,
+            pattern_table_bytes,
+            background_palettes,
+    )

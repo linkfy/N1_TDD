@@ -75,7 +75,10 @@ Rendering pipeline and pygame frontend:
 [x] Render pattern table/debug graphics into framebuffer data
 [x] Define minimal NES RGB palette approximation
 [x] Render pattern table/debug graphics using default NES palette
-[ ] Render nametable background into framebuffer data
+[x] Render nametable background into framebuffer data
+[x] Render nametable background using default NES palette
+[x] Decode attribute table palette selection for tile coordinates
+[ ] Render nametable background using attribute-selected palettes
 [ ] Add PPU palette RAM lookup for background colors
 [ ] Add basic frame loop using PPU timing/VBlank
 [ ] Add thin pygame frontend that displays framebuffer data
@@ -96,8 +99,8 @@ Controller input:
 Next Steps:
 
 Goal:
-Continue Phase 7 by rendering nametable background data into a pure framebuffer
-before adding pygame, controllers, or sprite behavior.
+Continue Phase 7 by using attribute-table palette selection during pure nametable
+background rendering before adding pygame, controllers, or sprite behavior.
 
 Important rule:
 Do not implement sprite 0 hit or sprite overflow yet. Those require rendering,
@@ -161,25 +164,27 @@ Controller policy:
 
 Next tutorial step:
 
-Step 276) Render nametable background into framebuffer data
+Step 279) Render nametable background using attribute-selected palettes
 	Files:
-		likely emulator/rendering/nametable_renderer.py
+		emulator/rendering/nametable_renderer.py
+		emulator/rendering/attribute_table.py
 		emulator/rendering/framebuffer.py
-		emulator/rendering/nes_palette.py
-		emulator/ppu/chr_decoder.py
 
 	Behavior:
-		convert nametable tile IDs plus pattern table CHR data into a framebuffer using
-		the existing pure rendering helpers.
+		add a new renderer that uses the attribute table to choose one of four
+		background palettes for each tile region.
 
 	Goal:
-		Start rendering actual background layout data as pure RGB pixels without pygame.
+		Move from one shared background palette to NES-style regional palette selection
+		while keeping the older simple renderer unchanged.
 
 	Important:
 		Do not add pygame yet.
 		Do not add sprites yet.
 		Do not add OAMDMA yet.
-		Keep palette attribute-table behavior simple or defer it to a separate step.
+		Do not add PPU palette RAM lookup yet; pass four explicit RGB sub-palettes into
+		the renderer for now.
+		Keep the old nametable_to_framebuffer(..., palette) function working unchanged.
 		Do not add controller input yet.
 		Keep the emulator core importable/testable without frontend dependencies.
 

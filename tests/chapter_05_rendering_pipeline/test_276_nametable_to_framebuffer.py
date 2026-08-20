@@ -34,7 +34,7 @@ Simplified rendering model for this step:
     nametable tile ID
         -> decoded_tiles[tile_id]
         -> tile pixel color index 0-3
-        -> palette[color_index]
+        -> same shared 4-color palette[color_index]
         -> framebuffer pixel
 
 Real NES nametable memory:
@@ -44,6 +44,11 @@ Real NES nametable memory:
 
 This step intentionally uses only the 960 visible tile bytes and one shared
 4-color palette for all tiles. Attribute-table palette selection is a later step.
+
+Important simplification:
+This first nametable renderer is a basic starting point. Every tile uses the same
+4-color palette. Later tests add an attribute-aware renderer where different
+screen regions can choose different background palettes.
 
 Screen size from nametable geometry:
 
@@ -87,6 +92,9 @@ Suggested implementation example:
 
                 for row in range(CHR_TILE_HEIGHT):
                     for col in range(CHR_TILE_WIDTH):
+                        # Basic starting point: every tile uses the same
+                        # 4-color palette. A later renderer will use the
+                        # attribute table to select different palettes.
                         color_index = tile[row][col]
                         rgb = palette[color_index]
 

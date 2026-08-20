@@ -43,6 +43,8 @@ Suggested implementation example:
 Important simplification:
 This still uses one shared palette for every tile. It does not decode the 64-byte
 attribute table yet, and it does not read PPU palette RAM at $3F00-$3F1F yet.
+This is useful as a debug/simple renderer. A later renderer will use the attribute
+table to choose between different background palettes.
 
 Important fixture rule:
 Use synthetic nametable/CHR bytes only. Do not use commercial ROM data in this
