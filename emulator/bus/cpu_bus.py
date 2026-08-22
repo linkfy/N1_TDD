@@ -6,6 +6,7 @@ from emulator.cartridge.mapper_factory import create_mapper
 from emulator.memory.memory_device import MemoryDevice
 from emulator.memory.ram import RAM
 from emulator.ppu.ppu import PPU
+from emulator.input.controller import Controller
 
 @dataclass
 class CpuBus(): 
@@ -13,6 +14,7 @@ class CpuBus():
     cartridge: Optional[Cartridge] = None
     ram: RAM = field(default_factory=RAM)
     ppu: PPU = field(default_factory=PPU)
+    controller_1: Controller = field(default_factory=Controller)
 
     def __post_init__(self):
         # Allow only program_rom(for testing) or cartridge
@@ -42,9 +44,16 @@ class CpuBus():
             return 0
         if addr == 0x4015:
             return 0
+
+        # Controller port 1
+        if addr == 0x4016:
+            return self.controller_1.read_bit()
+
+        # Controller port 2: Out of scope
         if addr == 0x4017:
             return 0
-        
+ 
+
         # Program ROM
         if 0x8000 <= addr <= 0xFFFF:
             # Cartridges uses a mapper:
@@ -88,6 +97,13 @@ class CpuBus():
             return
         if addr == 0x4015:
             return 
+
+        # Controller port 1
+        if addr == 0x4016:
+            self.controller_1.write_strobe(value)
+            return
+
+        # Controller port 2: Out of scope
         if addr == 0x4017:
             return
 

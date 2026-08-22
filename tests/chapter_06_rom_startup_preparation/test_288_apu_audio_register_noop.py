@@ -42,6 +42,9 @@ Suggested implementation example:
             return 0
         if addr == 0x4015:
             return 0
+
+        # Controller port 2 / expansion input is also out of scope for now.
+        # Returning 0 means "no controller-2 buttons pressed" in this simplified model.
         if addr == 0x4017:
             return 0
 
@@ -55,6 +58,9 @@ Suggested implementation example:
             return
         if addr == 0x4015:
             return
+
+        # $4017 writes control the APU frame counter on the NES.
+        # Audio/APU timing is intentionally out of scope, so this is a no-op.
         if addr == 0x4017:
             return
 
@@ -69,7 +75,8 @@ Why these addresses:
         APU status/control register
 
     $4017
-        APU frame counter register in this tutorial's current simplified bus model
+        Writes: APU frame counter register, intentionally no-op for now.
+        Reads: controller port 2 / expansion input, intentionally returns 0 for now.
 
 Important exclusions:
 
@@ -87,6 +94,7 @@ Out of scope:
     - IRQ/frame-counter timing
     - OAMDMA $4014
     - controller $4016
+    - controller port 2 / expansion input reads from $4017
     - broad catch-all handling for all unsupported I/O addresses
 """
 
@@ -114,9 +122,11 @@ def test_apu_audio_register_writes_are_explicit_noops():
 def test_apu_audio_register_reads_return_deterministic_zero():
     """
     Objective:
-    Reads from out-of-scope APU/audio registers return a deterministic value.
+    Reads from out-of-scope APU/audio/controller-2-adjacent registers return a
+    deterministic value.
 
-    Returning 0 is intentionally simple. It does not model real APU status.
+    Returning 0 is intentionally simple. For $4017 reads, it means controller port 2
+    is currently modeled as "no buttons pressed" rather than fully implemented.
     """
     bus = CpuBus(program_rom=FakeROM())
 
@@ -147,23 +157,6 @@ def test_oamdma_4014_is_not_swallowed_by_apu_noop():
 
     with pytest.raises(ValueError, match="Unsupported CPU bus read: 4014"):
         bus.read(0x4014)
-
-
-def test_controller_4016_is_not_swallowed_by_apu_noop():
-    """
-    Objective:
-    $4016 belongs to controller input, not APU/audio.
-
-    Keeping it unsupported here protects the future controller chapter from a fake
-    implementation that silently returns 0 for every controller read.
-    """
-    bus = CpuBus(program_rom=FakeROM())
-
-    with pytest.raises(ValueError, match="Unsupported CPU bus write: 4016"):
-        bus.write(0x4016, 0x01)
-
-    with pytest.raises(ValueError, match="Unsupported CPU bus read: 4016"):
-        bus.read(0x4016)
 
 
 def test_unknown_io_address_still_raises_instead_of_catch_all_noop():

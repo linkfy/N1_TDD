@@ -174,29 +174,14 @@ def test_oamdma_read_4014_remains_unsupported():
         bus.read(0x4014)
 
 
-def test_oamdma_does_not_swallow_controller_4016():
-    """
-    Objective:
-    Adding OAMDMA must not accidentally hide controller port $4016.
-
-    Controller behavior belongs to the next chapter and should be implemented
-    intentionally.
-    """
-    bus = CpuBus(program_rom=FakeROM())
-
-    with pytest.raises(ValueError, match="Unsupported CPU bus write: 4016"):
-        bus.write(0x4016, 0x01)
-
-    with pytest.raises(ValueError, match="Unsupported CPU bus read: 4016"):
-        bus.read(0x4016)
-
-
 def test_apu_audio_noop_still_works_after_oamdma_step():
     """
     Objective:
     OAMDMA $4014 should coexist with the previous APU/audio no-op step.
 
     The nearby audio addresses remain recognized out-of-scope no-ops.
+    $4017 remains simplified too: writes are APU frame-counter no-ops, while reads
+    return 0 for out-of-scope controller port 2 / expansion input.
     """
     bus = CpuBus(program_rom=FakeROM())
 

@@ -87,7 +87,7 @@ Rendering pipeline and pygame frontend:
 [x] Add basic frame loop helper using PPU frame counter
 [x] Add manual pygame framebuffer display helpers
 [x] Add manual pygame smoke runner main loop
-[ ] Add sprites later
+[x] Add sprites later [Nothing to do]
 
 Phase 8 / Chapter 06)
 ROM startup preparation:
@@ -97,6 +97,7 @@ ROM startup preparation:
 Phase 9 / Chapter 07)
 Controller input:
 [ ] Controller state object for A/B/Select/Start/Up/Down/Left/Right
+[ ] Controller captures button state and exposes serial read behavior
 [ ] CpuBus routes $4016 writes to controller strobe
 [ ] CpuBus routes $4016 reads to controller serial data
 [ ] Controller strobe behavior latches button state
@@ -187,7 +188,7 @@ Rendering policy:
 Pygame/testing policy for Phase 7:
 	Keep pygame outside the emulator core.
 	The emulator core should produce pure framebuffer data.
-	Pygame should be a thin frontend that displays that framebuffer.
+	Pygame should only appear in manual/frontend entry points such as tools/ or main.py.
 
 	Tests should focus on pure data transformations, for example:
 		color-index grid -> RGB/framebuffer data
@@ -221,7 +222,7 @@ Step 290) Start controller input with a pure Controller state object
 	Files:
 		emulator/input/controller.py
 		emulator/input/__init__.py
-		tests/chapter_07_controller_input/test_290_controller_state.py
+		tests/chapter_07_controller_input/test_290_controller_definition.py
 
 	Behavior:
 		Define button state and NES serial-read order without wiring pygame or CpuBus yet.
@@ -246,13 +247,15 @@ Step 290) Start controller input with a pure Controller state object
 		Pygame may be used later by main.py, but emulator core modules must stay pygame-free.
 
 	After this:
-		Step 291) Route CpuBus $4016 writes/reads to Controller.
-		Step 292) Validate a CPU program can read controller bits from $4016.
-		Step 293) Add main.py manual ROM boot loop using CPU.reset() and
+		Step 291) Add controller capture/strobe/serial-read behavior using
+		          tests/chapter_07_controller_input/test_291_controller_capture_and_serial_read.py.
+		Step 292) Route CpuBus $4016 writes/reads to Controller.
+		Step 293) Validate a CPU program can read controller bits from $4016.
+		Step 294) Add main.py manual ROM boot loop using CPU.reset() and
 		          Console.step_until_next_frame(max_cpu_instructions=...).
 
 After Phase 6:
-	- Phase 7: pure rendering pipeline plus thin pygame frontend
+	- Phase 7: pure rendering pipeline plus manual pygame smoke runner
 	- Phase 8 / Chapter 06: ROM startup preparation
 	- Phase 9 / Chapter 07: controller $4016 behavior
 	- Phase 10: manual main.py execution path
