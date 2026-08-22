@@ -36,6 +36,15 @@ class CpuBus():
         if 0x2000 <= addr <= 0x3FFF:
             unmirrored_addr = 0x2000 + ((addr - 0x2000) % 8)
             return self.ppu.read_register(unmirrored_addr)
+       
+        #! APU Registers: Out of scope
+        if 0x4000 <= addr <= 0x4013:
+            return 0
+        if addr == 0x4015:
+            return 0
+        if addr == 0x4017:
+            return 0
+        
         # Program ROM
         if 0x8000 <= addr <= 0xFFFF:
             # Cartridges uses a mapper:
@@ -59,11 +68,29 @@ class CpuBus():
         if 0x0 <= addr <= 0x1FFF:
             self.ram.write(addr & 0x07FF, value) 
             return
+
         # PPU Registers
         if 0x2000 <= addr <= 0x3FFF:
             unmirrored_addr = 0x2000 + ((addr - 0x2000) % 8)
             self.ppu.write_register(unmirrored_addr, value)
             return
+        
+        # OAMDMA: copy one CPU page into PPU OAM
+        if addr == 0x4014:
+            page_start = (value & 0xFF) << 8
+
+            for offset in range(256):
+                self.ppu.oam[offset] = self.read(page_start + offset)
+            return
+
+        #! APU Registers: Out of scope
+        if 0x4000 <= addr <= 0x4013:
+            return
+        if addr == 0x4015:
+            return 
+        if addr == 0x4017:
+            return
+
         # PROGRAM ROM
         if 0x8000 <= addr <= 0xFFFF:
             if self.mapper is not None:

@@ -1,8 +1,8 @@
-"""from emulator.bus.cpu_bus import CpuBus
+"""
+from emulator.bus.cpu_bus import CpuBus
 from emulator.cartridge.cartridge import Cartridge
 from emulator.console import Console
 from emulator.cpu.cpu import CPU
-from emulator.ppu.ppu import PPU
 
 
 def main():
@@ -11,8 +11,7 @@ def main():
     cartridge = Cartridge.from_ines_bytes(nesfile)
     cpu_bus = CpuBus(cartridge=cartridge)
     cpu = CPU(cpu_bus)
-    ppu = cpu.ppu
-    console = Console(cpu, ppu)
+    console = Console(cpu=cpu, ppu=cpu_bus.ppu)
     print("Starting")
     while True:
         cycles = console.step()

@@ -78,14 +78,23 @@ Rendering pipeline and pygame frontend:
 [x] Render nametable background into framebuffer data
 [x] Render nametable background using default NES palette
 [x] Decode attribute table palette selection for tile coordinates
-[ ] Render nametable background using attribute-selected palettes
-[ ] Add PPU palette RAM lookup for background colors
-[ ] Add basic frame loop using PPU timing/VBlank
-[ ] Add thin pygame frontend that displays framebuffer data
-[ ] Add manual pygame smoke runner
-[ ] Add sprites/OAMDMA later
+[x] Render nametable background using attribute-selected palettes
+[x] Build background palettes from PPU palette RAM bytes
+[x] Render nametable background using palette RAM bytes
+[x] Extract current PPU background memory into framebuffer data
+[x] Console exposes current background framebuffer data
+[x] VALIDATION: CPU writes PPU memory then Console renders framebuffer
+[x] Add basic frame loop helper using PPU frame counter
+[x] Add manual pygame framebuffer display helpers
+[x] Add manual pygame smoke runner main loop
+[ ] Add sprites later
 
-Phase 8)
+Phase 8 / Chapter 06)
+ROM startup preparation:
+[x] Add explicit APU/audio no-op register behavior for out-of-scope audio addresses
+[x] Implement OAMDMA $4014 copy into PPU OAM without sprite rendering yet
+
+Phase 9 / Chapter 07)
 Controller input:
 [ ] Controller state object for A/B/Select/Start/Up/Down/Left/Right
 [ ] CpuBus routes $4016 writes to controller strobe
@@ -93,14 +102,50 @@ Controller input:
 [ ] Controller strobe behavior latches button state
 [ ] Controller reads shift one button bit at a time
 [ ] Validate CPU program can read controller bits from $4016
-[ ] Connect pygame keyboard input to controller state
+
+Phase 10)
+Manual main.py execution path:
+[ ] main.py loads a local .nes path, calls CPU.reset(), and steps frames
+[ ] main.py reports useful frame/opcode/bus errors without requiring a debugger
+[ ] Connect pygame keyboard input to controller state after pure controller protocol is tested
 
 --
 Next Steps:
 
 Goal:
-Continue Phase 7 by using attribute-table palette selection during pure nametable
-background rendering before adding pygame, controllers, or sprite behavior.
+Prioritize a working main.py/manual execution path for Mapper000/NROM ROMs while
+preserving the linear pytest tutorial flow and avoiding later refactors.
+
+Immediate direction:
+	Chapter 06 now owns ROM startup preparation: explicit APU/audio no-op behavior
+	and OAMDMA $4014. These are completed because they let real NROM startup code
+	continue through common bus accesses without pretending audio or sprites are
+	fully implemented.
+
+	Do not prioritize opcode diagnostics right now. Keep that as a future debugging
+	improvement after the bus-visible startup behavior is less crash-prone.
+
+Working main.py means:
+	- a developer can provide a local .nes file path manually
+	- the emulator boots from the ROM reset vector
+	- Console can step frame-by-frame
+	- unsupported I/O does not crash when the missing system is intentionally out of scope
+	- tests remain synthetic and do not require commercial ROM files
+
+Local ROM policy for manual main.py runs:
+	- The tutorial repository does not include commercial ROM files.
+	- If a student/developer wants to manually try Mario Bros., they must provide
+	  their own legal copy as:
+		MarioBros.nes
+	- This file is intentionally ignored by git.
+	- Any Mario Bros. `.nes` file that uses Mapper000/NROM should exercise the same
+	  mapper path, though exact ROM hashes may differ between dumps/revisions.
+	- To record the local file hash, run:
+		md5sum MarioBros.nes
+	- Local known MarioBros.nes MD5:
+		TODO: fill from `md5sum MarioBros.nes` on the developer machine.
+	  This assistant session can see the file exists, but cannot execute md5sum with
+	  the currently available tools.
 
 Important rule:
 Do not implement sprite 0 hit or sprite overflow yet. Those require rendering,
@@ -110,6 +155,12 @@ Stubbing policy:
 Avoid broad fake stubs for systems that are part of the tutorial path.
 PPU behavior should be implemented intentionally, not faked.
 Audio/APU can be stubbed later because audio is out of tutorial scope.
+
+For main.py survival:
+	- APU/audio register writes may become explicit no-ops because audio is out of scope.
+	- Controller $4016 should be implemented intentionally, not faked.
+	- OAMDMA $4014 should be implemented intentionally, even before sprite rendering.
+	- Avoid broad catch-all CpuBus handlers that hide real unsupported addresses.
 
 Compatibility rule:
 Old tutorial steps may document the implementation shape they introduced.
@@ -130,9 +181,8 @@ historical teaching step.
 
 Rendering policy:
 	Do not add image-output/debug-image generation now.
-	Do not add pygame yet.
-	Pygame rendering can be introduced later when the emulator has enough timing
-	and frame-loop behavior to make visual output useful.
+	Pygame is allowed only in manual/frontend entry points such as tools/ or main.py.
+	The emulator core continues to produce pure Framebuffer data.
 
 Pygame/testing policy for Phase 7:
 	Keep pygame outside the emulator core.
@@ -157,40 +207,55 @@ Pygame/testing policy for Phase 7:
 	The emulator core should still be importable/testable without pygame.
 
 Controller policy:
-	Do not add controller input before basic VBlank/NMI progression exists.
-	Controller $4016 behavior becomes useful after games can run frame loops and
-	there is a rendering path where input effects can be observed.
+	Basic VBlank/NMI progression and frame stepping now exist.
+	Controller $4016 can be prioritized soon because local ROM experiments already
+	reach controller-addressing paths.
+	Implement the real strobe/latch/shift behavior rather than fake button reads.
+	Controller tests should start in chapter 07 after the chapter 06 ROM startup
+	preparation tests.
 
 
 Next tutorial step:
 
-Step 279) Render nametable background using attribute-selected palettes
+Step 290) Start controller input with a pure Controller state object
 	Files:
-		emulator/rendering/nametable_renderer.py
-		emulator/rendering/attribute_table.py
-		emulator/rendering/framebuffer.py
+		emulator/input/controller.py
+		emulator/input/__init__.py
+		tests/chapter_07_controller_input/test_290_controller_state.py
 
 	Behavior:
-		add a new renderer that uses the attribute table to choose one of four
-		background palettes for each tile region.
+		Define button state and NES serial-read order without wiring pygame or CpuBus yet.
 
 	Goal:
-		Move from one shared background palette to NES-style regional palette selection
-		while keeping the older simple renderer unchanged.
+		keep controller input as a pure, testable mechanism before connecting it to
+		CPU address $4016.
+
+	Existing reset-vector evidence:
+		CPU.reset() already exists in emulator/cpu/cpu.py.
+		Reset vector behavior is covered by:
+			tests/chapter_01_cpu/test_008_cpu_reset_vector.py
+		Cartridge/Mapper000 reset-vector boot is already validated by:
+			tests/chapter_02_rom_loading/test_223_VALIDATION_cpu_executes_tiny_ines_rom.py
 
 	Important:
-		Do not add pygame yet.
-		Do not add sprites yet.
-		Do not add OAMDMA yet.
-		Do not add PPU palette RAM lookup yet; pass four explicit RGB sub-palettes into
-		the renderer for now.
-		Keep the old nametable_to_framebuffer(..., palette) function working unchanged.
-		Do not add controller input yet.
-		Keep the emulator core importable/testable without frontend dependencies.
+		Do not commit MarioBros.nes or any commercial ROM fixture.
+		Use generated bytes/FakeROM in automated tests.
+		Do not connect pygame yet.
+		Do not route $4016 through CpuBus yet.
+		Do not fake controller reads with a constant 0.
+		Pygame may be used later by main.py, but emulator core modules must stay pygame-free.
+
+	After this:
+		Step 291) Route CpuBus $4016 writes/reads to Controller.
+		Step 292) Validate a CPU program can read controller bits from $4016.
+		Step 293) Add main.py manual ROM boot loop using CPU.reset() and
+		          Console.step_until_next_frame(max_cpu_instructions=...).
 
 After Phase 6:
 	- Phase 7: pure rendering pipeline plus thin pygame frontend
-	- Phase 8: controller $4016 behavior
+	- Phase 8 / Chapter 06: ROM startup preparation
+	- Phase 9 / Chapter 07: controller $4016 behavior
+	- Phase 10: manual main.py execution path
 
 Controller phase outline:
 	Controller state stores 8 buttons in NES read order:
