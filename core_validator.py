@@ -1,16 +1,13 @@
 from pathlib import Path
 
-import pygame
-
 from emulator.bus.cpu_bus import CpuBus
 from emulator.cartridge.cartridge import Cartridge
 from emulator.console import Console
 from emulator.cpu.cpu import CPU
-from tools.show_framebuffer import draw_framebuffer
+
 
 ROM_PATH = Path("MarioBros.nes")
-debug_mode = False
-SCALE = 3
+debug_mode = True
 
 def main() -> None:
     if not ROM_PATH.exists():
@@ -26,36 +23,18 @@ def main() -> None:
     console = Console(cpu=cpu, ppu=cpu_bus.ppu)
     
     cpu.reset()
-    framebuffer = console.render_background_framebuffer()
+    
     print(f"Loaded {ROM_PATH}")
     print(f"CPU reset PC = ${cpu.pc:04X}")
     print("Starting frame loop. Press Ctrl+C to stop.")
     
-    pygame.init()
     try:
-        window = pygame.display.set_mode(
-            (framebuffer.width * SCALE, framebuffer.height * SCALE)
-        )
-        pygame.display.set_caption("NES Background")
-        
-        running = True
-        while running:
-            for event in pygame.event.get():
-                if event.type == pygame.QUIT:
-                    running = False
-
+        while True:
             executed = console.step_until_next_frame()
-
-            framebuffer = console.render_background_framebuffer()
-            draw_framebuffer(window, framebuffer, SCALE)
-            pygame.display.flip()
-
             if debug_mode:
                 print(f"frame={console.ppu.frame} pc=${cpu.pc:04X} instructions={executed}") 
     except KeyboardInterrupt:
         print("\nStopped by user.")
-    finally:
-        pygame.quit()
 
 
 if __name__ == "__main__":
