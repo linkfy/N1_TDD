@@ -38,6 +38,7 @@ NAMETABLE_SIZE = NAMETABLE_TILES_PER_ROW * NAMETABLE_ROWS
 BACKGROUND_WIDTH = NAMETABLE_TILES_PER_ROW * CHR_TILE_WIDTH
 BACKGROUND_HEIGHT = NAMETABLE_ROWS * CHR_TILE_HEIGHT
 
+
 def nametable_to_framebuffer(
     nametable_bytes: bytes,
     pattern_table_bytes: bytes,
@@ -150,3 +151,35 @@ def nametable_with_palette_ram_to_framebuffer(
             pattern_table_bytes,
             background_palettes,
     )
+
+
+BackgroundOpaqueMask = list[bool]
+def build_background_opaque_mask(
+        pattern_table: bytes,
+        nametable: bytes
+) -> BackgroundOpaqueMask:
+    if len(nametable) != NAMETABLE_SIZE:
+        raise ValueError("Nametable must be 960 bytes")
+
+    decoded_tiles = decode_pattern_table(pattern_table)
+
+    # Fill with False a new opaque mask
+    opaque_mask: BackgroundOpaqueMask = [False] * (BACKGROUND_WIDTH * BACKGROUND_HEIGHT)
+    
+    for tile_y in range(NAMETABLE_ROWS):
+        for tile_x in range(NAMETABLE_TILES_PER_ROW):
+            tile_index = nametable[tile_y * NAMETABLE_TILES_PER_ROW + tile_x]
+            tile = decoded_tiles[tile_index]
+
+            for pixel_y in range(CHR_TILE_HEIGHT):
+                for pixel_x in range(CHR_TILE_WIDTH):
+                    color_index = tile[pixel_y][pixel_x]
+                    
+                    screen_x = tile_x * CHR_TILE_WIDTH + pixel_x
+                    screen_y = tile_y * CHR_TILE_HEIGHT + pixel_y
+
+                    mask_index = screen_y * BACKGROUND_WIDTH + screen_x
+                    opaque_mask[mask_index] = color_index != 0
+    return opaque_mask
+
+         

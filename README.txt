@@ -117,11 +117,17 @@ Sprite rendering:
 [x] Decode one OAM sprite entry
 [x] Define sprite attribute constants and SpriteAttributes dataclass
 [x] Decode sprite attributes: palette ID, priority, horizontal flip, vertical flip
-[ ] Build sprite palettes from PPU palette RAM $3F10-$3F1F
-[ ] Render one 8x8 sprite into framebuffer data
-[ ] Render all 64 OAM sprites without sprite 0 hit/overflow
-[ ] Composite background and sprites into one framebuffer
-[ ] Add Console full-frame/background+sprites framebuffer helper
+[x] Build sprite palettes from PPU palette RAM $3F10-$3F1F
+[x] Render one 8x8 sprite into framebuffer data
+[x] Render all 64 OAM sprites without sprite 0 hit/overflow
+[x] Composite background and sprites into one framebuffer
+[x] Add Console full-frame/background+sprites framebuffer helper
+[x] main.py uses Console.render_framebuffer() for background+sprites display
+[x] Add background opacity mask for sprite/background priority
+[x] Thread background opacity mask through sprite rendering pipeline
+[x] Use sprite priority bit 5 with background opacity mask in pure sprite renderer
+[x] Add PPU-level background opacity mask extraction helper
+[ ] Wire Console.render_framebuffer() to pass the background opacity mask
 
 --
 Next Steps:
@@ -246,17 +252,26 @@ Sprite policy:
 
 Next tutorial step:
 
-Step 303) Build sprite palettes from PPU palette RAM $3F10-$3F1F
+Step 314) Wire Console.render_framebuffer() to pass the background opacity mask
 	Files:
-		emulator/rendering/sprite_palette.py or emulator/rendering/palette_ram.py
-		tests/chapter_09_sprite_rendering/test_303_sprite_palettes_from_palette_ram.py
+		emulator/console.py
+		tests/chapter_09_sprite_rendering/test_314_console_passes_background_opaque_mask.py
 
 	Behavior:
-		Convert 16 bytes from sprite palette RAM $3F10-$3F1F into four 4-color RGB
-		sprite palettes, using NES_PALETTE_RGB.
+		Console.render_framebuffer() should call ppu_background_to_opaque_mask(self.ppu)
+		and pass that mask to composite_background_and_sprites().
+
+		Important distinction:
+			PPUCTRL bit 4 selects the background pattern table.
+			PPUCTRL bit 3 selects the sprite pattern table.
+
+		The PPU-level helper added in Step 313 already owns the background nametable and
+		background pattern-table extraction. Console should orchestrate that helper, not
+		duplicate the background extraction details.
 
 	Goal:
-		prepare the color data needed before rendering sprite pixels.
+		make the already-tested sprite priority rule affect the real manual/full-frame
+		render path.
 
 	Existing reset-vector evidence:
 		CPU.reset() already exists in emulator/cpu/cpu.py.
@@ -267,15 +282,16 @@ Step 303) Build sprite palettes from PPU palette RAM $3F10-$3F1F
 
 	Important:
 		Do not commit MarioBros.nes or any commercial ROM fixture.
-		Use synthetic palette RAM bytes in automated tests.
-		Do not render sprites in this palette step.
+		Automated tests must not call main() or open a pygame window.
 		Do not implement sprite 0 hit or sprite overflow yet.
+		If sprites still appear in front of pipes/tubes before this step, the likely
+		reason is that the pure sprite priority rule exists but Console has not passed
+		a real background opacity mask yet.
 		Pygame must stay outside emulator core rendering modules.
 
 	After this:
-		Step 304) Render one 8x8 sprite into framebuffer data.
-		Step 305) Render all OAM sprites without sprite 0 hit/overflow.
-		Step 306) Composite background and sprites into one framebuffer.
+		Step 315) Revisit main.py visual expectations after priority support.
+		Step 316) Decide whether to optimize draw_framebuffer() performance.
 
 After Phase 6:
 	- Phase 7: pure rendering pipeline plus manual pygame smoke runner

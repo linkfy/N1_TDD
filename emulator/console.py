@@ -1,10 +1,13 @@
 from dataclasses import dataclass
 
 from emulator.cpu.cpu import CPU
-from emulator.ppu.ppu import PPU
+from emulator.ppu.ppu import CTRL_SPRITE_PATTERN_TABLE, PPU
+from emulator.bus.ppu_bus import PALETTE_START
 
+from emulator.rendering.frame_compositor import composite_background_and_sprites
 from emulator.rendering.framebuffer import Framebuffer
-from emulator.rendering.ppu_background_renderer import ppu_background_to_framebuffer
+from emulator.rendering.palette_ram import build_sprite_palettes_from_palette_ram
+from emulator.rendering.ppu_background_renderer import  ppu_background_to_framebuffer, PATTERN_TABLE_0_ADDR, PATTERN_TABLE_1_ADDR
 
 @dataclass
 class Console:
@@ -42,3 +45,32 @@ class Console:
 
     def render_background_framebuffer(self) -> Framebuffer:
         return ppu_background_to_framebuffer(self.ppu)
+
+    def render_framebuffer(self) -> Framebuffer:
+        background = self.render_background_framebuffer()
+        
+        # Select sprite area from palette_ram is 16 bytes after background palette area
+        sprite_palette_start = PALETTE_START + 16
+        
+        sprite_palette_ram = bytes(
+            self.ppu.ppu_bus.read(sprite_palette_start + offset)
+            for offset in range(16)
+        )
+
+        sprite_palettes = build_sprite_palettes_from_palette_ram(sprite_palette_ram)
+
+        pattern_table_base = (PATTERN_TABLE_1_ADDR  
+                              if self.ppu.ctrl & CTRL_SPRITE_PATTERN_TABLE else PATTERN_TABLE_0_ADDR)
+        
+
+        pattern_table = bytes(
+            self.ppu.ppu_bus.read(pattern_table_base + offset)
+            for offset in range(0x1000) # Pattern Table size
+        )
+        
+        return composite_background_and_sprites(
+            background=background,
+            oam=self.ppu.oam,
+            pattern_table=pattern_table,
+            sprite_palettes=sprite_palettes,
+        )

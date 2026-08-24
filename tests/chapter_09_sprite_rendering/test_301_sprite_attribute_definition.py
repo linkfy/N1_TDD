@@ -103,12 +103,15 @@ def test_sprite_attributes_field_order_is_teaching_friendly():
     ]
 
 
-def test_sprite_attribute_definition_does_not_import_pygame_or_framebuffer():
+def test_sprite_attribute_definition_does_not_import_pygame():
     """
     Objective:
-    Attribute definition is pure data. It should not introduce rendering or pygame.
+    Sprite attribute decoding must stay free of frontend dependencies.
+
+    Historical note:
+    Later sprite rendering steps intentionally import Framebuffer in this module to
+    draw pure framebuffer data. That is acceptable. pygame is still not allowed.
     """
     source = Path("emulator/rendering/sprite_renderer.py").read_text()
 
     assert "import pygame" not in source
-    assert "Framebuffer" not in source

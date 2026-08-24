@@ -66,7 +66,7 @@ def main() -> None:
     console = Console(cpu=cpu, ppu=cpu_bus.ppu)
     
     cpu.reset()
-    framebuffer = console.render_framebuffer()
+    framebuffer = console.render_background_framebuffer()
     print(f"Loaded {ROM_PATH}")
     print(f"CPU reset PC = ${cpu.pc:04X}")
     print("Starting frame loop. Press Ctrl+C to stop.")
@@ -89,7 +89,7 @@ def main() -> None:
                     handle_key_event(cpu_bus.controller_1, event.key, False)
 
             executed = console.step_until_next_frame()
-            framebuffer = console.render_framebuffer()
+            framebuffer = console.render_background_framebuffer()
             draw_framebuffer(window, framebuffer, SCALE)
             pygame.display.flip()
 

@@ -9,7 +9,12 @@ Output framebuffer
 
 from emulator.ppu.ppu import PPU, CTRL_BACKGROUND_PATTERN_TABLE
 from emulator.rendering.framebuffer import Framebuffer
-from emulator.rendering.nametable_renderer import nametable_with_palette_ram_to_framebuffer, NAMETABLE_SIZE
+from emulator.rendering.nametable_renderer import (
+    BackgroundOpaqueMask, 
+    build_background_opaque_mask, 
+    nametable_with_palette_ram_to_framebuffer, 
+    NAMETABLE_SIZE
+)
 from emulator.rendering.palette_ram import PALETTE_RAM_SIZE
 from emulator.ppu.chr_decoder import PATTERN_TABLE_SIZE
 
@@ -57,4 +62,25 @@ def ppu_background_to_framebuffer(ppu: PPU) -> Framebuffer:
         palette_ram,
     )
     
+def ppu_background_to_opaque_mask(ppu: PPU) -> BackgroundOpaqueMask:
 
+    nametable_bytes = bytes(
+        ppu.ppu_bus.read(BASE_NAMETABLE_ADDR + offset)
+        for offset in range(NAMETABLE_SIZE)
+    )
+    
+    pattern_table_base = (
+        PATTERN_TABLE_1_ADDR 
+        if ppu.ctrl & CTRL_BACKGROUND_PATTERN_TABLE
+        else PATTERN_TABLE_0_ADDR
+    )
+
+    pattern_table_bytes = bytes(
+        ppu.ppu_bus.read(pattern_table_base + offset)
+        for offset in range(PATTERN_TABLE_SIZE)
+    )
+
+    return build_background_opaque_mask(
+        pattern_table=pattern_table_bytes,
+        nametable=nametable_bytes,
+    ) 

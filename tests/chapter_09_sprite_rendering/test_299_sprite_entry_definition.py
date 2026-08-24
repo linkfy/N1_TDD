@@ -117,13 +117,17 @@ def test_sprite_entry_field_order_matches_oam_byte_order():
     ]
 
 
-def test_sprite_entry_definition_does_not_import_pygame_or_framebuffer():
+def test_sprite_entry_definition_does_not_import_pygame():
     """
     Objective:
-    The first sprite step defines data only. It should not depend on pygame or
-    framebuffer drawing.
+    The sprite renderer must stay free of frontend dependencies.
+
+    Historical note:
+    This test originally also checked that Framebuffer was not imported because the
+    first sprite step was data-only. Later steps intentionally render one sprite
+    into a pure Framebuffer, so Framebuffer is now allowed. pygame is still not
+    allowed.
     """
     source = Path("emulator/rendering/sprite_renderer.py").read_text()
 
     assert "import pygame" not in source
-    assert "Framebuffer" not in source

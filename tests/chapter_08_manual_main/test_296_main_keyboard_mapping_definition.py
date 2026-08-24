@@ -1,12 +1,13 @@
 """
-Define keyboard-to-NES-button mapping for main.py.
+Define keyboard-to-NES-button mapping for main_only_background.py.
 
 File to update:
-    main.py
+    main_only_background.py
 
 Why this step exists:
-main.py is now the visual pygame runner. To make the ROM interactive, it needs a
-small mapping from NES controller button names to pygame key constants.
+main_only_background.py is the historical background-only visual pygame runner. To
+make the ROM interactive, it needs a small mapping from NES controller button names
+to pygame key constants.
 
 This first keyboard step only defines the mapping dictionary. The next test covers
 the helper that applies key events to Controller button booleans and wires it into
@@ -48,16 +49,16 @@ Out of scope:
 
 import pygame
 
-import main
+import main_only_background as background_main
 
 
 def test_main_declares_keys_mapping_dictionary():
     """
     Objective:
-    main.py exposes a KEYS dictionary for manual keyboard mapping.
+    main_only_background.py exposes a KEYS dictionary for manual keyboard mapping.
     """
-    assert hasattr(main, "KEYS")
-    assert isinstance(main.KEYS, dict)
+    assert hasattr(background_main, "KEYS")
+    assert isinstance(background_main.KEYS, dict)
 
 
 def test_keys_mapping_uses_nes_button_names_as_keys():
@@ -65,7 +66,7 @@ def test_keys_mapping_uses_nes_button_names_as_keys():
     Objective:
     The mapping should be button-name -> pygame-key, matching the tutorial example.
     """
-    assert set(main.KEYS) == {
+    assert set(background_main.KEYS) == {
         "a",
         "b",
         "select",
@@ -82,11 +83,11 @@ def test_keys_mapping_matches_default_manual_controls():
     Objective:
     The default keyboard controls are simple and common for emulators.
     """
-    assert main.KEYS["a"] == pygame.K_z
-    assert main.KEYS["b"] == pygame.K_x
-    assert main.KEYS["select"] == pygame.K_RSHIFT
-    assert main.KEYS["start"] == pygame.K_RETURN
-    assert main.KEYS["up"] == pygame.K_UP
-    assert main.KEYS["down"] == pygame.K_DOWN
-    assert main.KEYS["left"] == pygame.K_LEFT
-    assert main.KEYS["right"] == pygame.K_RIGHT
+    assert background_main.KEYS["a"] == pygame.K_z
+    assert background_main.KEYS["b"] == pygame.K_x
+    assert background_main.KEYS["select"] == pygame.K_RSHIFT
+    assert background_main.KEYS["start"] == pygame.K_RETURN
+    assert background_main.KEYS["up"] == pygame.K_UP
+    assert background_main.KEYS["down"] == pygame.K_DOWN
+    assert background_main.KEYS["left"] == pygame.K_LEFT
+    assert background_main.KEYS["right"] == pygame.K_RIGHT

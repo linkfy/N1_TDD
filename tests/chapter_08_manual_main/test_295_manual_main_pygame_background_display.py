@@ -1,13 +1,14 @@
 """
-Add manual pygame background display to main.py.
+Add manual pygame background display to main_only_background.py.
 
 File to create/update on root folder:
-    main.py
+    main_only_background.py
 
 Why this step exists:
 core_validator.py proves that the emulator can boot a local ROM and step frames
-without pygame. main.py is now the visual manual runner: it should use pygame to
-display the background Framebuffer produced by the emulator after each frame.
+without pygame. main_only_background.py is the historical background-only visual
+manual runner: it should use pygame to display the background Framebuffer produced
+by the emulator after each frame.
 
 Recommended workflow:
 Start by copying the working structure from core_validator.py, then add only the
@@ -24,7 +25,8 @@ missing pygame/display pieces:
     - call pygame.quit() in finally
 
 Important boundary:
-pygame is allowed in main.py because main.py is a manual/frontend entry point.
+pygame is allowed in main_only_background.py because it is a manual/frontend entry
+point.
 pygame must not be imported by emulator core modules.
 
 Important legal/testing rule:
@@ -113,12 +115,12 @@ Suggested implementation example:
 
 Manual command:
 
-    uv run python main.py
+    uv run python main_only_background.py
 
 Expected manual behavior:
-main.py opens a pygame window and displays the current background framebuffer. The
-window may look incomplete because sprites are not implemented yet. Close the
-window or press Ctrl+C to stop.
+main_only_background.py opens a pygame window and displays the current background
+framebuffer. The window may look incomplete because sprites are not implemented in
+this historical runner. Close the window or press Ctrl+C to stop.
 
 Example visual expectation, roughly:
 
@@ -167,8 +169,8 @@ upload path, but this step focuses on expected visual output and architecture
 boundaries, not speed.
 
 Why this test does not call main():
-main.py opens a real pygame window and runs a manual loop. Automated tests must
-stay finite and should inspect structure only.
+main_only_background.py opens a real pygame window and runs a manual loop.
+Automated tests must stay finite and should inspect structure only.
 
 Out of scope:
     - fast framebuffer upload optimization
@@ -179,59 +181,63 @@ Out of scope:
 """
 
 import inspect
+import importlib
 from pathlib import Path
 
-import main
+
+background_main = importlib.import_module("main_only_background")
 
 
-def test_main_py_exists_and_exposes_visual_runner_configuration():
+def test_main_only_background_py_exists_and_exposes_visual_runner_configuration():
     """
     Objective:
-    main.py is the visual manual runner and exposes the expected manual knobs.
+    main_only_background.py is the background-only visual manual runner and exposes
+    the expected manual knobs.
     """
-    assert Path("main.py").exists()
-    assert hasattr(main, "ROM_PATH")
-    assert hasattr(main, "debug_mode")
-    assert hasattr(main, "SCALE")
-    assert hasattr(main, "main")
-    assert callable(main.main)
+    assert Path("main_only_background.py").exists()
+    assert hasattr(background_main, "ROM_PATH")
+    assert hasattr(background_main, "debug_mode")
+    assert hasattr(background_main, "SCALE")
+    assert hasattr(background_main, "main")
+    assert callable(background_main.main)
 
 
-def test_main_rom_path_points_to_local_mariobros_file_name_without_requiring_it():
+def test_main_only_background_rom_path_points_to_local_mariobros_file_name_without_requiring_it():
     """
     Objective:
-    main.py documents the expected local ROM filename, but pytest must not require
-    that file to exist.
+    main_only_background.py documents the expected local ROM filename, but pytest
+    must not require that file to exist.
     """
-    assert isinstance(main.ROM_PATH, Path)
-    assert main.ROM_PATH.name == "MarioBros.nes"
+    assert isinstance(background_main.ROM_PATH, Path)
+    assert background_main.ROM_PATH.name == "MarioBros.nes"
 
 
-def test_main_debug_mode_exists_but_test_does_not_freeze_value():
+def test_main_only_background_debug_mode_exists_but_test_does_not_freeze_value():
     """
     Objective:
     debug_mode is a manual/developer knob. The test verifies existence only so
     future tutorial steps can change the default.
     """
-    assert hasattr(main, "debug_mode")
+    assert hasattr(background_main, "debug_mode")
 
 
-def test_main_scale_exists_for_manual_window_size():
+def test_main_only_background_scale_exists_for_manual_window_size():
     """
     Objective:
     SCALE controls how large each NES framebuffer pixel appears in the pygame
     window.
     """
-    assert isinstance(main.SCALE, int)
-    assert main.SCALE >= 1
+    assert isinstance(background_main.SCALE, int)
+    assert background_main.SCALE >= 1
 
 
-def test_main_uses_real_rom_boot_construction_path():
+def test_main_only_background_uses_real_rom_boot_construction_path():
     """
     Objective:
-    main.py should keep the same emulator ownership path as core_validator.py.
+    main_only_background.py should keep the same emulator ownership path as
+    core_validator.py.
     """
-    source = inspect.getsource(main.main)
+    source = inspect.getsource(background_main.main)
 
     assert "Cartridge.from_ines_bytes" in source
     assert "CpuBus(cartridge=cartridge)" in source
@@ -243,10 +249,10 @@ def test_main_uses_real_rom_boot_construction_path():
 def test_main_uses_pygame_window_loop_concepts():
     """
     Objective:
-    main.py should contain the core pygame window-loop operations without tests
-    opening the window.
+    main_only_background.py should contain the core pygame window-loop operations
+    without tests opening the window.
     """
-    source = inspect.getsource(main.main)
+    source = inspect.getsource(background_main.main)
 
     assert "pygame.init()" in source
     assert "pygame.display.set_mode" in source
@@ -263,20 +269,20 @@ def test_main_renders_background_framebuffer_and_draws_it():
     The visual runner should display the emulator-produced background framebuffer,
     not a synthetic checkerboard.
     """
-    source = inspect.getsource(main.main)
+    source = inspect.getsource(background_main.main)
 
     assert "console.render_background_framebuffer()" in source
-    assert "draw_framebuffer" in Path("main.py").read_text()
+    assert "draw_framebuffer" in Path("main_only_background.py").read_text()
     assert "draw_framebuffer(window, framebuffer, SCALE)" in source
 
 
 def test_main_steps_emulation_by_frame_before_drawing():
     """
     Objective:
-    main.py should advance emulation using the frame-level helper before rendering
-    the next visible background.
+    main_only_background.py should advance emulation using the frame-level helper
+    before rendering the next visible background.
     """
-    source = inspect.getsource(main.main)
+    source = inspect.getsource(background_main.main)
 
     assert "console.step_until_next_frame()" in source
 
@@ -286,7 +292,7 @@ def test_main_can_exit_by_window_close_or_ctrl_c():
     Objective:
     The manual visual loop should support both pygame window close and Ctrl+C.
     """
-    source = inspect.getsource(main.main)
+    source = inspect.getsource(background_main.main)
 
     assert "running = True" in source
     assert "running = False" in source
@@ -297,9 +303,9 @@ def test_main_can_exit_by_window_close_or_ctrl_c():
 def test_main_has_main_guard_so_importing_does_not_start_window_loop():
     """
     Objective:
-    Importing main.py from pytest must not open a pygame window.
+    Importing main_only_background.py from pytest must not open a pygame window.
     """
-    source = Path("main.py").read_text()
+    source = Path("main_only_background.py").read_text()
 
     assert 'if __name__ == "__main__"' in source
     assert "main()" in source

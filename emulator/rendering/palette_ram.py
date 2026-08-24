@@ -41,3 +41,26 @@ def build_background_palettes_from_palette_ram(
 
     return background_palettes
 
+SpritePalettes = list[list[RGBColor]]
+def build_sprite_palettes_from_palette_ram(palette_ram: bytes) -> SpritePalettes:
+    if len(palette_ram) != PALETTE_RAM_SIZE:
+        raise ValueError(f"Sprite palette RAM must be {PALETTE_RAM_SIZE} bytes")
+
+    sprite_palettes = []
+
+    for palette_id in range(TOTAL_PALETTES):
+        base = palette_id * COLORS_PER_PALETTE
+    
+        palette = [
+            get_nes_rgb_color(palette_ram[base]),
+            get_nes_rgb_color(palette_ram[base + 1]),
+            get_nes_rgb_color(palette_ram[base + 2]),
+            get_nes_rgb_color(palette_ram[base + 3]),
+        ]
+
+        sprite_palettes.append(palette)
+
+    return sprite_palettes
+
+
+
