@@ -109,12 +109,14 @@ Manual main.py execution path:
 [x] main.py loads a local .nes path, calls CPU.reset(), and steps frames
 [x] main.py displays background framebuffer with pygame
 [x] Connect pygame keyboard input to controller state after pure controller protocol is tested
-[ ] main.py reports useful frame/opcode/bus errors without requiring a debugger
+[x] main.py reports useful frame/opcode/bus errors without requiring a debugger
 
 Phase 11 / Chapter 09)
 Sprite rendering:
-[ ] Decode one OAM sprite entry
-[ ] Decode sprite attributes: palette ID, priority, horizontal flip, vertical flip
+[x] Define OAM sprite entry constants and SpriteEntry dataclass
+[x] Decode one OAM sprite entry
+[x] Define sprite attribute constants and SpriteAttributes dataclass
+[x] Decode sprite attributes: palette ID, priority, horizontal flip, vertical flip
 [ ] Build sprite palettes from PPU palette RAM $3F10-$3F1F
 [ ] Render one 8x8 sprite into framebuffer data
 [ ] Render all 64 OAM sprites without sprite 0 hit/overflow
@@ -244,18 +246,17 @@ Sprite policy:
 
 Next tutorial step:
 
-Step 298) Decode one OAM sprite entry
+Step 303) Build sprite palettes from PPU palette RAM $3F10-$3F1F
 	Files:
-		emulator/rendering/sprite_renderer.py or emulator/ppu/sprite.py
-		tests/chapter_09_sprite_rendering/test_298_sprite_entry_decode.py
+		emulator/rendering/sprite_palette.py or emulator/rendering/palette_ram.py
+		tests/chapter_09_sprite_rendering/test_303_sprite_palettes_from_palette_ram.py
 
 	Behavior:
-		Read four bytes from PPU OAM for one sprite index and expose them as a small
-		SpriteEntry data object: y, tile_index, attributes, x.
+		Convert 16 bytes from sprite palette RAM $3F10-$3F1F into four 4-color RGB
+		sprite palettes, using NES_PALETTE_RGB.
 
 	Goal:
-		create a stable, testable sprite data model before adding sprite pixels to the
-		framebuffer.
+		prepare the color data needed before rendering sprite pixels.
 
 	Existing reset-vector evidence:
 		CPU.reset() already exists in emulator/cpu/cpu.py.
@@ -266,17 +267,15 @@ Step 298) Decode one OAM sprite entry
 
 	Important:
 		Do not commit MarioBros.nes or any commercial ROM fixture.
-		Use synthetic OAM bytes in automated tests.
-		Do not render sprites in this first sprite step.
+		Use synthetic palette RAM bytes in automated tests.
+		Do not render sprites in this palette step.
 		Do not implement sprite 0 hit or sprite overflow yet.
 		Pygame must stay outside emulator core rendering modules.
 
 	After this:
-		Step 299) Decode sprite attributes: palette ID, priority, horizontal flip,
-		          vertical flip.
-		Step 300) Build sprite palettes from PPU palette RAM $3F10-$3F1F.
-		Step 301) Render one 8x8 sprite into framebuffer data.
-		Step 302) Render all OAM sprites and composite with background.
+		Step 304) Render one 8x8 sprite into framebuffer data.
+		Step 305) Render all OAM sprites without sprite 0 hit/overflow.
+		Step 306) Composite background and sprites into one framebuffer.
 
 After Phase 6:
 	- Phase 7: pure rendering pipeline plus manual pygame smoke runner
