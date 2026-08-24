@@ -1,6 +1,7 @@
 from pathlib import Path
 
 import pygame
+import time
 
 from emulator.bus.cpu_bus import CpuBus
 from emulator.cartridge.cartridge import Cartridge
@@ -12,6 +13,7 @@ from tools.show_framebuffer import draw_framebuffer
 ROM_PATH = Path("MarioBros.nes")
 debug_mode = False
 SCALE = 3
+FPS_REPORT_INTERVAL_SECONDS = 1.0
 
 KEYS = {
     "a": pygame.K_z,
@@ -78,7 +80,11 @@ def main() -> None:
         )
         pygame.display.set_caption("NES Background")
         
+        
         running = True
+        last_fps_report_time = time.perf_counter()
+        frames_since_last_report = 0
+
         while running:
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
@@ -92,7 +98,16 @@ def main() -> None:
             framebuffer = console.render_framebuffer()
             draw_framebuffer(window, framebuffer, SCALE)
             pygame.display.flip()
-
+            
+            frames_since_last_report += 1
+            now = time.perf_counter()
+            elapsed = now - last_fps_report_time
+            if elapsed >= FPS_REPORT_INTERVAL_SECONDS:
+                fps = frames_since_last_report / elapsed
+                print(f"fps={fps:.1f}")
+                frames_since_last_report = 0
+                last_fps_report_time = now
+                
             if debug_mode:
                 print(f"frame={console.ppu.frame} pc=${cpu.pc:04X} instructions={executed}") 
 

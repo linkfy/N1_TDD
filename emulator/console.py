@@ -7,7 +7,12 @@ from emulator.bus.ppu_bus import PALETTE_START
 from emulator.rendering.frame_compositor import composite_background_and_sprites
 from emulator.rendering.framebuffer import Framebuffer
 from emulator.rendering.palette_ram import build_sprite_palettes_from_palette_ram
-from emulator.rendering.ppu_background_renderer import  ppu_background_to_framebuffer, PATTERN_TABLE_0_ADDR, PATTERN_TABLE_1_ADDR
+from emulator.rendering.ppu_background_renderer import (
+    ppu_background_to_framebuffer,
+    ppu_background_to_opaque_mask,
+    PATTERN_TABLE_0_ADDR, 
+    PATTERN_TABLE_1_ADDR
+)
 
 @dataclass
 class Console:
@@ -48,6 +53,7 @@ class Console:
 
     def render_framebuffer(self) -> Framebuffer:
         background = self.render_background_framebuffer()
+        background_opaque_mask = ppu_background_to_opaque_mask(self.ppu)
         
         # Select sprite area from palette_ram is 16 bytes after background palette area
         sprite_palette_start = PALETTE_START + 16
@@ -73,4 +79,5 @@ class Console:
             oam=self.ppu.oam,
             pattern_table=pattern_table,
             sprite_palettes=sprite_palettes,
+            background_opaque_mask=background_opaque_mask,
         )

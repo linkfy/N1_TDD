@@ -127,7 +127,15 @@ Sprite rendering:
 [x] Thread background opacity mask through sprite rendering pipeline
 [x] Use sprite priority bit 5 with background opacity mask in pure sprite renderer
 [x] Add PPU-level background opacity mask extraction helper
-[ ] Wire Console.render_framebuffer() to pass the background opacity mask
+[x] Wire Console.render_framebuffer() to pass the background opacity mask
+
+Phase 12 / Chapter 10)
+Performance and manual runtime:
+[x] Add periodic FPS counter to main.py
+[x] Improve pygame framebuffer drawing/upload path
+[x] Add explicit PyPy launchers for manual execution
+[ ] Add expected-speed control so manual emulation does not run faster than NES speed
+[ ] Optional later: evaluate Numba or other acceleration only if simpler optimizations are not enough
 
 --
 Next Steps:
@@ -137,18 +145,23 @@ Prioritize a working main.py/manual execution path for Mapper000/NROM ROMs while
 preserving the linear pytest tutorial flow and avoiding later refactors.
 
 Immediate direction:
-	Manual ROM execution now reaches visible background output and keyboard input.
-	The next major missing visual system is sprite rendering. OAMDMA already copies
-	sprite bytes into PPU.oam, so Chapter 09 can build rendering on top of real OAM
-	data rather than fake sprite fixtures in main.py.
+	Manual ROM execution now reaches visible background output, sprite rendering,
+	keyboard input, and sprite/background priority behavior.
 
-	Do not prioritize opcode diagnostics right now. Keep that as a future debugging
-	improvement after the bus-visible startup behavior is less crash-prone.
+	The next focus is manual runtime performance and observability. The manual runner
+	now prints FPS, pygame drawing uses a faster upload/blit path, and explicit PyPy
+	launchers exist for manual runs. Next, cap execution to NES speed when the emulator
+	becomes fast enough.
+
+	Do not prioritize opcode diagnostics or broad CPU rewrites right now. Performance
+	work should be incremental and evidence-driven from the manual FPS signal.
 
 Working main.py means:
 	- a developer can provide a local .nes file path manually
 	- the emulator boots from the ROM reset vector
 	- Console can step frame-by-frame
+	- the visual runner displays background + sprites with priority behavior
+	- the terminal reports enough FPS information to judge performance changes
 	- unsupported I/O does not crash when the missing system is intentionally out of scope
 	- tests remain synthetic and do not require commercial ROM files
 
@@ -249,29 +262,48 @@ Sprite policy:
 	Do not make pygame part of sprite rendering. Sprite rendering should produce pure
 	Framebuffer data, and main.py should only display that data.
 
+Performance policy:
+	Start with a simple manual signal before deep profiling: print FPS from main.py
+	every few seconds.
+
+	PyPy is a supported manual runtime target through explicit launcher files. Do not
+	change the project's default Python interpreter yet; keep PyPy opt-in for manual
+	runs.
+
+	Pygame performance work belongs in manual/frontend helpers such as tools/ and
+	main.py. It must not introduce pygame into emulator core modules.
+
+	Expected-speed control belongs in main.py/manual runtime code. The emulator core
+	should remain deterministic stepping/rendering logic and should not sleep.
+
+	Potential future acceleration such as Numba should be considered only after:
+		1. PyPy manual execution is available,
+		2. FPS is visible,
+		3. pygame drawing has been improved,
+		4. remaining bottlenecks are understood.
+
 
 Next tutorial step:
 
-Step 314) Wire Console.render_framebuffer() to pass the background opacity mask
+Step 318) Add expected-speed control so manual emulation does not run faster than NES speed
 	Files:
-		emulator/console.py
-		tests/chapter_09_sprite_rendering/test_314_console_passes_background_opaque_mask.py
+		main.py
+		tests/chapter_10_performance/test_318_main_frame_pacing.py
 
 	Behavior:
-		Console.render_framebuffer() should call ppu_background_to_opaque_mask(self.ppu)
-		and pass that mask to composite_background_and_sprites().
+		main.py should cap the manual frontend loop to approximately NES NTSC speed when
+		the emulator is able to run faster than real time.
 
-		Important distinction:
-			PPUCTRL bit 4 selects the background pattern table.
-			PPUCTRL bit 3 selects the sprite pattern table.
+		Target:
+			NES_NTSC_FPS = 60.0988
+			TARGET_FRAME_SECONDS = 1.0 / NES_NTSC_FPS
 
-		The PPU-level helper added in Step 313 already owns the background nametable and
-		background pattern-table extraction. Console should orchestrate that helper, not
-		duplicate the background extraction details.
+		Important: frame pacing only sleeps when the completed frame was faster than the
+		target. It does not make slow emulation faster.
 
 	Goal:
-		make the already-tested sprite priority rule affect the real manual/full-frame
-		render path.
+		prevent manual execution from running faster than real NES speed after renderer
+		or runtime improvements.
 
 	Existing reset-vector evidence:
 		CPU.reset() already exists in emulator/cpu/cpu.py.
@@ -283,15 +315,12 @@ Step 314) Wire Console.render_framebuffer() to pass the background opacity mask
 	Important:
 		Do not commit MarioBros.nes or any commercial ROM fixture.
 		Automated tests must not call main() or open a pygame window.
-		Do not implement sprite 0 hit or sprite overflow yet.
-		If sprites still appear in front of pipes/tubes before this step, the likely
-		reason is that the pure sprite priority rule exists but Console has not passed
-		a real background opacity mask yet.
-		Pygame must stay outside emulator core rendering modules.
+		Expected-speed control belongs in the manual frontend path, not emulator core.
+		The emulator core should not call time.sleep().
 
 	After this:
-		Step 315) Revisit main.py visual expectations after priority support.
-		Step 316) Decide whether to optimize draw_framebuffer() performance.
+		Step 319) Optional later: evaluate Numba or other acceleration if needed.
+		Step 320) Optional later: add more detailed profiling if FPS is still too low.
 
 After Phase 6:
 	- Phase 7: pure rendering pipeline plus manual pygame smoke runner

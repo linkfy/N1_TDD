@@ -36,7 +36,7 @@ dev = [
 
 [package.metadata]
 requires-dist = [
-    { name = "pygame-ce", specifier = ">=2.5.0" },
+    { name = "pygame-ce", specifier = ">=2.5.8" },
     { name = "pytest", specifier = ">=9.0.3" },
 ]
 
