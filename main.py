@@ -10,7 +10,9 @@ from emulator.cpu.cpu import CPU
 from emulator.input.controller import Controller
 from tools.show_framebuffer import draw_framebuffer
 
-ROM_PATH = Path("MarioBros.nes")
+#ROM_PATH = Path("MarioBros.nes")
+ROM_PATH = Path("/home/linkfy/Downloads/SMB.nes")
+
 debug_mode = False
 SCALE = 3
 FPS_REPORT_INTERVAL_SECONDS = 1.0

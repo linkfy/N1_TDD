@@ -13,6 +13,7 @@ from emulator.rendering.ppu_background_renderer import (
     PATTERN_TABLE_0_ADDR, 
     PATTERN_TABLE_1_ADDR
 )
+from emulator.rendering.sprite_zero_hit import ppu_sprite_zero_hit_position
 
 @dataclass
 class Console:
@@ -37,6 +38,9 @@ class Console:
         return cpu_cycles
 
     def step_until_next_frame(self, max_cpu_instructions: int | None = None) -> int:
+        position = ppu_sprite_zero_hit_position(self.ppu)
+        self.ppu.set_sprite_zero_hit_position(position)
+
         start_frame = self.ppu.frame
         executed = 0
 

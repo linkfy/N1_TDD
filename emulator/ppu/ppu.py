@@ -38,6 +38,8 @@ PPU_PRE_RENDER_SCANLINE = 261
 # OAM_SIZE: 64 Sprites x 4 bytes
 OAM_SIZE = 256
 
+SpriteZeroHitPosition = tuple[int, int]
+
 @dataclass
 class PPU:
     ctrl: int = 0       # Bits VPHB SINN (Write)
@@ -62,6 +64,10 @@ class PPU:
     scanline: int = 0
     frame: int = 0
     nmi_requested: bool = False
+    sprite_zero_hit_position: SpriteZeroHitPosition | None = None
+
+    def set_sprite_zero_hit_position(self, position: SpriteZeroHitPosition | None) -> None:
+        self.sprite_zero_hit_position = position
     
     def step(self, cycles: int = 1) -> None:
         """
@@ -71,6 +77,14 @@ class PPU:
         """
         for _ in range(cycles):
             self.cycle += 1
+
+            # Set sprite_zero_hit status when PPU timing reaches sprite_zero_hit_position
+            if self.sprite_zero_hit_position is not None:
+                hit_x, hit_y = self.sprite_zero_hit_position
+                # When screen x = 0 -> PPU cycle = 1
+                if self.scanline == hit_y and self.cycle == hit_x + 1: # Mapping is self.cycle = x + 1
+                    self.status |= SPRITE_ZERO_HIT
+                    self.sprite_zero_hit_position = None
 
             if self.cycle >= PPU_CYCLES_PER_SCANLINE:
                 self.cycle = 0
@@ -90,6 +104,8 @@ class PPU:
                 # Pre-render clear -> Unset VBlank on scanline 261
                 if self.scanline == PPU_PRE_RENDER_SCANLINE:
                     self.status &= ~VBLANK_STARTED
+                    # Clear Sprite 0 HIT for the next frame
+                    self.status &= ~SPRITE_ZERO_HIT
 
         
     def write_register(self, addr: int, value: int) -> None:
@@ -184,5 +200,4 @@ class PPU:
                 return self.data
             case _:
                 raise ValueError(f"Unsupported PPU register read: {addr:04X}")
-
 

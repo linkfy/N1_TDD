@@ -134,14 +134,14 @@ Performance and manual runtime:
 [x] Add periodic FPS counter to main.py
 [x] Improve pygame framebuffer drawing/upload path
 [x] Add explicit PyPy launchers for manual execution
-[ ] Add expected-speed control so manual emulation does not run faster than NES speed
+[x] Add expected-speed control so manual emulation does not run faster than NES speed
 
 Phase 13 / Chapter 11)
 PPU compatibility / sprite 0 hit:
-[ ] Clear sprite 0 hit at the correct pre-render timing boundary
+[ ] Clear sprite 0 hit at the simplified pre-render timing boundary
 [ ] Detect non-transparent sprite 0/background pixel overlap
-[ ] Set PPUSTATUS sprite 0 hit without using a permanent/fixed fake flag
-[ ] VALIDATION: revisit Super Mario Bros. after sprite 0 hit exists
+[ ] Schedule/set PPUSTATUS sprite 0 hit from detected overlap
+[ ] VALIDATION: manually revisit Super Mario Bros. after sprite 0 hit exists
 
 --
 Next Steps:
@@ -308,46 +308,39 @@ Performance policy:
 
 Next tutorial step:
 
-Step 318) Add expected-speed control so manual emulation does not run faster than NES speed
+Step 319) Clear sprite 0 hit at the simplified pre-render boundary
 	Files:
-		main.py
-		tests/chapter_10_performance/test_318_main_frame_pacing.py
+		emulator/ppu/ppu.py
+		tests/chapter_11_sprite_zero_hit/test_319_clear_sprite_zero_hit_pre_render.py
 
 	Behavior:
-		main.py should cap the manual frontend loop to approximately NES NTSC speed when
-		the emulator is able to run faster than real time.
+		When PPU timing enters the pre-render scanline, clear both VBlank and sprite 0
+		hit state for the next frame:
 
-		Target:
-			NES_NTSC_FPS = 60.0988
-			TARGET_FRAME_SECONDS = 1.0 / NES_NTSC_FPS
+			if self.scanline == PPU_PRE_RENDER_SCANLINE:
+				self.status &= ~VBLANK_STARTED
+				self.status &= ~SPRITE_ZERO_HIT
 
-		Important: frame pacing only sleeps when the completed frame was faster than the
-		target. It does not make slow emulation faster.
+		This project currently models that reset at the scanline transition boundary.
+		Exact PPU dot timing remains a future accuracy refinement.
 
 	Goal:
-		prevent manual execution from running faster than real NES speed after renderer
-		or runtime improvements.
-
-	Existing reset-vector evidence:
-		CPU.reset() already exists in emulator/cpu/cpu.py.
-		Reset vector behavior is covered by:
-			tests/chapter_01_cpu/test_008_cpu_reset_vector.py
-		Cartridge/Mapper000 reset-vector boot is already validated by:
-			tests/chapter_02_rom_loading/test_223_VALIDATION_cpu_executes_tiny_ines_rom.py
+		establish the sprite-0-hit lifecycle invariant before implementing overlap
+		detection or setting the flag.
 
 	Important:
-		Do not commit MarioBros.nes or any commercial ROM fixture.
-		Automated tests must not call main() or open a pygame window.
-		Expected-speed control belongs in the manual frontend path, not emulator core.
-		The emulator core should not call time.sleep().
-		Keep using the existing MarioBros.nes manual path for this step. Super Mario Bros.
-		is deferred until sprite 0 hit is implemented and tested.
+		Reading PPUSTATUS must not clear sprite 0 hit; only the pre-render lifecycle event
+		clears it in this model.
+		Do not detect overlap or set sprite 0 hit in this step.
+		Do not add a fixed scanline fake hit.
+		Keep using MarioBros.nes for current manual checks. Super Mario Bros. remains
+		deferred until the complete sprite-0-hit path is implemented and tested.
 
 	After this:
-		Step 319) Begin sprite 0 hit with clear/set timing invariants and synthetic tests.
-		Step 320) Detect sprite 0/background opaque-pixel overlap.
-		Step 321) VALIDATION: manually revisit Super Mario Bros. with a legal local copy.
-		Step 322) Optional later: add more detailed profiling if FPS is still too low.
+		Step 320) Detect sprite 0/background opaque-pixel overlap with a pure helper.
+		Step 321) Schedule/set PPUSTATUS sprite 0 hit from the detected overlap.
+		Step 322) VALIDATION: manually revisit Super Mario Bros. with a legal local copy.
+		Step 323) Optional later: add more detailed profiling if FPS is still too low.
 
 After Phase 6:
 	- Phase 7: pure rendering pipeline plus manual pygame smoke runner

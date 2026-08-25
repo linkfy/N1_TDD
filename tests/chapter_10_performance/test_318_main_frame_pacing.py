@@ -145,9 +145,11 @@ def test_main_starts_frame_timer_before_emulation_work():
     source = inspect.getsource(main.main)
 
     start_index = source.index("frame_start_time = time.perf_counter()")
-    step_index = source.index("console.step_until_next_frame()")
-    render_index = source.index("console.render_framebuffer()")
-    flip_index = source.index("pygame.display.flip()")
+    # Search after the frame timer so the earlier initial framebuffer used to size
+    # the pygame window is not mistaken for the per-frame render call.
+    step_index = source.index("console.step_until_next_frame()", start_index)
+    render_index = source.index("console.render_framebuffer()", step_index)
+    flip_index = source.index("pygame.display.flip()", render_index)
 
     assert start_index < step_index < render_index < flip_index
 
