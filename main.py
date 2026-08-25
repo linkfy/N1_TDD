@@ -15,6 +15,9 @@ debug_mode = False
 SCALE = 3
 FPS_REPORT_INTERVAL_SECONDS = 1.0
 
+NES_NTSC_FPS = 60.0988
+TARGET_FRAME_SECONDS = 1.0 / NES_NTSC_FPS
+
 KEYS = {
     "a": pygame.K_z,
     "b": pygame.K_x,
@@ -84,8 +87,10 @@ def main() -> None:
         running = True
         last_fps_report_time = time.perf_counter()
         frames_since_last_report = 0
-
+        
         while running:
+            frame_start_time = time.perf_counter()
+
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -98,10 +103,20 @@ def main() -> None:
             framebuffer = console.render_framebuffer()
             draw_framebuffer(window, framebuffer, SCALE)
             pygame.display.flip()
-            
+
+            # Sleep to match NES timing
+            frame_end_time = time.perf_counter()
+            frame_elapsed_time = frame_end_time - frame_start_time
+            wait_time = TARGET_FRAME_SECONDS - frame_elapsed_time
+
+            if wait_time > 0:
+                time.sleep(wait_time)
+
+            # Show FPS 
             frames_since_last_report += 1
             now = time.perf_counter()
             elapsed = now - last_fps_report_time
+
             if elapsed >= FPS_REPORT_INTERVAL_SECONDS:
                 fps = frames_since_last_report / elapsed
                 print(f"fps={fps:.1f}")

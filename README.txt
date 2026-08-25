@@ -135,7 +135,13 @@ Performance and manual runtime:
 [x] Improve pygame framebuffer drawing/upload path
 [x] Add explicit PyPy launchers for manual execution
 [ ] Add expected-speed control so manual emulation does not run faster than NES speed
-[ ] Optional later: evaluate Numba or other acceleration only if simpler optimizations are not enough
+
+Phase 13 / Chapter 11)
+PPU compatibility / sprite 0 hit:
+[ ] Clear sprite 0 hit at the correct pre-render timing boundary
+[ ] Detect non-transparent sprite 0/background pixel overlap
+[ ] Set PPUSTATUS sprite 0 hit without using a permanent/fixed fake flag
+[ ] VALIDATION: revisit Super Mario Bros. after sprite 0 hit exists
 
 --
 Next Steps:
@@ -187,10 +193,33 @@ Local ROM policy for manual main.py runs:
 		5d7bcc400a2fb5fa27346da345d3bb62  MarioBros.nes
 	  This is only a reference for manual experiments. Users must provide their own
 	  legal copy, and hashes may differ between dumps/revisions.
+	- Continue using MarioBros.nes as the manual reference ROM throughout the current
+	  performance/frame-pacing chapter.
+	- Do not use Super Mario Bros. as a correctness requirement for the current
+	  performance tests. It will be revisited during the sprite-0-hit chapter.
+	- No commercial ROM is added to automated tests; Super Mario Bros. validation will
+	  remain a manual experiment with a user-provided legal copy.
 
 Important rule:
-Do not implement sprite 0 hit or sprite overflow yet. Those require rendering,
-sprite evaluation, OAM timing, and pixel overlap behavior.
+Do not implement sprite 0 hit during the current performance/frame-pacing step.
+Sprite 0 hit is the next planned PPU compatibility chapter and requires rendering,
+sprite evaluation, PPU timing, and pixel overlap behavior. Sprite overflow remains
+deferred beyond that chapter.
+
+Super Mario Bros. discovery:
+	A manual Super Mario Bros. experiment showed the title/menu background and FPS
+	continuing, while Mario did not appear, the upper coin/color animation did not
+	progress normally, and controls appeared unresponsive.
+
+	Mario Bros. controller input still worked. This means the symptom should not be
+	treated as proven controller failure. The current PPU defines SPRITE_ZERO_HIT but
+	does not set it. Super Mario Bros. is known to use sprite 0 hit as a timing signal,
+	so the CPU can remain in a PPUSTATUS polling loop while emulator frames and FPS
+	continue.
+
+	This is a diagnosis to verify later, not permission to add a fixed/fake hit. The
+	future implementation must clear/set the flag from explicit timing and overlap
+	invariants, with synthetic automated tests before manual ROM validation.
 
 Stubbing policy:
 Avoid broad fake stubs for systems that are part of the tutorial path.
@@ -258,7 +287,8 @@ Controller policy:
 Sprite policy:
 	Start with data decoding before drawing.
 	OAMDMA remains CPU-bus behavior; sprite rendering reads PPU.oam.
-	Do not implement sprite 0 hit or sprite overflow yet.
+	Sprite 0 hit is deferred until after current expected-speed control. Sprite
+	overflow remains out of scope beyond that point.
 	Do not make pygame part of sprite rendering. Sprite rendering should produce pure
 	Framebuffer data, and main.py should only display that data.
 
@@ -275,13 +305,6 @@ Performance policy:
 
 	Expected-speed control belongs in main.py/manual runtime code. The emulator core
 	should remain deterministic stepping/rendering logic and should not sleep.
-
-	Potential future acceleration such as Numba should be considered only after:
-		1. PyPy manual execution is available,
-		2. FPS is visible,
-		3. pygame drawing has been improved,
-		4. remaining bottlenecks are understood.
-
 
 Next tutorial step:
 
@@ -317,10 +340,14 @@ Step 318) Add expected-speed control so manual emulation does not run faster tha
 		Automated tests must not call main() or open a pygame window.
 		Expected-speed control belongs in the manual frontend path, not emulator core.
 		The emulator core should not call time.sleep().
+		Keep using the existing MarioBros.nes manual path for this step. Super Mario Bros.
+		is deferred until sprite 0 hit is implemented and tested.
 
 	After this:
-		Step 319) Optional later: evaluate Numba or other acceleration if needed.
-		Step 320) Optional later: add more detailed profiling if FPS is still too low.
+		Step 319) Begin sprite 0 hit with clear/set timing invariants and synthetic tests.
+		Step 320) Detect sprite 0/background opaque-pixel overlap.
+		Step 321) VALIDATION: manually revisit Super Mario Bros. with a legal local copy.
+		Step 322) Optional later: add more detailed profiling if FPS is still too low.
 
 After Phase 6:
 	- Phase 7: pure rendering pipeline plus manual pygame smoke runner
@@ -347,6 +374,9 @@ Future Notes:
 					sprite rendering
 					pixel overlap detection
 					PPU timing
+				- Manual compatibility evidence:
+					Super Mario Bros. may poll this flag and appear alive at the frontend
+					while game logic remains blocked when the flag is never set.
 		- Sprite Overflow flag behavior:
 				- Required:
 					OAM memory
