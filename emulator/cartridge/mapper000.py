@@ -13,6 +13,7 @@ CHR_ROM_SIZE = 8 * 1024
 class Mapper000:
     prg_rom: bytes
     chr_rom: bytes
+    is_vertical_mirroring: bool = False
 
     def read_prg(self, addr: int) -> int:
         # 1. Verify addr is in Mapper000 ROM area range

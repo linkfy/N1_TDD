@@ -7,6 +7,7 @@ def create_mapper(cartridge: Cartridge):
         return Mapper000(
             prg_rom=cartridge.prg_rom,
             chr_rom=cartridge.chr_rom,
+            is_vertical_mirroring=cartridge.is_vertical_mirroring,
         )
 
     raise ValueError(f"Unsupported mapper: {cartridge.mapper_number}")

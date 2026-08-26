@@ -127,14 +127,21 @@ def test_cartridge_is_dataclass():
 def test_cartridge_has_required_fields_in_order():
     """
     Objective:
-    Cartridge stores the emulator-facing cartridge data.
+    Cartridge keeps its original emulator-facing fields first and in order.
+
+    Later tutorial steps may append optional cartridge metadata without invalidating
+    this historical constructor shape.
     """
-    assert list(Cartridge.__dataclass_fields__) == [
+    required_fields = [
         "prg_rom",
         "chr_rom",
         "mapper_number",
         "chr_ram",
     ]
+
+    field_names = list(Cartridge.__dataclass_fields__)
+
+    assert field_names[: len(required_fields)] == required_fields
 
 
 def test_cartridge_can_be_created_directly():

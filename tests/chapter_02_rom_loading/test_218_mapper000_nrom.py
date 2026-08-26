@@ -102,9 +102,15 @@ def test_mapper000_class_exists_and_stores_prg_and_chr_rom():
 
     CHR ROM is included now because the next test will add read_chr(addr) for
     future PPU pattern-table reads.
+
+    Later tutorial steps may append optional mapper metadata while preserving these
+    original fields and their constructor order.
     """
     assert dataclasses.is_dataclass(Mapper000)
-    assert list(Mapper000.__dataclass_fields__) == ["prg_rom", "chr_rom"]
+    original_fields = ["prg_rom", "chr_rom"]
+    field_names = list(Mapper000.__dataclass_fields__)
+
+    assert field_names[: len(original_fields)] == original_fields
     assert hasattr(Mapper000, "read_prg")
     assert callable(Mapper000.read_prg)
 

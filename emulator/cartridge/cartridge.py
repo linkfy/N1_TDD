@@ -8,6 +8,7 @@ class Cartridge:
     chr_rom: bytes
     mapper_number: int
     chr_ram: bytearray | None = None
+    is_vertical_mirroring: bool = False
     
     @classmethod
     def from_ines_bytes(cls, data: bytes) -> "Cartridge":
@@ -15,5 +16,6 @@ class Cartridge:
         return cls(
             prg_rom=ines_rom.prg_rom,
             chr_rom=ines_rom.chr_rom,
-            mapper_number=ines_rom.header.mapper_number
+            mapper_number=ines_rom.header.mapper_number,
+            is_vertical_mirroring=ines_rom.header.is_vertical_mirroring,
         )
