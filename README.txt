@@ -138,10 +138,19 @@ Performance and manual runtime:
 
 Phase 13 / Chapter 11)
 PPU compatibility / sprite 0 hit:
-[ ] Clear sprite 0 hit at the simplified pre-render timing boundary
-[ ] Detect non-transparent sprite 0/background pixel overlap
-[ ] Schedule/set PPUSTATUS sprite 0 hit from detected overlap
-[ ] VALIDATION: manually revisit Super Mario Bros. after sprite 0 hit exists
+[x] Clear sprite 0 hit at the simplified pre-render timing boundary
+[x] Detect non-transparent sprite 0/background pixel overlap
+[x] Let PPU timing set PPUSTATUS sprite 0 hit at a supplied position
+[x] Extract sprite 0 overlap position from current PPU state
+[x] Console schedules sprite 0 hit before advancing each frame
+[x] Manual checkpoint documented for Super Mario Bros. without ROM fixtures
+
+Phase 14 / Chapter 12)
+Cartridge nametable mirroring:
+[ ] Decode horizontal/vertical mirroring from iNES flags 6 bit 0
+[ ] Preserve mirroring metadata in Cartridge/Mapper ownership path
+[ ] Apply horizontal/vertical mirroring in PpuBus nametable normalization
+[ ] VALIDATION: synthetic nametable reads/writes follow selected mirroring mode
 
 --
 Next Steps:
@@ -152,12 +161,13 @@ preserving the linear pytest tutorial flow and avoiding later refactors.
 
 Immediate direction:
 	Manual ROM execution now reaches visible background output, sprite rendering,
-	keyboard input, and sprite/background priority behavior.
+	keyboard input, sprite/background priority, paced NES-speed presentation, and
+	sprite-0-hit timing behavior.
 
-	The next focus is manual runtime performance and observability. The manual runner
-	now prints FPS, pygame drawing uses a faster upload/blit path, and explicit PyPy
-	launchers exist for manual runs. Next, cap execution to NES speed when the emulator
-	becomes fast enough.
+	The Super Mario Bros. manual checkpoint now progresses beyond the previous
+	PPUSTATUS polling stall. The next observed limitation is horizontal background
+	scrolling. Before implementing a scrolling viewport, preserve cartridge nametable
+	mirroring metadata and make PpuBus honor horizontal versus vertical mapping.
 
 	Do not prioritize opcode diagnostics or broad CPU rewrites right now. Performance
 	work should be incremental and evidence-driven from the manual FPS signal.
@@ -193,18 +203,16 @@ Local ROM policy for manual main.py runs:
 		5d7bcc400a2fb5fa27346da345d3bb62  MarioBros.nes
 	  This is only a reference for manual experiments. Users must provide their own
 	  legal copy, and hashes may differ between dumps/revisions.
-	- Continue using MarioBros.nes as the manual reference ROM throughout the current
-	  performance/frame-pacing chapter.
-	- Do not use Super Mario Bros. as a correctness requirement for the current
-	  performance tests. It will be revisited during the sprite-0-hit chapter.
-	- No commercial ROM is added to automated tests; Super Mario Bros. validation will
-	  remain a manual experiment with a user-provided legal copy.
+	- MarioBros.nes remains the basic manual reference ROM.
+	- Super Mario Bros.nes may be used as an additional manual compatibility checkpoint
+	  with a user-provided legal copy, especially for sprite 0 hit and future scrolling.
+	- No commercial ROM is added to automated tests; all mirroring tests use synthetic
+	  headers and PPU memory data.
 
 Important rule:
-Do not implement sprite 0 hit during the current performance/frame-pacing step.
-Sprite 0 hit is the next planned PPU compatibility chapter and requires rendering,
-sprite evaluation, PPU timing, and pixel overlap behavior. Sprite overflow remains
-deferred beyond that chapter.
+Sprite 0 hit now has an incremental frame-level implementation. Exact dot-level
+accuracy, OAM Y+1, PPUMASK left-edge behavior, x=255 behavior, 8x16 sprites, and
+sprite overflow remain separate future accuracy work.
 
 Super Mario Bros. discovery:
 	A manual Super Mario Bros. experiment showed the title/menu background and FPS
@@ -217,9 +225,23 @@ Super Mario Bros. discovery:
 	so the CPU can remain in a PPUSTATUS polling loop while emulator frames and FPS
 	continue.
 
-	This is a diagnosis to verify later, not permission to add a fixed/fake hit. The
-	future implementation must clear/set the flag from explicit timing and overlap
-	invariants, with synthetic automated tests before manual ROM validation.
+	The implemented path now clears the flag at pre-render, detects overlap from
+	explicit opacity data, schedules the position, and lets PPU timing set the status
+	bit. No fixed/fake scanline hit was added.
+
+Mirroring discovery:
+	Super Mario Bros. can now progress and accept input, but horizontal movement still
+	looks incorrect because the background viewport does not scroll yet.
+
+	The current PpuBus nametable normalization always behaves like vertical mirroring:
+
+		$2000 -> A
+		$2400 -> B
+		$2800 -> A
+		$2C00 -> B
+
+	Standard Super Mario Bros. normally declares horizontal mirroring. Mirroring must
+	be decoded and propagated before implementing a correct scrolling viewport.
 
 Stubbing policy:
 Avoid broad fake stubs for systems that are part of the tutorial path.
@@ -287,10 +309,22 @@ Controller policy:
 Sprite policy:
 	Start with data decoding before drawing.
 	OAMDMA remains CPU-bus behavior; sprite rendering reads PPU.oam.
-	Sprite 0 hit is deferred until after current expected-speed control. Sprite
-	overflow remains out of scope beyond that point.
+	Sprite 0 hit has a simplified tested timing path. Sprite overflow remains out of
+	scope.
 	Do not make pygame part of sprite rendering. Sprite rendering should produce pure
 	Framebuffer data, and main.py should only display that data.
+
+Mirroring policy:
+	Mirroring is cartridge metadata, not a renderer preference. Decode it from the iNES
+	header, preserve it through cartridge/mapper ownership, and let PpuBus use it when
+	normalizing nametable addresses.
+
+	Bit 0 of iNES flags 6 selects:
+		0 -> horizontal mirroring
+		1 -> vertical mirroring
+
+	Four-screen mirroring remains out of scope for the first mirroring phase. Do not
+	hide the current fixed mapping behind global state or ROM-specific conditions.
 
 Performance policy:
 	Start with a simple manual signal before deep profiling: print FPS from main.py
@@ -308,39 +342,35 @@ Performance policy:
 
 Next tutorial step:
 
-Step 319) Clear sprite 0 hit at the simplified pre-render boundary
+Step 324) Decode nametable mirroring from the iNES header
 	Files:
-		emulator/ppu/ppu.py
-		tests/chapter_11_sprite_zero_hit/test_319_clear_sprite_zero_hit_pre_render.py
+		emulator/cartridge/ines.py
+		tests/chapter_12_mirroring/test_324_ines_nametable_mirroring.py
 
 	Behavior:
-		When PPU timing enters the pre-render scanline, clear both VBlank and sprite 0
-		hit state for the next frame:
+		Expose whether an iNES header requests horizontal or vertical nametable mirroring
+		from flags 6 bit 0:
 
-			if self.scanline == PPU_PRE_RENDER_SCANLINE:
-				self.status &= ~VBLANK_STARTED
-				self.status &= ~SPRITE_ZERO_HIT
+			bit 0 clear -> horizontal
+			bit 0 set   -> vertical
 
-		This project currently models that reset at the scanline transition boundary.
-		Exact PPU dot timing remains a future accuracy refinement.
+		This step only decodes/names the metadata. It does not change PpuBus mapping yet.
 
 	Goal:
-		establish the sprite-0-hit lifecycle invariant before implementing overlap
-		detection or setting the flag.
+		make the cartridge's nametable wiring requirement explicit before propagating it
+		through the emulator.
 
 	Important:
-		Reading PPUSTATUS must not clear sprite 0 hit; only the pre-render lifecycle event
-		clears it in this model.
-		Do not detect overlap or set sprite 0 hit in this step.
-		Do not add a fixed scanline fake hit.
-		Keep using MarioBros.nes for current manual checks. Super Mario Bros. remains
-		deferred until the complete sprite-0-hit path is implemented and tested.
+		Do not modify PpuBus in this step.
+		Do not implement scrolling in this step.
+		Do not require commercial ROM files from pytest.
+		Four-screen mirroring remains out of scope.
 
 	After this:
-		Step 320) Detect sprite 0/background opaque-pixel overlap with a pure helper.
-		Step 321) Schedule/set PPUSTATUS sprite 0 hit from the detected overlap.
-		Step 322) VALIDATION: manually revisit Super Mario Bros. with a legal local copy.
-		Step 323) Optional later: add more detailed profiling if FPS is still too low.
+		Step 325) Preserve mirroring metadata through Cartridge/Mapper ownership.
+		Step 326) Apply horizontal/vertical nametable mapping in PpuBus.
+		Step 327) VALIDATION: synthetic PPU reads/writes follow selected mirroring.
+		Step 328) Begin the separate PPU scrolling/viewport chapter.
 
 After Phase 6:
 	- Phase 7: pure rendering pipeline plus manual pygame smoke runner
@@ -348,6 +378,9 @@ After Phase 6:
 	- Phase 9 / Chapter 07: controller $4016 behavior
 	- Phase 10: manual main.py execution path
 	- Phase 11 / Chapter 09: sprite rendering
+	- Phase 12 / Chapter 10: performance and manual runtime
+	- Phase 13 / Chapter 11: sprite 0 hit
+	- Phase 14 / Chapter 12: cartridge nametable mirroring
 
 Controller phase outline:
 	Controller state stores 8 buttons in NES read order:
@@ -360,19 +393,14 @@ Controller phase outline:
 ---------------------------------------------
 Future Notes:
 
-	- Implement PPUSTATUS:
-		- Sprite 0 Hit flag behavior:
-				- Required:
-					background rendering
-					sprite rendering
-					pixel overlap detection
-					PPU timing
-				- Manual compatibility evidence:
-					Super Mario Bros. may poll this flag and appear alive at the frontend
-					while game logic remains blocked when the flag is never set.
-		- Sprite Overflow flag behavior:
-				- Required:
-					OAM memory
-					sprite evaluation per scanline
-					more than 8 sprites on a scanline
-					quirky NES behavior (buggy real hardware behavior)
+	- Refine sprite 0 hit accuracy later:
+		- exact OAM Y+1 behavior
+		- PPUMASK rendering/left-edge rules
+		- x=255 exception
+		- exact dot timing
+		- 8x16 sprites
+	- Implement Sprite Overflow flag behavior later:
+		- OAM memory
+		- sprite evaluation per scanline
+		- more than 8 sprites on a scanline
+		- quirky NES hardware behavior

@@ -5,6 +5,7 @@ INES_HEADER_SIZE = 16
 TRAINER_SIZE = 512
 PRG_ROM_BANK_SIZE = 16 * 1024
 CHR_ROM_BANK_SIZE = 8 * 1024
+FLAGS6_VERTICAL_MIRRORING = 1 << 0
 
 @dataclass(frozen=True) # not mutable data
 class INesHeader: 
@@ -14,6 +15,11 @@ class INesHeader:
     has_trainer: bool # Extra 512 bytes "trainer" present?
     flags_6: int # Has lower nybble of mapper number
     flags_7: int # Has upper nybble of mapper number
+    
+    @property
+    def is_vertical_mirroring(self) -> bool:
+        return (self.flags_6 & FLAGS6_VERTICAL_MIRRORING) != 0
+    
 
 def parse_ines_header(data: bytes) -> INesHeader:
     # 1 Verify len data bigger than header size
