@@ -47,7 +47,7 @@ class PPU:
     status: int = 0     # Bits VSO- ---- (Read)
     oam_addr: int = 0   # Bits AAAA AAAA (Write)
     oam_data: int = 0   # Preserved for test compatibility, now: oam
-    scroll: int = 0     # Bits XXXX XXXX YYYY YYYY (2 Writes)
+    scroll: int = 0     # Preserved for test compatibility, data is wrote inside temp_vram_addr Bits XXXX XXXX YYYY YYYY (2 Writes)
     addr: int = 0       # Preserved for test compatibility, now: vram_addr
     data: int = 0       # Preserved for test compatibility, now: ppu_bus.read/write to vram and ppu_data_buffer
 
@@ -111,8 +111,20 @@ class PPU:
     def write_register(self, addr: int, value: int) -> None:
         value = value & 0xFF
         match addr:
+            # NES PPU uses an internal scrolling address layout written as:
+            # yyy NN YYYYY XXXXX
+            # ------------------
+            # XXXXX -> coarse X tile position
+            # YYYYY -> coarse Y tile position
+            # NN -> logical nametable selection
+            # yyy -> fine y pixel position
+
             case 0x2000: # PPUCTRL Write
                 self.ctrl = value
+                # https://www.nesdev.org/wiki/PPU_scrolling#$2000_(PPUCTRL)_write
+                # t: ...GH.. ........ <- d: ......GH => Move last 2 bytes 10 positions and set to temp_vram_addr
+                self.temp_vram_addr = (self.temp_vram_addr & 0b1111_0011_1111_1111) | ((value & CTRL_BASE_NAMETABLE_MASK) << 10)
+
             case 0x2001: # PPUMASK Write
                 self.mask = value
             case 0x2003: # OAM ADDR Write

@@ -15,6 +15,11 @@ PALETTE_SIZE = 0x20
 NAMETABLE_START = 0x2000
 NAMETABLE_END = 0x3EFF 
 NAMETABLE_SIZE = 0x800
+NAMETABLE_BYTES_PER_TABLE = 0x400
+# It represents the complete logical nametable address window: 
+# $3000 - $2000 = $1000 
+# $3000 - $3EFF mirrors $2000-$2EFF; $3F00-3FFF is palette space.
+NAMETABLE_LOGICAL_SIZE = 0x1000 
 
 @dataclass
 class PpuBus():
@@ -45,11 +50,47 @@ class PpuBus():
         - [0x3000...0x3EFF] = Mirrors (Yes, It is not completed to 0x3FFF)
         $3000-$3EFF mirrors $2000-$2EFF and is rarely used directly.
         """
-
+        
         if 0x3000 <= addr <= 0x3EFF:
             addr -= 0x1000
-        index = (addr - 0x2000) % NAMETABLE_SIZE
-        return 0x2000 + index
+
+        # Ensure position is between 0x2000-0x2FFF
+        logical_offset = (addr - NAMETABLE_START) % NAMETABLE_LOGICAL_SIZE
+        # Search the logical Nametable index 0, 1, 2, 3
+        logical_table = logical_offset // NAMETABLE_BYTES_PER_TABLE
+        offset_inside_table = logical_offset % NAMETABLE_BYTES_PER_TABLE
+        
+        # Vertical mirror by default if not mapper set (preserve old compatibility tests)
+        # else it depends on mapper value
+        is_vertical_mirroring =  (
+            True if self.mapper is None
+            else self.mapper.is_vertical_mirroring
+        )
+        
+        if is_vertical_mirroring:
+            # Possible indexes % 2 
+            # LOGICAL      |  PHYSICAL
+            # 0, 1, 2, 3,  -> 0, 1, 0, 1
+            # [0, 1] => Tables are mirrored vertical
+            # [0, 1]
+            physical_table = logical_table % 2 
+        else:
+            # Possible indexes // 2
+            # LOGICAL      |   PHYSICAL
+            # 0, 1, 2, 3,  -> 0, 0, 1, 1
+            # [0, 0] => Tables mirrored horizontal
+            # [1, 1]
+            physical_table = logical_table // 2
+
+        return (
+            NAMETABLE_START
+            + physical_table * NAMETABLE_BYTES_PER_TABLE
+            + offset_inside_table
+        )
+
+
+
+
     
     def read(self, addr: int) -> int:
         addr = addr & PPU_ADDRESS_MASK

@@ -147,10 +147,21 @@ PPU compatibility / sprite 0 hit:
 
 Phase 14 / Chapter 12)
 Cartridge nametable mirroring:
-[ ] Decode horizontal/vertical mirroring from iNES flags 6 bit 0
-[ ] Preserve mirroring metadata in Cartridge/Mapper ownership path
-[ ] Apply horizontal/vertical mirroring in PpuBus nametable normalization
-[ ] VALIDATION: synthetic nametable reads/writes follow selected mirroring mode
+[x] Decode horizontal/vertical mirroring from iNES flags 6 bit 0
+[x] Preserve mirroring metadata in Cartridge
+[x] Preserve mirroring metadata in Mapper000/MapperInterface
+[x] Apply horizontal/vertical mirroring in PpuBus nametable normalization
+[x] VALIDATION: synthetic nametable reads/writes follow selected mirroring mode
+
+Phase 15 / Chapter 13)
+PPU scrolling and background viewport:
+[x] Copy PPUCTRL base-nametable bits into temp_vram_addr
+[x] Derive coarse/fine background viewport position from PPU scroll state
+[ ] Compose a 256x240 framebuffer viewport across two horizontal nametables
+[ ] Compose the matching scrolled background opacity mask
+[ ] Extract/render adjacent logical nametables from current PPU state
+[ ] Integrate the scrolled viewport into Console background/full-frame rendering
+[ ] VALIDATION: manually revisit Super Mario Bros. horizontal movement
 
 --
 Next Steps:
@@ -166,8 +177,8 @@ Immediate direction:
 
 	The Super Mario Bros. manual checkpoint now progresses beyond the previous
 	PPUSTATUS polling stall. The next observed limitation is horizontal background
-	scrolling. Before implementing a scrolling viewport, preserve cartridge nametable
-	mirroring metadata and make PpuBus honor horizontal versus vertical mapping.
+	scrolling. Cartridge mirroring metadata now reaches PpuBus and horizontal/vertical
+	address aliases are tested. The next work is PPU viewport state and rendering.
 
 	Do not prioritize opcode diagnostics or broad CPU rewrites right now. Performance
 	work should be incremental and evidence-driven from the manual FPS signal.
@@ -177,6 +188,8 @@ Working main.py means:
 	- the emulator boots from the ROM reset vector
 	- Console can step frame-by-frame
 	- the visual runner displays background + sprites with priority behavior
+	- sprite 0 hit can unblock games that use PPUSTATUS bit 6 as a timing signal
+	- cartridge-backed PpuBus nametable accesses honor horizontal/vertical mirroring
 	- the terminal reports enough FPS information to judge performance changes
 	- unsupported I/O does not crash when the missing system is intentionally out of scope
 	- tests remain synthetic and do not require commercial ROM files
@@ -219,11 +232,10 @@ Super Mario Bros. discovery:
 	continuing, while Mario did not appear, the upper coin/color animation did not
 	progress normally, and controls appeared unresponsive.
 
-	Mario Bros. controller input still worked. This means the symptom should not be
-	treated as proven controller failure. The current PPU defines SPRITE_ZERO_HIT but
-	does not set it. Super Mario Bros. is known to use sprite 0 hit as a timing signal,
-	so the CPU can remain in a PPUSTATUS polling loop while emulator frames and FPS
-	continue.
+	Mario Bros. controller input still worked, so the symptom was not treated as proven
+	controller failure. At that point the PPU defined SPRITE_ZERO_HIT but never set it.
+	Super Mario Bros. uses sprite 0 hit as a timing signal, so the CPU could remain in a
+	PPUSTATUS polling loop while emulator frames and FPS continued.
 
 	The implemented path now clears the flag at pre-render, detects overlap from
 	explicit opacity data, schedules the position, and lets PPU timing set the status
@@ -233,15 +245,18 @@ Mirroring discovery:
 	Super Mario Bros. can now progress and accept input, but horizontal movement still
 	looks incorrect because the background viewport does not scroll yet.
 
-	The current PpuBus nametable normalization always behaves like vertical mirroring:
+	Before Chapter 12, PpuBus nametable normalization always behaved like vertical
+	mirroring:
 
 		$2000 -> A
 		$2400 -> B
 		$2800 -> A
 		$2C00 -> B
 
-	Standard Super Mario Bros. normally declares horizontal mirroring. Mirroring must
-	be decoded and propagated before implementing a correct scrolling viewport.
+	Standard Super Mario Bros. normally declares vertical mirroring, which keeps the
+	left/right logical nametables distinct for horizontal scrolling. Chapter 12 now
+	decodes, propagates, and applies that cartridge metadata. This fixes memory aliases;
+	it does not move the visible viewport.
 
 Stubbing policy:
 Avoid broad fake stubs for systems that are part of the tutorial path.
@@ -326,6 +341,18 @@ Mirroring policy:
 	Four-screen mirroring remains out of scope for the first mirroring phase. Do not
 	hide the current fixed mapping behind global state or ROM-specific conditions.
 
+Scrolling policy:
+	Scrolling is a PPU viewport mechanism, not cartridge mirroring. Keep the phases
+	separate even though correct scrolling depends on correct mirrored nametable reads.
+
+	Build scrolling incrementally from the existing PPU t/v/x/w state model:
+		1. complete PPUCTRL base-nametable writes into temporary address t
+		2. derive coarse/fine viewport coordinates as pure data
+		3. render across adjacent logical nametables
+		4. integrate the viewport without putting pygame in emulator core
+
+	Do not jump directly to a ROM-specific offset or a fixed Super Mario Bros. camera.
+
 Performance policy:
 	Start with a simple manual signal before deep profiling: print FPS from main.py
 	every few seconds.
@@ -342,37 +369,40 @@ Performance policy:
 
 Next tutorial step:
 
-Step 324) Decode nametable mirroring from the iNES header
+Step 330) Compose a horizontal framebuffer viewport across two nametables
 	Files:
-		emulator/cartridge/ines.py
-		tests/chapter_12_mirroring/test_324_ines_nametable_mirroring.py
+		emulator/rendering/background_viewport.py
+		tests/chapter_13_scrolling/test_330_compose_horizontal_framebuffer_viewport.py
 
 	Behavior:
-		Expose whether an iNES header requests horizontal or vertical nametable mirroring
-		from flags 6 bit 0:
+		Given two adjacent 256x240 background framebuffers and a horizontal viewport X,
+		return a new 256x240 framebuffer containing the selected logical region.
 
-			bit 0 clear -> horizontal
-			bit 0 set   -> vertical
+		Examples:
+			viewport X = 0   -> all pixels come from the left nametable
+			viewport X = 200 -> 56 pixels from left, then 200 from right
+			viewport X = 256 -> all pixels come from the right nametable
 
-		This step only decodes/names the metadata. It does not change PpuBus mapping yet.
+		Wrap the logical horizontal source coordinate across the combined 512-pixel
+		background width.
 
 	Goal:
-		make the cartridge's nametable wiring requirement explicit before propagating it
-		through the emulator.
+		prove viewport selection and seam crossing as a pure framebuffer transformation
+		before reading PPU memory or changing Console.
 
 	Important:
-		Do not modify PpuBus in this step.
-		Do not implement scrolling in this step.
-		Do not require commercial ROM files from pytest.
-		Four-screen mirroring remains out of scope.
+		Return a new framebuffer; do not mutate either source framebuffer.
+		Keep pygame outside emulator/rendering.
+		Do not read PpuBus or PPU state in this step.
+		Do not scroll the background opacity mask yet; that is the next focused step.
 
 	After this:
-		Step 325) Preserve mirroring metadata through Cartridge/Mapper ownership.
-		Step 326) Apply horizontal/vertical nametable mapping in PpuBus.
-		Step 327) VALIDATION: synthetic PPU reads/writes follow selected mirroring.
-		Step 328) Begin the separate PPU scrolling/viewport chapter.
+		Step 331) Compose the opacity mask with the same horizontal viewport mapping.
+		Step 332) Extract/render adjacent logical nametables from current PPU state.
+		Step 333) Integrate scrolled framebuffer and mask into Console rendering.
+		Step 334) VALIDATION: manually revisit Super Mario Bros. horizontal movement.
 
-After Phase 6:
+Phase map:
 	- Phase 7: pure rendering pipeline plus manual pygame smoke runner
 	- Phase 8 / Chapter 06: ROM startup preparation
 	- Phase 9 / Chapter 07: controller $4016 behavior
@@ -381,6 +411,7 @@ After Phase 6:
 	- Phase 12 / Chapter 10: performance and manual runtime
 	- Phase 13 / Chapter 11: sprite 0 hit
 	- Phase 14 / Chapter 12: cartridge nametable mirroring
+	- Phase 15 / Chapter 13: PPU scrolling and background viewport
 
 Controller phase outline:
 	Controller state stores 8 buttons in NES read order:
@@ -404,3 +435,19 @@ Future Notes:
 		- sprite evaluation per scanline
 		- more than 8 sprites on a scanline
 		- quirky NES hardware behavior
+	- Add vertical and complete two-dimensional background viewport support after the
+	  horizontal scrolling milestone is integrated and validated:
+		- compose a 256x240 viewport across vertically adjacent top/bottom nametables
+		- compose the background opacity mask with the identical vertical mapping
+		- combine four logical nametables for viewports crossing X and Y boundaries
+		- preserve PpuBus ownership of cartridge nametable mirroring
+		- model coarse-Y row 29 wrapping and the special row 30/31 behavior explicitly
+		- replace the simplified frame-level t + fine-X snapshot with timed v + fine-X
+		  rendering state when dot-accurate scrolling is introduced
+		- measure allocations and composition cost before optimizing framebuffer copies
+
+	  References:
+		- https://www.nesdev.org/wiki/PPU_scrolling
+		- https://www.nesdev.org/wiki/PPU_scrolling#Wrapping_around
+		- https://www.nesdev.org/wiki/PPU_scrolling#During_rendering
+		- https://www.nesdev.org/wiki/PPU_nametables
