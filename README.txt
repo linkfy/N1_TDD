@@ -157,10 +157,14 @@ Phase 15 / Chapter 13)
 PPU scrolling and background viewport:
 [x] Copy PPUCTRL base-nametable bits into temp_vram_addr
 [x] Derive coarse/fine background viewport position from PPU scroll state
-[ ] Compose a 256x240 framebuffer viewport across two horizontal nametables
-[ ] Compose the matching scrolled background opacity mask
-[ ] Extract/render adjacent logical nametables from current PPU state
+[x] Compose a 256x240 framebuffer viewport across two horizontal nametables
+[x] Compose the matching scrolled background opacity mask
+[ ] Render one logical nametable framebuffer from a selected PPU base address
+[ ] Build one logical nametable opacity mask from a selected PPU base address
+[ ] Extract and compose the horizontal viewport from current PPU state
 [ ] Integrate the scrolled viewport into Console background/full-frame rendering
+[ ] Use the same scrolled opacity mask for sprite-zero-hit scheduling
+[ ] REGRESSION: complete pytest suite passes before manual ROM validation
 [ ] VALIDATION: manually revisit Super Mario Bros. horizontal movement
 
 --
@@ -369,38 +373,57 @@ Performance policy:
 
 Next tutorial step:
 
-Step 330) Compose a horizontal framebuffer viewport across two nametables
+Step 332) Render one logical nametable framebuffer from a selected PPU base address
 	Files:
-		emulator/rendering/background_viewport.py
-		tests/chapter_13_scrolling/test_330_compose_horizontal_framebuffer_viewport.py
+		emulator/rendering/ppu_background_renderer.py
+		tests/chapter_13_scrolling/test_332_ppu_logical_nametable_to_framebuffer.py
 
 	Behavior:
-		Given two adjacent 256x240 background framebuffers and a horizontal viewport X,
-		return a new 256x240 framebuffer containing the selected logical region.
+		Add an address-aware pure adapter such as:
 
-		Examples:
-			viewport X = 0   -> all pixels come from the left nametable
-			viewport X = 200 -> 56 pixels from left, then 200 from right
-			viewport X = 256 -> all pixels come from the right nametable
+			ppu_logical_nametable_to_framebuffer(ppu, base_nametable_addr)
 
-		Wrap the logical horizontal source coordinate across the combined 512-pixel
-		background width.
+		It must render one selected logical nametable and its corresponding attribute
+		table from one of:
+
+			$2000, $2400, $2800, $2C00
+
+		PpuBus remains responsible for translating those logical addresses through the
+		cartridge's horizontal or vertical mirroring mode.
 
 	Goal:
-		prove viewport selection and seam crossing as a pure framebuffer transformation
-		before reading PPU memory or changing Console.
+		separate "render this logical nametable" from "choose and compose the viewport"
+		so address extraction can be verified independently of scrolling.
 
 	Important:
-		Return a new framebuffer; do not mutate either source framebuffer.
-		Keep pygame outside emulator/rendering.
-		Do not read PpuBus or PPU state in this step.
-		Do not scroll the background opacity mask yet; that is the next focused step.
+		Preserve ppu_background_to_framebuffer(ppu) and its historical $2000 behavior.
+		The existing helper may delegate to the new address-aware helper if all historical
+		tests continue to pass.
+		Read visible tile bytes from base_nametable_addr + $000-$3BF.
+		Read attributes from base_nametable_addr + $3C0-$3FF.
+		Continue selecting the pattern table from PPUCTRL bit 4.
+		Continue reading shared palette RAM from $3F00.
+		Do not manually apply mirroring in rendering code; always read through PpuBus.
+		Do not compose two framebuffers or modify Console in this step.
+		Keep pygame outside emulator core modules.
 
 	After this:
-		Step 331) Compose the opacity mask with the same horizontal viewport mapping.
-		Step 332) Extract/render adjacent logical nametables from current PPU state.
-		Step 333) Integrate scrolled framebuffer and mask into Console rendering.
-		Step 334) VALIDATION: manually revisit Super Mario Bros. horizontal movement.
+		Step 333) Build an opacity mask for any selected logical nametable address.
+		Step 334) Decode PPU viewport state, render the horizontal pair, and compose both
+		          framebuffer and mask with identical coordinates.
+		Step 335) Integrate the scrolled framebuffer and mask into Console rendering.
+		Step 336) Use the scrolled mask for sprite-zero-hit scheduling.
+		Step 337) REGRESSION: run the complete pytest suite and isolate failures.
+		Step 338) VALIDATION: manually revisit Super Mario Bros. horizontal movement.
+
+	Remaining horizontal milestone estimate:
+		Step 332: address-aware framebuffer extraction       medium   45-75 minutes
+		Step 333: address-aware opacity-mask extraction      medium   30-60 minutes
+		Step 334: PPU horizontal viewport adapter            medium   45-90 minutes
+		Step 335: Console visual/priority integration        medium   30-60 minutes
+		Step 336: scrolled sprite-zero-hit integration       hard     45-90 minutes
+		Step 337: full regression gate                       medium   20-45 minutes
+		Step 338: manual Super Mario Bros. validation        medium   20-60 minutes
 
 Phase map:
 	- Phase 7: pure rendering pipeline plus manual pygame smoke runner

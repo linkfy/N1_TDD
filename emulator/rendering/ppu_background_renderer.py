@@ -1,6 +1,8 @@
 """
-Read nametable bytes     $2000-$23BF
-Read attribute bytes    $23C0-$23FF
+Example with first nametable
+Read nametable bytes    $2000-$23BF <= First nametable example of 4: ($2000, $2400, $2800, $2C00)
+Read attribute bytes    $23C0-$23FF <= First nametable example 
+-----------------------------------
 Read palette RAM        $3F00-$3F0F
 Read pattern table bytes for selected one by PPUCTRL $0000 or $1000
 Output framebuffer
@@ -26,16 +28,32 @@ PATTERN_TABLE_0_ADDR = 0x0000
 PATTERN_TABLE_1_ADDR = 0x1000
 ATTR_TABLE_SIZE = 64
 
+LOGICAL_NAMETABLE_BASE_ADDRS = (
+    0x2000,
+    0x2400,
+    0x2800,
+    0x2C00,
+)
 
-def ppu_background_to_framebuffer(ppu: PPU) -> Framebuffer:
+
+def ppu_background_to_framebuffer(
+        ppu: PPU, 
+        base_nametable_addr: int = BASE_NAMETABLE_ADDR
+) -> Framebuffer:
+
+    if base_nametable_addr not in LOGICAL_NAMETABLE_BASE_ADDRS:
+        raise ValueError(
+            "Logical nametable base address must be $2000, $2400, $2800, $2C00"
+        )
     
     nametable_bytes = bytes(
-            ppu.ppu_bus.read(BASE_NAMETABLE_ADDR + offset)
+            ppu.ppu_bus.read(base_nametable_addr + offset)
         for offset in range(NAMETABLE_SIZE)
     )
     
+    attribute_table_base = base_nametable_addr + NAMETABLE_SIZE
     attribute_table = bytes(
-        ppu.ppu_bus.read(BASE_ATTR_TABLE_ADDR + offset)
+        ppu.ppu_bus.read(attribute_table_base + offset)
         for offset in range(ATTR_TABLE_SIZE)
     )
 
