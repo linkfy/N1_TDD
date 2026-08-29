@@ -25,6 +25,7 @@ Importing the new viewport-mask function under that name lets the full-frame pat
 the new behavior without breaking compatibility with those earlier lessons.
 
 Temporary Super Mario Bros. limitation:
+Do not worry if it is not scrolling as expected yet.
 This step uses only one scroll position for the whole frame. Super Mario Bros. uses
 one position for the fixed status bar and another for the moving gameplay area during
 the same frame. The game can therefore still show a stationary background, a moving

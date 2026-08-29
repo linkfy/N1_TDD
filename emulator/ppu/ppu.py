@@ -1,3 +1,4 @@
+# pass_test_337
 from dataclasses import dataclass, field
 from emulator.bus.ppu_bus import PpuBus
 
@@ -37,8 +38,63 @@ PPU_PRE_RENDER_SCANLINE = 261
 
 # OAM_SIZE: 64 Sprites x 4 bytes
 OAM_SIZE = 256
+#                          yyy NN YYYYY XXXXX
+HORIZONTAL_SCROLL_BITS = 0b000_01_00000_11111
 
 SpriteZeroHitPosition = tuple[int, int]
+
+def copy_horizontal_scroll_bits(
+        vram_addr: int,
+        temp_vram_addr: int,
+) -> int:
+    return(
+        (vram_addr & ~HORIZONTAL_SCROLL_BITS) | (temp_vram_addr & HORIZONTAL_SCROLL_BITS)
+    )
+
+def increment_horizontal_vram_addr(vram_addr: int) -> int:
+    """
+    Advance v by one background tile column.
+
+    Coarse X wraps from 31 to 0 and toggles the horizontal
+    nametable bit.
+    """
+    # https://www.nesdev.org/wiki/PPU_scrolling#Coarse_X_increment
+    coarse_x = vram_addr & 0b11111 # Last 5 bits are Coarse X
+    if coarse_x == 31:
+        vram_addr &= ~0b11111
+        vram_addr ^= 0b100_0000_0000 # Toggle horizontal nametable bit
+        return vram_addr
+
+    return vram_addr + 1 # Increment Coarse X (1 tile column)
+
+def increment_vertical_vram_addr(vram_addr: int) -> int:
+    # https://www.nesdev.org/wiki/PPU_scrolling#Y_increment
+    fine_y = (vram_addr >> 12) & 0b111
+
+    if fine_y < 7:
+        # increment fine_y = yyy
+        # [yyy] NN YYYYY XXXXX:  1 << 12 Add 1 to fine_y
+        return vram_addr + (1 << 12)
+    # Fine Y 7 wraps to 0 before coarse Y advances
+    vram_addr &= ~0b111_00_00000_00000
+    coarse_y = (vram_addr >> 5) &0b1_1111
+
+    if coarse_y == 29: # range [0 to 29] = 30; 30 * 8 = 240 pixels
+        coarse_y = 0
+        vram_addr ^= 0b_000_10_00000_00000 # Toggle vertical nametable bit
+    elif coarse_y == 31:
+        # CPU can set coarse_y to 30
+        # then if coarse_y is increased to 31 we should do the following:
+        # coarse Y 31 -> set 0 without toggle vertical nametable bit
+        coarse_y = 0
+    else:
+        coarse_y += 1 # Increment in normal cases
+
+    return (vram_addr & ~0b000_00_11111_00000) | (coarse_y << 5) # Increment Coarse Y
+
+
+
+
 
 @dataclass
 class PPU:
@@ -66,6 +122,35 @@ class PPU:
     nmi_requested: bool = False
     sprite_zero_hit_position: SpriteZeroHitPosition | None = None
 
+    def _step_horizontal_rendering_address(self) -> None:
+        rendering_enabled = self.mask & (MASK_SHOW_BACKGROUND | MASK_SHOW_SPRITES)
+        if not rendering_enabled:
+            return
+
+        rendering_scanline = (
+            0 <= self.scanline < 240
+            or self.scanline == PPU_PRE_RENDER_SCANLINE
+        )
+        
+        if not rendering_scanline:
+            return
+        
+        visible_fetch_increment = (
+            1 <= self.cycle <= 256  # Ensure dot is 1 - 256 => Background fetches
+            and self.cycle % 8 == 0 # Every 8 dots -> increment horizontal v
+        )
+
+        prefetch_increment = (
+            321 <= self.cycle <= 336 # Ensure we are in Pre-fetch -> fetch first tiles for next scanline
+            and self.cycle % 8 == 0 # Every 8 dots -> increment horizontal v
+        )
+
+        if visible_fetch_increment or prefetch_increment:
+            self.vram_addr = increment_horizontal_vram_addr(self.vram_addr)
+
+        if self.cycle == 257:
+            self.vram_addr = copy_horizontal_scroll_bits(self.vram_addr, self.temp_vram_addr)
+
     def set_sprite_zero_hit_position(self, position: SpriteZeroHitPosition | None) -> None:
         self.sprite_zero_hit_position = position
     
@@ -76,7 +161,8 @@ class PPU:
         https://www.nesdev.org/wiki/PPU_rendering#Line-by-line_timing
         """
         for _ in range(cycles):
-            self.cycle += 1
+            self.cycle += 1 # we treat the cycle as the current dot
+            self._step_horizontal_rendering_address()
 
             # Set sprite_zero_hit status when PPU timing reaches sprite_zero_hit_position
             if self.sprite_zero_hit_position is not None:
