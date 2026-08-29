@@ -159,12 +159,15 @@ PPU scrolling and background viewport:
 [x] Derive coarse/fine background viewport position from PPU scroll state
 [x] Compose a 256x240 framebuffer viewport across two horizontal nametables
 [x] Compose the matching scrolled background opacity mask
-[ ] Render one logical nametable framebuffer from a selected PPU base address
-[ ] Build one logical nametable opacity mask from a selected PPU base address
-[ ] Extract and compose the horizontal viewport from current PPU state
-[ ] Integrate the scrolled viewport into Console background/full-frame rendering
-[ ] Use the same scrolled opacity mask for sprite-zero-hit scheduling
-[ ] REGRESSION: complete pytest suite passes before manual ROM validation
+[x] Render one logical nametable framebuffer from a selected PPU base address
+[x] Build one logical nametable opacity mask from a selected PPU base address
+[x] Extract and compose the horizontal viewport framebuffer from current PPU state
+[x] Extract and compose the matching horizontal viewport opacity mask
+[x] Integrate the scrolled viewport into Console background/full-frame rendering
+[ ] TRACE: record $2005 writes with frame/scanline/cycle to identify SMB split scroll
+[ ] Model status-bar and gameplay scroll snapshots/bands from trace evidence
+[ ] Compose framebuffer and opacity-mask bands with identical boundaries
+[ ] Use the same band-aware opacity mask for sprite-zero-hit scheduling
 [ ] VALIDATION: manually revisit Super Mario Bros. horizontal movement
 
 --
@@ -173,6 +176,26 @@ Next Steps:
 Goal:
 Prioritize a working main.py/manual execution path for Mapper000/NROM ROMs while
 preserving the linear pytest tutorial flow and avoiding later refactors.
+
+Incremental test policy:
+	Each numbered test is a permanent record of what the student learned at that step.
+	Do not modify an older test so it expects a function, name, or behavior introduced
+	by a later step.
+
+	When new behavior replaces an old internal path, preserve earlier expectations in
+	production code with the smallest clear compatibility mechanism: a default argument,
+	an import alias, a wrapper, or a separate legacy-facing method.
+
+	Add new expectations only in the new numbered test. Every earlier test must continue
+	passing unchanged. If a new design cannot coexist with an old test, stop and
+	reconsider the production API instead of rewriting the old lesson.
+
+	Mandatory gate after every numbered step:
+
+		uv run pytest
+
+	Do not proceed to the next step until the complete suite passes. This test gate is
+	part of every step and must not be represented as a separate roadmap step.
 
 Immediate direction:
 	Manual ROM execution now reaches visible background output, sprite rendering,
@@ -373,57 +396,55 @@ Performance policy:
 
 Next tutorial step:
 
-Step 332) Render one logical nametable framebuffer from a selected PPU base address
+Step 337) Record deterministic $2005 scroll-write evidence
 	Files:
-		emulator/rendering/ppu_background_renderer.py
-		tests/chapter_13_scrolling/test_332_ppu_logical_nametable_to_framebuffer.py
+		emulator/ppu/ppu.py
+		tests/chapter_13_scrolling/test_337_ppuscroll_write_trace.py
 
 	Behavior:
-		Add an address-aware pure adapter such as:
+		When tracing is explicitly enabled, record each $2005 write with enough state to
+		reconstruct when and how the scroll changed:
 
-			ppu_logical_nametable_to_framebuffer(ppu, base_nametable_addr)
+			frame, scanline, cycle
+			first or second $2005 write
+			written value
+			resulting temp_vram_addr and fine_x
 
-		It must render one selected logical nametable and its corresponding attribute
-		table from one of:
-
-			$2000, $2400, $2800, $2C00
-
-		PpuBus remains responsible for translating those logical addresses through the
-		cartridge's horizontal or vertical mirroring mode.
+		Keep tracing disabled by default and bounded so normal emulator execution does not
+		grow memory indefinitely.
 
 	Goal:
-		separate "render this logical nametable" from "choose and compose the viewport"
-		so address extraction can be verified independently of scrolling.
+		produce evidence showing which scroll pair belongs to the fixed status bar and which
+		belongs to the moving gameplay area before choosing a split-scroll state model.
 
 	Important:
-		Preserve ppu_background_to_framebuffer(ppu) and its historical $2000 behavior.
-		The existing helper may delegate to the new address-aware helper if all historical
-		tests continue to pass.
-		Read visible tile bytes from base_nametable_addr + $000-$3BF.
-		Read attributes from base_nametable_addr + $3C0-$3FF.
-		Continue selecting the pattern table from PPUCTRL bit 4.
-		Continue reading shared palette RAM from $3F00.
-		Do not manually apply mirroring in rendering code; always read through PpuBus.
-		Do not compose two framebuffers or modify Console in this step.
-		Keep pygame outside emulator core modules.
+		Do not hard-code Super Mario Bros. addresses or values.
+		Do not change $2005 behavior; only observe the state after each existing write.
+		Do not print from PPU core code. Store structured events that manual tooling can
+		inspect or print later.
+		Do not implement band rendering yet.
+		Keep the trace bounded and deterministic.
+		In the educational test example, show only changed regions. Put NEW LINE,
+		NEW LINES, NEW BLOCK, or UPDATED LINE immediately before each change; do not add
+		closing markers, and replace long unchanged tails with an ellipsis.
 
 	After this:
-		Step 333) Build an opacity mask for any selected logical nametable address.
-		Step 334) Decode PPU viewport state, render the horizontal pair, and compose both
-		          framebuffer and mask with identical coordinates.
-		Step 335) Integrate the scrolled framebuffer and mask into Console rendering.
-		Step 336) Use the scrolled mask for sprite-zero-hit scheduling.
-		Step 337) REGRESSION: run the complete pytest suite and isolate failures.
-		Step 338) VALIDATION: manually revisit Super Mario Bros. horizontal movement.
+		Step 337) TRACE: record $2005 writes with frame/scanline/cycle and resulting t/x.
+		Step 338) Decide the split-scroll state model from trace evidence.
+		Step 339) Compose status-bar/gameplay framebuffer bands.
+		Step 340) Compose opacity-mask bands with exactly the same boundary.
+		Step 341) Use the band-aware mask for sprite-zero-hit scheduling.
+		Step 342) VALIDATION: revisit Super Mario Bros. horizontal movement and status bar.
 
 	Remaining horizontal milestone estimate:
-		Step 332: address-aware framebuffer extraction       medium   45-75 minutes
-		Step 333: address-aware opacity-mask extraction      medium   30-60 minutes
-		Step 334: PPU horizontal viewport adapter            medium   45-90 minutes
-		Step 335: Console visual/priority integration        medium   30-60 minutes
-		Step 336: scrolled sprite-zero-hit integration       hard     45-90 minutes
-		Step 337: full regression gate                       medium   20-45 minutes
-		Step 338: manual Super Mario Bros. validation        medium   20-60 minutes
+		Step 332: address-aware framebuffer extraction       complete
+		Step 333: address-aware opacity-mask extraction      complete
+		Step 334: framebuffer horizontal viewport adapter    complete
+		Step 335: opacity-mask horizontal viewport adapter   complete
+		Step 336: Console visual/priority integration        complete
+		Step 337: deterministic $2005 trace                  medium   30-60 minutes
+		Steps 338-341: split-scroll implementation           pending trace evidence
+		Step 342: manual Super Mario Bros. validation        medium   20-60 minutes
 
 Phase map:
 	- Phase 7: pure rendering pipeline plus manual pygame smoke runner

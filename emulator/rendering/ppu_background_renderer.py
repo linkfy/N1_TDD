@@ -19,6 +19,11 @@ from emulator.rendering.nametable_renderer import (
 )
 from emulator.rendering.palette_ram import PALETTE_RAM_SIZE
 from emulator.ppu.chr_decoder import PATTERN_TABLE_SIZE
+from emulator.rendering.background_viewport import (
+    compose_horizontal_framebuffer_viewport,
+    compose_horizontal_opaque_mask_viewport,
+    decode_background_viewport_position,
+)
 
 BASE_NAMETABLE_ADDR = 0x2000
 BASE_ATTR_TABLE_ADDR = 0x23C0
@@ -80,10 +85,18 @@ def ppu_background_to_framebuffer(
         palette_ram,
     )
     
-def ppu_background_to_opaque_mask(ppu: PPU) -> BackgroundOpaqueMask:
+def ppu_background_to_opaque_mask(
+        ppu: PPU,
+        base_nametable_addr: int = BASE_NAMETABLE_ADDR,
+) -> BackgroundOpaqueMask:
 
+    if base_nametable_addr not in LOGICAL_NAMETABLE_BASE_ADDRS:
+        raise ValueError(
+            "Logical nametable base address must be $2000, $2400, $2800, $2C00"
+        )
+    
     nametable_bytes = bytes(
-        ppu.ppu_bus.read(BASE_NAMETABLE_ADDR + offset)
+        ppu.ppu_bus.read(base_nametable_addr + offset)
         for offset in range(NAMETABLE_SIZE)
     )
     
@@ -101,4 +114,62 @@ def ppu_background_to_opaque_mask(ppu: PPU) -> BackgroundOpaqueMask:
     return build_background_opaque_mask(
         pattern_table=pattern_table_bytes,
         nametable=nametable_bytes,
-    ) 
+    )
+
+def ppu_background_viewport_to_framebuffer(ppu: PPU) -> Framebuffer:
+    viewport_x, _ = decode_background_viewport_position(
+        temp_vram_addr=ppu.temp_vram_addr,
+        fine_x=ppu.fine_x
+    )
+
+    nametable_y = (ppu.temp_vram_addr >> 11)  & 1
+
+    # Each horizontal pair is $800-byte ($400 x 2)
+    left_base = BASE_NAMETABLE_ADDR + nametable_y * 0x800
+    right_base = left_base + 0x400
+
+    left = ppu_background_to_framebuffer(
+        ppu,
+        base_nametable_addr=left_base,
+    )
+    right = ppu_background_to_framebuffer(
+        ppu,
+        base_nametable_addr=right_base,
+    )
+
+    return compose_horizontal_framebuffer_viewport(
+        left=left,
+        right=right,
+        viewport_x=viewport_x,
+    )
+
+
+def ppu_background_viewport_to_opaque_mask(ppu: PPU) -> BackgroundOpaqueMask:
+    # Use same logic as ppu_background_viewport_to_framebuffer with correct functions
+    viewport_x, _ = decode_background_viewport_position(
+        temp_vram_addr=ppu.temp_vram_addr,
+        fine_x=ppu.fine_x
+    )
+
+    nametable_y = (ppu.temp_vram_addr >> 11)  & 1
+
+    # Each horizontal pair is $800-byte ($400 x 2)
+    left_base = BASE_NAMETABLE_ADDR + nametable_y * 0x800
+    right_base = left_base + 0x400
+
+    left = ppu_background_to_opaque_mask(
+        ppu,
+        base_nametable_addr=left_base,
+    )
+    right = ppu_background_to_opaque_mask(
+        ppu,
+        base_nametable_addr=right_base,
+    )
+
+    return compose_horizontal_opaque_mask_viewport(
+        left=left,
+        right=right,
+        viewport_x=viewport_x,
+    )
+
+
