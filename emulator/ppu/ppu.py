@@ -1,6 +1,7 @@
 # pass_test_337
 from dataclasses import dataclass, field
 from emulator.bus.ppu_bus import PpuBus
+from emulator.memory import vram
 
 VBLANK_STARTED =                1 << 7
 SPRITE_ZERO_HIT =               1 << 6
@@ -40,6 +41,7 @@ PPU_PRE_RENDER_SCANLINE = 261
 OAM_SIZE = 256
 #                          yyy NN YYYYY XXXXX
 HORIZONTAL_SCROLL_BITS = 0b000_01_00000_11111
+VERTICAL_SCROLL_BITS =   0b111_10_11111_00000
 
 SpriteZeroHitPosition = tuple[int, int]
 
@@ -49,6 +51,14 @@ def copy_horizontal_scroll_bits(
 ) -> int:
     return(
         (vram_addr & ~HORIZONTAL_SCROLL_BITS) | (temp_vram_addr & HORIZONTAL_SCROLL_BITS)
+    )
+
+def copy_vertical_scroll_bits(
+        vram_addr: int,
+        temp_vram_addr: int,
+) -> int:
+    return(
+        (vram_addr & ~VERTICAL_SCROLL_BITS) | (temp_vram_addr & VERTICAL_SCROLL_BITS)
     )
 
 def increment_horizontal_vram_addr(vram_addr: int) -> int:
@@ -93,7 +103,26 @@ def increment_vertical_vram_addr(vram_addr: int) -> int:
     return (vram_addr & ~0b000_00_11111_00000) | (coarse_y << 5) # Increment Coarse Y
 
 
+def decrement_horizontal_vram_addr(vram_addr: int) -> int:
+    """
+    Reverse one coarse-x fetch increment on a copied address
+    This is used to interpret prefecthed background state
+    Not a hardware operation and does not mutate PPU.vram_addr
+    Details:
+    https://www.nesdev.org/wiki/PPU_scrolling#Details
+    """
 
+    coarse_x = vram_addr & 0b1_1111
+
+    if coarse_x == 0:
+        # Ensure biggest coarse_x value
+        vram_addr = (vram_addr & ~0b1_1111) | 0b1_1111
+        
+        # Crossing backward column 0 changes horizontal nametable
+        vram_addr ^= 0b000_01_00000_00000 
+        return vram_addr
+    
+    return vram_addr - 1
 
 
 @dataclass
@@ -151,6 +180,31 @@ class PPU:
         if self.cycle == 257:
             self.vram_addr = copy_horizontal_scroll_bits(self.vram_addr, self.temp_vram_addr)
 
+    def _step_vertical_rendering_address(self) -> None:
+        rendering_enabled = self.mask & (MASK_SHOW_BACKGROUND | MASK_SHOW_SPRITES)
+        if not rendering_enabled:
+            return
+        
+        rendering_scanline = (
+            0 <= self.scanline < 240
+            or self.scanline == PPU_PRE_RENDER_SCANLINE
+        )
+        
+        if not rendering_scanline:
+            return
+        
+        if self.cycle == 256: # At dot 256, vertical v is incremented
+            # https://www.nesdev.org/wiki/PPU_scrolling#At_dot_256_of_each_scanline
+            self.vram_addr = increment_vertical_vram_addr(self.vram_addr)
+
+        vertical_reload = (
+            self.scanline == PPU_PRE_RENDER_SCANLINE
+            and 280 <= self.cycle <= 304
+        )
+
+        if vertical_reload: # Perform the copy at dots 280-304
+            self.vram_addr = copy_vertical_scroll_bits(self.vram_addr, self.temp_vram_addr)
+
     def set_sprite_zero_hit_position(self, position: SpriteZeroHitPosition | None) -> None:
         self.sprite_zero_hit_position = position
     
@@ -163,6 +217,7 @@ class PPU:
         for _ in range(cycles):
             self.cycle += 1 # we treat the cycle as the current dot
             self._step_horizontal_rendering_address()
+            self._step_vertical_rendering_address()
 
             # Set sprite_zero_hit status when PPU timing reaches sprite_zero_hit_position
             if self.sprite_zero_hit_position is not None:
