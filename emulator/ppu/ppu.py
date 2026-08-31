@@ -124,6 +124,10 @@ def decrement_horizontal_vram_addr(vram_addr: int) -> int:
     
     return vram_addr - 1
 
+@dataclass(frozen=True)
+class BackgroundScanlineState:
+    vram_addr: int
+    fine_x: int
 
 @dataclass
 class PPU:
@@ -150,6 +154,10 @@ class PPU:
     frame: int = 0
     nmi_requested: bool = False
     sprite_zero_hit_position: SpriteZeroHitPosition | None = None
+    current_scanline_scroll_states: list[BackgroundScanlineState | None] = field(
+                default_factory= lambda: [None] * 240)
+    completed_scanline_scroll_states: tuple[BackgroundScanlineState, ...] = ()
+
 
     def _step_horizontal_rendering_address(self) -> None:
         rendering_enabled = self.mask & (MASK_SHOW_BACKGROUND | MASK_SHOW_SPRITES)
@@ -205,6 +213,50 @@ class PPU:
         if vertical_reload: # Perform the copy at dots 280-304
             self.vram_addr = copy_vertical_scroll_bits(self.vram_addr, self.temp_vram_addr)
 
+    def _record_visible_scanline_scroll_state(self) -> None:
+        """
+        At dot 1 of visible scanline, copy v and rewind the copy by 2
+        tile columns prefetched during the previous scanline
+
+        Store the resulting visible position for the current scanline inside BackgroundScanlineState
+        The real PPU.vram_addr is not modified
+        https://www.nesdev.org/wiki/PPU_scrolling#Details
+        """
+        rendering_enabled = self.mask & (MASK_SHOW_BACKGROUND | MASK_SHOW_SPRITES)
+        if not rendering_enabled:
+            return
+
+        if not 0 <= self.scanline < 240:
+            return
+
+        if self.cycle != 1:
+            return
+
+        visible_vram_addr = decrement_horizontal_vram_addr(
+            decrement_horizontal_vram_addr(self.vram_addr) # Decrement twice
+        )
+
+        self.current_scanline_scroll_states[self.scanline] = (
+            BackgroundScanlineState(
+                vram_addr=visible_vram_addr,
+                fine_x=self.fine_x,
+            )
+        )
+
+    def _complete_scanline_scroll_frame(self) -> None:
+        current = self.current_scanline_scroll_states
+        # Ensure all elements has a value   &   Ensure correct length
+        if all(state is not None for state in current) and len(current) == 240:
+            self.completed_scanline_scroll_states = tuple(
+                    # We verify if it is not None again to ensure Pyright rules of tuple type
+                    state for state in current if state is not None 
+            )
+        else:
+            self.completed_scanline_scroll_states = ()
+
+        # Always create a fresh current-frame list for the next frame
+        self.current_scanline_scroll_states = [None] * 240
+
     def set_sprite_zero_hit_position(self, position: SpriteZeroHitPosition | None) -> None:
         self.sprite_zero_hit_position = position
     
@@ -218,6 +270,7 @@ class PPU:
             self.cycle += 1 # we treat the cycle as the current dot
             self._step_horizontal_rendering_address()
             self._step_vertical_rendering_address()
+            self._record_visible_scanline_scroll_state()
 
             # Set sprite_zero_hit status when PPU timing reaches sprite_zero_hit_position
             if self.sprite_zero_hit_position is not None:
@@ -232,6 +285,7 @@ class PPU:
                 self.scanline += 1
 
                 if self.scanline >= PPU_SCANLINES_PER_FRAME:
+                    self._complete_scanline_scroll_frame()
                     self.scanline = 0
                     self.frame += 1
 

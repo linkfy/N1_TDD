@@ -171,9 +171,13 @@ PPU scrolling and background viewport:
 [x] Increment vertical v with fine-Y and rows 29-31 wrapping
 [x] Copy vertical bits from t into v
 [x] Apply vertical dot-256 increment and pre-render t-to-v copy
-[ ] Rewind horizontal v to account for the two prefetched tiles
-[ ] Record effective v + fine-X for each visible scanline
-[ ] Compose each framebuffer row once from its recorded scanline state
+[x] Rewind horizontal v to account for the two prefetched tiles
+[x] Record effective v + fine-X for each visible scanline
+[x] Publish a complete 240-scanline frame and reset the current recording buffer
+[ ] Select the horizontal logical nametable pair for one scanline state
+[ ] Decode horizontal viewport X from one scanline state
+[ ] Compose each timed framebuffer row exactly once
+[ ] Use timed framebuffer data only when all 240 scanline states exist
 [ ] Compose opacity-mask rows from the identical scanline states
 [ ] Use the scanline-aware opacity mask for sprite-zero-hit scheduling
 [ ] VALIDATION: manually revisit Super Mario Bros. horizontal movement
@@ -436,42 +440,40 @@ Performance policy:
 
 Next tutorial step:
 
-Step 344) Rewind one horizontal background-fetch increment
+Step 347) Select the horizontal logical nametable pair for one scanline
 	Files:
-		emulator/ppu/ppu.py
-		tests/chapter_13_scrolling/test_344_decrement_horizontal_vram_addr.py
+		emulator/rendering/ppu_background_renderer.py
+		tests/chapter_13_scrolling/test_347_scanline_horizontal_pair.py
 
 	Behavior:
-		Add one pure operation that reverses one horizontal v increment:
+		Add one pure helper that receives a BackgroundScanlineState and reads the vertical
+		nametable bit from its recorded vram_addr:
 
-			coarse X 1-31 -> subtract one
-			coarse X 0    -> wrap to 31 and toggle horizontal nametable
+			bit 11 = 0 -> left $2000, right $2400
+			bit 11 = 1 -> left $2800, right $2C00
 
-		Later scanline recording will call this helper twice on a copied address because dots
-		328 and 336 prefetched two tiles and advanced v twice before the next scanline begins.
-
-		The helper must preserve every vertical and unrelated field. It must not mutate the
-		PPU's real vram_addr.
+		Return the two logical base addresses as a tuple. Do not read PPU memory or apply
+		cartridge mirroring in this helper.
 
 	Goal:
-		prepare a small independently tested conversion from the fetch address stored in v
-		at dot 1 to the viewport address represented by the two prefetched tile shifters.
+		isolate the address-pair decision before adding viewport decoding or pixel loops.
+		PpuBus remains responsible for mapping logical addresses to physical nametable RAM.
 
 	Important:
-		This is not a hardware-timed decrement. The PPU does not run v backward during
-		rendering. The helper will operate only on a copied value used for high-level
-		scanline recording.
-		Do not call the helper from PPU.step() in this step.
-		Do not add scanline buffers or renderer changes yet.
-		Keep the helper module-level and pure.
+		Use only bit 11 from the recorded vram_addr for vertical logical-row selection.
+		Do not use horizontal nametable bit 10 to choose the pair; bit 10 is already part of
+		the horizontal viewport X inside that pair.
+		Do not call ppu_background_to_framebuffer() in this step.
+		Keep the helper pure and independent from PpuBus mirroring policy.
 
 	After this:
-		Step 345) Record effective v + fine-X once per visible scanline. Account for the two
-		          tiles prefetched during dots 321-336 when deriving the visible viewport.
-		Step 346) Compose each framebuffer row once from completed scanline states.
-		Step 347) Compose opacity-mask rows from exactly the same scanline states.
-		Step 348) Use the scanline-aware mask for sprite-zero-hit scheduling.
-		Step 349) VALIDATION: revisit Super Mario Bros. scrolling, status bar, transitions,
+		Step 348) Decode viewport X from recorded vram_addr plus fine X.
+		Step 349) Compose each timed framebuffer row exactly once with cached source pairs.
+		Step 350) Use timed framebuffer data only when all 240 states are available; otherwise
+		          preserve the existing viewport fallback.
+		Step 351) Compose opacity-mask rows from the same completed scanline states.
+		Step 352) Use the scanline-aware mask for sprite-zero-hit scheduling.
+		Step 353) VALIDATION: revisit Super Mario Bros. scrolling, status bar, transitions,
 		          and FPS.
 
 	Remaining horizontal milestone estimate:
@@ -484,12 +486,16 @@ Step 344) Rewind one horizontal background-fetch increment
 		Steps 338-340: horizontal v/t timing                  complete
 		Step 341: pure vertical v increment                   complete
 		Steps 342-343: vertical copy and timing               complete
-		Step 344: pure two-tile prefetch rewind helper       easy     20-40 minutes
-		Step 345: effective scanline-state recording         medium   45-75 minutes
-		Step 346: row-limited framebuffer composition        medium   45-75 minutes
-		Step 347: matching opacity-mask composition          medium   30-60 minutes
-		Step 348: scanline-aware sprite-zero-hit mask        medium   30-60 minutes
-		Step 349: manual Super Mario Bros. validation        medium   20-60 minutes
+		Step 344: pure two-tile prefetch rewind helper       complete
+		Step 345: effective scanline-state recording         complete
+		Step 346: publish/reset completed scanline states    complete
+		Step 347: pure scanline logical-pair selection       easy     15-30 minutes
+		Step 348: pure scanline viewport-X decoding          easy     15-30 minutes
+		Step 349: row-limited framebuffer composition        medium   45-75 minutes
+		Step 350: timed framebuffer/fallback selection       easy     20-40 minutes
+		Step 351: matching opacity-mask composition          medium   30-60 minutes
+		Step 352: scanline-aware sprite-zero-hit mask        medium   30-60 minutes
+		Step 353: manual Super Mario Bros. validation        medium   20-60 minutes
 
 Phase map:
 	- Phase 7: pure rendering pipeline plus manual pygame smoke runner
