@@ -9,7 +9,12 @@ Output framebuffer
 """
 
 
-from emulator.ppu.ppu import PPU, CTRL_BACKGROUND_PATTERN_TABLE
+from emulator.ppu.ppu import (
+        PPU, 
+        CTRL_BACKGROUND_PATTERN_TABLE, 
+        BackgroundScanlineState,
+)
+
 from emulator.rendering.framebuffer import Framebuffer
 from emulator.rendering.nametable_renderer import (
     BackgroundOpaqueMask, 
@@ -20,6 +25,8 @@ from emulator.rendering.nametable_renderer import (
 from emulator.rendering.palette_ram import PALETTE_RAM_SIZE
 from emulator.ppu.chr_decoder import PATTERN_TABLE_SIZE
 from emulator.rendering.background_viewport import (
+    NAMETABLE_PIXEL_HEIGHT,
+    NAMETABLE_PIXEL_WIDTH,
     compose_horizontal_framebuffer_viewport,
     compose_horizontal_opaque_mask_viewport,
     decode_background_viewport_position,
@@ -40,6 +47,78 @@ LOGICAL_NAMETABLE_BASE_ADDRS = (
     0x2C00,
 )
 
+def _scanline_horizontal_pair(state: BackgroundScanlineState) -> tuple[int, int]:
+    """
+    Selected horizontal logical nametable pair for one scanline.
+    Bit 11 clear:   (0x2000, 0x2400) 
+    Bit 11 set:     (0x2800, 0x2C00)
+
+    PpuBus applies cartridge mirroring later
+    """
+    nametable_y = (state.vram_addr >> 11) & 1
+    left_base = BASE_NAMETABLE_ADDR + nametable_y * 0x800
+    return left_base, left_base + 0x400
+
+def _scanline_viewport_x(state: BackgroundScanlineState) -> int:
+    """
+    Viewport X is the horizontal pixel offset into the 512-pixel-wide pair
+    formed by two adjacent logical nametables.
+    """
+    viewport_x, _ = decode_background_viewport_position(
+        temp_vram_addr=state.vram_addr, # temp_vram_addr is acceptable here
+        fine_x=state.fine_x,            # older lessons depend on that interface
+    )
+
+    return viewport_x
+
+def _timed_scanlines_to_framebuffer(ppu: PPU) -> Framebuffer:
+    states = ppu.completed_scanline_scroll_states
+
+    if len(states) != NAMETABLE_PIXEL_HEIGHT:
+        raise ValueError("Timed framebuffer requires exactly 240 scanline states")
+
+    result = Framebuffer(
+        width=NAMETABLE_PIXEL_WIDTH,
+        height=NAMETABLE_PIXEL_HEIGHT,
+    )
+    
+    # Cache each logical (left, right) nametable pair once for this composition.
+    # Rows may have different viewport X values while reusing the same rendered pair.
+    pair_cache: dict [int, tuple[Framebuffer, Framebuffer]] = {}
+
+    logical_width = NAMETABLE_PIXEL_WIDTH * 2
+
+    for screen_y, state in enumerate(states):
+        left_base, right_base = _scanline_horizontal_pair(state)
+
+        if left_base not in pair_cache:
+            pair_cache[left_base] = (
+                ppu_background_to_framebuffer(ppu, base_nametable_addr=left_base),
+                ppu_background_to_framebuffer(ppu, base_nametable_addr=right_base),
+            )
+
+        left, right = pair_cache[left_base]
+        viewport_x = _scanline_viewport_x(state)
+        destination_row = screen_y * NAMETABLE_PIXEL_WIDTH
+
+        for screen_x in range(NAMETABLE_PIXEL_WIDTH):
+            logical_x = (viewport_x + screen_x) % logical_width
+
+            if logical_x < NAMETABLE_PIXEL_WIDTH:
+                source = left
+                source_x = logical_x
+            else:
+                source = right
+                source_x = logical_x - NAMETABLE_PIXEL_WIDTH
+
+            destination_index = destination_row + screen_x
+            source_index = destination_row + source_x
+
+            result.pixels[destination_index] = (
+                source.pixels[source_index]
+            )
+
+    return result
 
 def ppu_background_to_framebuffer(
         ppu: PPU, 

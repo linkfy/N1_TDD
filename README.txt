@@ -174,8 +174,8 @@ PPU scrolling and background viewport:
 [x] Rewind horizontal v to account for the two prefetched tiles
 [x] Record effective v + fine-X for each visible scanline
 [x] Publish a complete 240-scanline frame and reset the current recording buffer
-[ ] Select the horizontal logical nametable pair for one scanline state
-[ ] Decode horizontal viewport X from one scanline state
+[x] Select the horizontal logical nametable pair for one scanline state
+[x] Decode horizontal viewport X from one scanline state
 [ ] Compose each timed framebuffer row exactly once
 [ ] Use timed framebuffer data only when all 240 scanline states exist
 [ ] Compose opacity-mask rows from the identical scanline states
@@ -440,35 +440,43 @@ Performance policy:
 
 Next tutorial step:
 
-Step 347) Select the horizontal logical nametable pair for one scanline
+Step 349) Compose each timed framebuffer row exactly once
 	Files:
 		emulator/rendering/ppu_background_renderer.py
-		tests/chapter_13_scrolling/test_347_scanline_horizontal_pair.py
+		tests/chapter_13_scrolling/test_349_timed_scanlines_to_framebuffer.py
 
 	Behavior:
-		Add one pure helper that receives a BackgroundScanlineState and reads the vertical
-		nametable bit from its recorded vram_addr:
+		Add a private _timed_scanlines_to_framebuffer(ppu) helper whose precondition is one
+		complete 240-state tuple. Create one 256x240 result framebuffer and process each
+		destination row from its matching completed state.
 
-			bit 11 = 0 -> left $2000, right $2400
-			bit 11 = 1 -> left $2800, right $2C00
+		For each screen_y:
+			1. use _scanline_horizontal_pair(state) to select logical sources
+			2. obtain/cached-render the left and right source framebuffers
+			3. use _scanline_viewport_x(state) to find horizontal pixel X
+			4. copy exactly 256 pixels into destination row screen_y
 
-		Return the two logical base addresses as a tuple. Do not read PPU memory or apply
-		cartridge mirroring in this helper.
+		For each destination screen_x:
+
+			logical_x = (viewport_x + screen_x) % 512
+
+		Read logical X 0-255 from the left source and 256-511 from the right source.
 
 	Goal:
-		isolate the address-pair decision before adding viewport decoding or pixel loops.
-		PpuBus remains responsible for mapping logical addresses to physical nametable RAM.
+		produce one framebuffer whose rows can represent different timed horizontal scroll
+		positions without composing a complete temporary viewport for every scanline.
 
 	Important:
-		Use only bit 11 from the recorded vram_addr for vertical logical-row selection.
-		Do not use horizontal nametable bit 10 to choose the pair; bit 10 is already part of
-		the horizontal viewport X inside that pair.
-		Do not call ppu_background_to_framebuffer() in this step.
-		Keep the helper pure and independent from PpuBus mirroring policy.
+		Import NAMETABLE_PIXEL_WIDTH and NAMETABLE_PIXEL_HEIGHT from background_viewport.
+		Cache source pairs by left_base; repeated rows must not rerender the same pair.
+		Write every output pixel exactly once using direct flat-list row indices.
+		Do not call compose_horizontal_framebuffer_viewport once per row or band.
+		For this horizontal milestone source Y remains screen_y; full vertical source-row
+		selection is future work.
+		Do not connect this helper to ppu_background_viewport_to_framebuffer yet; that fallback
+		selection belongs to Step 350.
 
 	After this:
-		Step 348) Decode viewport X from recorded vram_addr plus fine X.
-		Step 349) Compose each timed framebuffer row exactly once with cached source pairs.
 		Step 350) Use timed framebuffer data only when all 240 states are available; otherwise
 		          preserve the existing viewport fallback.
 		Step 351) Compose opacity-mask rows from the same completed scanline states.
@@ -489,13 +497,113 @@ Step 347) Select the horizontal logical nametable pair for one scanline
 		Step 344: pure two-tile prefetch rewind helper       complete
 		Step 345: effective scanline-state recording         complete
 		Step 346: publish/reset completed scanline states    complete
-		Step 347: pure scanline logical-pair selection       easy     15-30 minutes
-		Step 348: pure scanline viewport-X decoding          easy     15-30 minutes
+		Step 347: pure scanline logical-pair selection       complete
+		Step 348: pure scanline viewport-X decoding          complete
 		Step 349: row-limited framebuffer composition        medium   45-75 minutes
 		Step 350: timed framebuffer/fallback selection       easy     20-40 minutes
 		Step 351: matching opacity-mask composition          medium   30-60 minutes
 		Step 352: scanline-aware sprite-zero-hit mask        medium   30-60 minutes
 		Step 353: manual Super Mario Bros. validation        medium   20-60 minutes
+
+	Agent implementation map for the remaining Phase 15 / Chapter 13 work:
+
+	Current main-branch state:
+		Steps through 346 are complete. PPU owns an immutable
+		completed_scanline_scroll_states tuple containing either exactly 240
+		BackgroundScanlineState values or no values. Existing frame-level viewport helpers
+		must remain available as fallback behavior throughout the migration.
+
+	Validated local reference:
+		worktree: /home/linkfy/Code/N1_TDD_vt_scroll_experiment
+		branch:   experiment/ppu-vt-scroll
+
+		Relevant reference functions in
+		emulator/rendering/ppu_background_renderer.py:
+
+			_scanline_horizontal_pair
+			_scanline_viewport_x
+			_timed_scanlines_to_framebuffer
+			_timed_scanlines_to_opaque_mask
+			ppu_background_viewport_to_framebuffer
+			ppu_background_viewport_to_opaque_mask
+
+		The worktree is a proven end-state reference. Do not copy the full file into main.
+		Introduce one contract at a time under the numbered tests below.
+
+	Step 347 contract — logical pair for one scanline:
+		Input: one BackgroundScanlineState.
+		Read vertical nametable bit 11 from state.vram_addr.
+		Return ($2000, $2400) for bit 0 or ($2800, $2C00) for bit 1.
+		Do not inspect bit 10 for pair selection. Do not read PpuBus or render pixels.
+
+	Step 348 contract — horizontal viewport X for one scanline:
+		Input: one BackgroundScanlineState.
+		Decode coarse X and horizontal nametable from state.vram_addr and combine them with
+		state.fine_x:
+
+			viewport_x = nametable_x * 256 + coarse_x * 8 + fine_x
+
+		The packed v layout matches t, so the existing viewport decoder may be reused. Do
+		not apply another two-tile rewind; Step 345 already stored the compensated address.
+
+	Step 349 contract — timed framebuffer rows:
+		Input: a PPU with 240 completed states.
+		Create one 256x240 result framebuffer.
+		For each screen_y, use completed state[screen_y], the Step 347 pair, and Step 348 X.
+		Cache rendered left/right source framebuffers by left_base so repeated scanlines do
+		not repeatedly decode the same nametables and pattern data.
+		Copy only that row's 256 pixels directly into the result. Do not call the full
+		256x240 viewport compositor once per scanline or band. Across the frame, every
+		output pixel must be assigned exactly once.
+		For this horizontal milestone, source Y remains screen_y. Full vertical source-row
+		selection remains future work.
+
+	Step 350 contract — timed framebuffer selection with fallback:
+		At the start of ppu_background_viewport_to_framebuffer(ppu), use the timed row helper
+		only when len(ppu.completed_scanline_scroll_states) == 240. Otherwise execute the
+		existing temp_vram_addr + fine_x viewport path unchanged. Do not remove or rename the
+		one-nametable helpers or Console compatibility behavior.
+
+	Step 351 contract — matching opacity-mask rows:
+		Mirror Step 349 using BackgroundOpaqueMask source pairs and one Boolean result list
+		of 256 * 240 entries. Use the same state index, logical pair, viewport X, wrap rule,
+		and source X for every pixel. Cache mask pairs by left_base. Then add the same
+		240-state gate to ppu_background_viewport_to_opaque_mask(ppu), preserving its old
+		fallback below the gate.
+
+		Critical invariant:
+
+			framebuffer coordinate mapping == opacity-mask coordinate mapping
+
+	Step 352 contract — sprite-zero-hit uses the same mask:
+		The validated worktree does not finish this step; implement it carefully on main.
+		ppu_sprite_zero_hit_position(ppu) must obtain the viewport-aware opacity mask used
+		by full-frame rendering. Preserve the older local helper name through an import alias
+		if required by historical tests, following the same compatibility pattern already
+		used in emulator/console.py. Do not calculate nametable addresses in sprite-zero-hit
+		code. Keep find_sprite_zero_hit_position() pure and unchanged.
+
+	Step 353 manual validation:
+		Run the complete suite first:
+
+			uv run pytest
+
+		Then run the legal local ROM through the existing launcher or:
+
+			uv run --python pypy python main.py
+
+		Verify fixed status bar, moving gameplay background, startup/Start transitions,
+		sprite priority, sprite-zero-hit progress, and FPS. The Test 337 checkpoint was about
+		50 FPS on the development machine; preserve that comparison and profile before
+		choosing an optimizer.
+
+	Shared constraints for every remaining step:
+		Do not modify older numbered tests.
+		Run `uv run pytest` before proceeding.
+		Keep pygame outside emulator core modules.
+		Keep PpuBus responsible for cartridge nametable mirroring.
+		Keep timed row composition single-pass and bounded.
+		Use only stable reference URLs or links already verified/provided in this repository.
 
 Phase map:
 	- Phase 7: pure rendering pipeline plus manual pygame smoke runner
