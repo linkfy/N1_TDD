@@ -25,6 +25,8 @@ Simplified step by step operative:
 
 """
 
+from functools import lru_cache
+
 from emulator.ppu.chr_decoder import CHR_TILE_HEIGHT, CHR_TILE_WIDTH, decode_pattern_table
 from emulator.rendering.framebuffer import Framebuffer, RGBColor
 from emulator.rendering.nes_palette import NES_PALETTE_RGB
@@ -154,10 +156,13 @@ def nametable_with_palette_ram_to_framebuffer(
 
 
 BackgroundOpaqueMask = list[bool]
-def build_background_opaque_mask(
+
+
+@lru_cache(maxsize=8)
+def _cached_background_opaque_mask(
         pattern_table: bytes,
         nametable: bytes
-) -> BackgroundOpaqueMask:
+) -> tuple[bool, ...]:
     if len(nametable) != NAMETABLE_SIZE:
         raise ValueError("Nametable must be 960 bytes")
 
@@ -180,6 +185,13 @@ def build_background_opaque_mask(
 
                     mask_index = screen_y * BACKGROUND_WIDTH + screen_x
                     opaque_mask[mask_index] = color_index != 0
-    return opaque_mask
+    return tuple(opaque_mask)
+
+
+def build_background_opaque_mask(
+        pattern_table: bytes,
+        nametable: bytes,
+) -> BackgroundOpaqueMask:
+    return list(_cached_background_opaque_mask(pattern_table, nametable))
 
          

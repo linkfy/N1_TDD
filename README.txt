@@ -180,8 +180,16 @@ PPU scrolling and background viewport:
 [x] Use timed framebuffer data only when all 240 scanline states exist
 [x] Compose opacity-mask rows from the identical scanline states
 [x] Use timed opacity-mask data only when all 240 scanline states exist
-[ ] Use the scanline-aware opacity mask for sprite-zero-hit scheduling
-[ ] VALIDATION: manually revisit Super Mario Bros. horizontal movement
+[x] Use the scanline-aware opacity mask for sprite-zero-hit scheduling
+
+Chapter 13 complete through Test 353. The previously proposed separate manual
+validation lesson was removed by project decision; the successful local Super Mario
+Bros. run and measured FPS regression are retained below as engineering evidence.
+
+Phase 16 / Chapter 14)
+Evidence-driven rendering performance:
+[ ] Cache background opacity masks by exact immutable graphics inputs
+[ ] Continue profiling before selecting another production optimization
 
 --
 Next Steps:
@@ -223,22 +231,12 @@ Immediate direction:
 	per visible scanline, and preserve the existing nametable/framebuffer renderers. Each
 	output row will be composed once for both RGB pixels and the opacity mask.
 
-	Local working-reference implementation for the remaining Phase 15 / Chapter 13 steps:
-
-		worktree: /home/linkfy/Code/N1_TDD_vt_scroll_experiment
-		branch:   experiment/ppu-vt-scroll
-
-	When planning Test 338 through the end of this phase, an agent may inspect these files
-	in that worktree:
-
-		emulator/ppu/ppu.py
-		emulator/rendering/ppu_background_renderer.py
-		tests/experiment/test_timed_vt_scroll_candidate.py
-
-	The worktree is a validated end-state reference, not a file to copy wholesale. Rebuild
-	the behavior incrementally on main, preserve every historical test, and run `uv run
-	pytest` after each numbered step. The path is local development context and must not
-	become a runtime, test, or distribution dependency.
+	Historical implementation note:
+	Timed scrolling was first validated in an isolated experiment/ppu-vt-scroll worktree.
+	That temporary worktree guided the incremental Tests 338-353 and may be removed after
+	chapter completion. Main production code and permanent numbered tests are now the
+	canonical evidence; no runtime, test, or documentation dependency should retain a local
+	worktree path.
 
 	Do not prioritize opcode diagnostics or broad CPU rewrites right now. Performance
 	work should be incremental and evidence-driven from the manual FPS signal.
@@ -432,9 +430,19 @@ Performance policy:
 	The likely mechanism is duplicate expensive work: Console prepares a viewport-aware
 	mask for sprite-zero-hit scheduling and later prepares another viewport-aware mask for
 	visual sprite priority. Each preparation may rebuild logical nametable masks and walk
-	61,440 destination pixels. Preserve correctness through Step 354, then profile call
-	counts and time before designing shared frame artifacts or cache invalidation. Do not
-	revert to the incorrect fixed mask merely to recover FPS.
+	61,440 destination pixels. Chapter 13 correctness is now complete; profile call counts
+	and time in an isolated performance worktree before designing shared frame artifacts or
+	cache invalidation. Do not revert to the incorrect fixed mask merely to recover FPS.
+
+	Performance experiment accepted for Chapter 14:
+	A bounded content-addressed cache for source background opacity masks improved the
+	manual Super Mario Bros. result by approximately 5-7 FPS, from about 35 FPS to roughly
+	40-42 FPS. The experiment caches immutable tuple data by exact pattern-table and
+	nametable bytes, then returns a fresh list to preserve the public mutable mask contract.
+
+	This is evidence from the isolated performance worktree, not yet completed main-branch
+	tutorial work. Step 354 will add the implementation and permanent tests on main before
+	the optimization is considered integrated.
 
 	Likely areas to measure later include repeated pattern-table decoding, repeated
 	nametable rendering, framebuffer/mask row loops, and temporary allocations. Numba may
@@ -454,36 +462,45 @@ Performance policy:
 
 Next tutorial step:
 
-Step 353) Use the viewport-aware mask for sprite-zero-hit scheduling
+	Chapter 13 has no remaining numbered tutorial step. Test 353 completes the scrolling
+	and viewport-mask milestone.
+
+Step 354) Cache background opacity masks by exact graphics bytes
 	Files:
-		emulator/rendering/sprite_zero_hit.py
-		tests/chapter_13_scrolling/test_353_sprite_zero_hit_uses_viewport_mask.py
+		emulator/rendering/nametable_renderer.py
+		tests/chapter_14_rendering_performance/test_354_cache_background_opaque_mask.py
 
 	Behavior:
-		Change sprite_zero_hit.py's background-mask dependency to
-		ppu_background_viewport_to_opaque_mask while preserving the historical module-local
-		name ppu_background_to_opaque_mask through an import alias.
+		Add a private @lru_cache(maxsize=8) helper keyed by the immutable pattern_table and
+		nametable bytes already accepted by build_background_opaque_mask(). Build and store an
+		immutable tuple[bool, ...] on a cache miss.
 
-		Keep ppu_sprite_zero_hit_position() calling that local name and pass the resulting mask
-		unchanged into find_sprite_zero_hit_position().
+		Keep build_background_opaque_mask() as the public list[bool] API. It must return a fresh
+		list copied from the cached tuple on every call so caller mutation cannot corrupt a
+		future result.
 
 	Goal:
-		make sprite-zero-hit overlap inspect the same screen-coordinate background opacity used
-		by visual sprite priority, including timed per-scanline horizontal scrolling.
+		avoid repeating CHR decoding and 61,440-pixel source-mask construction when visual
+		priority and sprite-zero-hit request masks from identical graphics bytes.
 
 	Important:
-		Preserve the old local alias because historical Test 322 monkeypatches
-		sprite_zero_hit_module.ppu_background_to_opaque_mask.
-		Do not change the pure overlap algorithm, sprite CHR selection, Console scheduling, or
-		PPU status timing.
-		Treat the observed 45-to-35 FPS regression as evidence to profile, not permission to
-		restore the coordinate-incorrect fixed mask.
+		Cache by exact content, not PPU identity, frame number, or undocumented lifecycle.
+		Changed pattern-table bytes or changed nametable bytes must always cause a cache miss.
+		Keep the cached value immutable and the cache bounded to eight entries.
+		Preserve all validation errors and the BackgroundOpaqueMask list[bool] contract.
+		Clear the private cache at the start of cache-sensitive tests so hit/miss assertions
+		remain deterministic and independent.
+
+	Measured evidence:
+		The isolated PyPy/manual Super Mario Bros. experiment improved approximately 5-7 FPS,
+		from about 35 FPS to roughly 40-42 FPS, with scrolling, visual priority, and game
+		progress still working.
 
 	After this:
-		Step 354) VALIDATION: revisit Super Mario Bros. scrolling, status bar, transitions,
-		          and FPS.
+		Do not add another optimization until profiling identifies a new bottleneck and an
+		isolated experiment demonstrates a reproducible benefit.
 
-	Remaining horizontal milestone estimate:
+	Completed horizontal milestone:
 		Step 332: address-aware framebuffer extraction       complete
 		Step 333: address-aware opacity-mask extraction      complete
 		Step 334: framebuffer horizontal viewport adapter    complete
@@ -502,22 +519,17 @@ Step 353) Use the viewport-aware mask for sprite-zero-hit scheduling
 		Step 350: timed framebuffer/fallback selection       complete
 		Step 351: matching opacity-mask row composition      complete
 		Step 352: timed opacity-mask/fallback selection      complete
-		Step 353: scanline-aware sprite-zero-hit mask        medium   30-60 minutes
-		Step 354: manual Super Mario Bros. validation        medium   20-60 minutes
+		Step 353: scanline-aware sprite-zero-hit mask        complete
 
-	Agent implementation map for the remaining Phase 15 / Chapter 13 work:
+	Completed Phase 15 / Chapter 13 implementation record:
 
 	Current main-branch state:
-		Steps through 346 are complete. PPU owns an immutable
+		Steps through 353 are complete. PPU owns an immutable
 		completed_scanline_scroll_states tuple containing either exactly 240
 		BackgroundScanlineState values or no values. Existing frame-level viewport helpers
 		must remain available as fallback behavior throughout the migration.
 
-	Validated local reference:
-		worktree: /home/linkfy/Code/N1_TDD_vt_scroll_experiment
-		branch:   experiment/ppu-vt-scroll
-
-		Relevant reference functions in
+	Canonical timed-rendering functions in
 		emulator/rendering/ppu_background_renderer.py:
 
 			_scanline_horizontal_pair
@@ -527,8 +539,8 @@ Step 353) Use the viewport-aware mask for sprite-zero-hit scheduling
 			ppu_background_viewport_to_framebuffer
 			ppu_background_viewport_to_opaque_mask
 
-		The worktree is a proven end-state reference. Do not copy the full file into main.
-		Introduce one contract at a time under the numbered tests below.
+		The temporary reference worktree is no longer required. Preserve these contracts and
+		the numbered tests on main as the durable implementation record.
 
 	Step 347 contract — logical pair for one scanline:
 		Input: one BackgroundScanlineState.
@@ -581,28 +593,14 @@ Step 353) Use the viewport-aware mask for sprite-zero-hit scheduling
 		mask path unchanged.
 
 	Step 353 contract — sprite-zero-hit uses the same mask:
-		The validated worktree does not finish this step; implement it carefully on main.
+		This final wiring was completed and tested on main after the timed-rendering reference.
 		ppu_sprite_zero_hit_position(ppu) must obtain the viewport-aware opacity mask used
 		by full-frame rendering. Preserve the older local helper name through an import alias
 		if required by historical tests, following the same compatibility pattern already
 		used in emulator/console.py. Do not calculate nametable addresses in sprite-zero-hit
 		code. Keep find_sprite_zero_hit_position() pure and unchanged.
 
-	Step 354 manual validation:
-		Run the complete suite first:
-
-			uv run pytest
-
-		Then run the legal local ROM through the existing launcher or:
-
-			uv run --python pypy python main.py
-
-		Verify fixed status bar, moving gameplay background, startup/Start transitions,
-		sprite priority, sprite-zero-hit progress, and FPS. The Test 337 checkpoint was about
-		50 FPS on the development machine; preserve that comparison and profile before
-		choosing an optimizer.
-
-	Shared constraints for every remaining step:
+	Shared constraints for follow-up performance experiments:
 		Do not modify older numbered tests.
 		Run `uv run pytest` before proceeding.
 		Keep pygame outside emulator core modules.
@@ -620,6 +618,7 @@ Phase map:
 	- Phase 13 / Chapter 11: sprite 0 hit
 	- Phase 14 / Chapter 12: cartridge nametable mirroring
 	- Phase 15 / Chapter 13: PPU scrolling and background viewport
+	- Phase 16 / Chapter 14: evidence-driven rendering performance
 
 Controller phase outline:
 	Controller state stores 8 buttons in NES read order:
