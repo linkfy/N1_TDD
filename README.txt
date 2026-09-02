@@ -176,9 +176,10 @@ PPU scrolling and background viewport:
 [x] Publish a complete 240-scanline frame and reset the current recording buffer
 [x] Select the horizontal logical nametable pair for one scanline state
 [x] Decode horizontal viewport X from one scanline state
-[ ] Compose each timed framebuffer row exactly once
-[ ] Use timed framebuffer data only when all 240 scanline states exist
-[ ] Compose opacity-mask rows from the identical scanline states
+[x] Compose each timed framebuffer row exactly once
+[x] Use timed framebuffer data only when all 240 scanline states exist
+[x] Compose opacity-mask rows from the identical scanline states
+[x] Use timed opacity-mask data only when all 240 scanline states exist
 [ ] Use the scanline-aware opacity mask for sprite-zero-hit scheduling
 [ ] VALIDATION: manually revisit Super Mario Bros. horizontal movement
 
@@ -422,6 +423,19 @@ Performance policy:
 	the upcoming timed-scrolling work. First make v/t/x behavior correct and keep every
 	output row single-pass; then profile before choosing an optimization.
 
+	Performance checkpoint at Step 353:
+	Manual Super Mario Bros. observation fell from approximately 45 FPS to 35 FPS after
+	changing sprite-zero-hit mask acquisition from the fixed one-nametable producer to the
+	viewport-aware opacity-mask adapter. Record this as correlation from a one-line import
+	change, not yet as a proven root cause.
+
+	The likely mechanism is duplicate expensive work: Console prepares a viewport-aware
+	mask for sprite-zero-hit scheduling and later prepares another viewport-aware mask for
+	visual sprite priority. Each preparation may rebuild logical nametable masks and walk
+	61,440 destination pixels. Preserve correctness through Step 354, then profile call
+	counts and time before designing shared frame artifacts or cache invalidation. Do not
+	revert to the incorrect fixed mask merely to recover FPS.
+
 	Likely areas to measure later include repeated pattern-table decoding, repeated
 	nametable rendering, framebuffer/mask row loops, and temporary allocations. Numba may
 	be evaluated only as a measured experiment, not as the default solution. The current
@@ -440,48 +454,33 @@ Performance policy:
 
 Next tutorial step:
 
-Step 349) Compose each timed framebuffer row exactly once
+Step 353) Use the viewport-aware mask for sprite-zero-hit scheduling
 	Files:
-		emulator/rendering/ppu_background_renderer.py
-		tests/chapter_13_scrolling/test_349_timed_scanlines_to_framebuffer.py
+		emulator/rendering/sprite_zero_hit.py
+		tests/chapter_13_scrolling/test_353_sprite_zero_hit_uses_viewport_mask.py
 
 	Behavior:
-		Add a private _timed_scanlines_to_framebuffer(ppu) helper whose precondition is one
-		complete 240-state tuple. Create one 256x240 result framebuffer and process each
-		destination row from its matching completed state.
+		Change sprite_zero_hit.py's background-mask dependency to
+		ppu_background_viewport_to_opaque_mask while preserving the historical module-local
+		name ppu_background_to_opaque_mask through an import alias.
 
-		For each screen_y:
-			1. use _scanline_horizontal_pair(state) to select logical sources
-			2. obtain/cached-render the left and right source framebuffers
-			3. use _scanline_viewport_x(state) to find horizontal pixel X
-			4. copy exactly 256 pixels into destination row screen_y
-
-		For each destination screen_x:
-
-			logical_x = (viewport_x + screen_x) % 512
-
-		Read logical X 0-255 from the left source and 256-511 from the right source.
+		Keep ppu_sprite_zero_hit_position() calling that local name and pass the resulting mask
+		unchanged into find_sprite_zero_hit_position().
 
 	Goal:
-		produce one framebuffer whose rows can represent different timed horizontal scroll
-		positions without composing a complete temporary viewport for every scanline.
+		make sprite-zero-hit overlap inspect the same screen-coordinate background opacity used
+		by visual sprite priority, including timed per-scanline horizontal scrolling.
 
 	Important:
-		Import NAMETABLE_PIXEL_WIDTH and NAMETABLE_PIXEL_HEIGHT from background_viewport.
-		Cache source pairs by left_base; repeated rows must not rerender the same pair.
-		Write every output pixel exactly once using direct flat-list row indices.
-		Do not call compose_horizontal_framebuffer_viewport once per row or band.
-		For this horizontal milestone source Y remains screen_y; full vertical source-row
-		selection is future work.
-		Do not connect this helper to ppu_background_viewport_to_framebuffer yet; that fallback
-		selection belongs to Step 350.
+		Preserve the old local alias because historical Test 322 monkeypatches
+		sprite_zero_hit_module.ppu_background_to_opaque_mask.
+		Do not change the pure overlap algorithm, sprite CHR selection, Console scheduling, or
+		PPU status timing.
+		Treat the observed 45-to-35 FPS regression as evidence to profile, not permission to
+		restore the coordinate-incorrect fixed mask.
 
 	After this:
-		Step 350) Use timed framebuffer data only when all 240 states are available; otherwise
-		          preserve the existing viewport fallback.
-		Step 351) Compose opacity-mask rows from the same completed scanline states.
-		Step 352) Use the scanline-aware mask for sprite-zero-hit scheduling.
-		Step 353) VALIDATION: revisit Super Mario Bros. scrolling, status bar, transitions,
+		Step 354) VALIDATION: revisit Super Mario Bros. scrolling, status bar, transitions,
 		          and FPS.
 
 	Remaining horizontal milestone estimate:
@@ -499,11 +498,12 @@ Step 349) Compose each timed framebuffer row exactly once
 		Step 346: publish/reset completed scanline states    complete
 		Step 347: pure scanline logical-pair selection       complete
 		Step 348: pure scanline viewport-X decoding          complete
-		Step 349: row-limited framebuffer composition        medium   45-75 minutes
-		Step 350: timed framebuffer/fallback selection       easy     20-40 minutes
-		Step 351: matching opacity-mask composition          medium   30-60 minutes
-		Step 352: scanline-aware sprite-zero-hit mask        medium   30-60 minutes
-		Step 353: manual Super Mario Bros. validation        medium   20-60 minutes
+		Step 349: row-limited framebuffer composition        complete
+		Step 350: timed framebuffer/fallback selection       complete
+		Step 351: matching opacity-mask row composition      complete
+		Step 352: timed opacity-mask/fallback selection      complete
+		Step 353: scanline-aware sprite-zero-hit mask        medium   30-60 minutes
+		Step 354: manual Super Mario Bros. validation        medium   20-60 minutes
 
 	Agent implementation map for the remaining Phase 15 / Chapter 13 work:
 
@@ -567,15 +567,20 @@ Step 349) Compose each timed framebuffer row exactly once
 	Step 351 contract — matching opacity-mask rows:
 		Mirror Step 349 using BackgroundOpaqueMask source pairs and one Boolean result list
 		of 256 * 240 entries. Use the same state index, logical pair, viewport X, wrap rule,
-		and source X for every pixel. Cache mask pairs by left_base. Then add the same
-		240-state gate to ppu_background_viewport_to_opaque_mask(ppu), preserving its old
-		fallback below the gate.
+		and source X for every pixel. Cache mask pairs by left_base. Reject input whose length
+		is not 240. Keep ppu_background_viewport_to_opaque_mask(ppu) unchanged in this step.
 
 		Critical invariant:
 
 			framebuffer coordinate mapping == opacity-mask coordinate mapping
 
-	Step 352 contract — sprite-zero-hit uses the same mask:
+	Step 352 contract — timed opacity-mask selection with fallback:
+		At the start of ppu_background_viewport_to_opaque_mask(ppu), use the timed mask helper
+		only when len(ppu.completed_scanline_scroll_states) == 240. Return immediately from
+		that branch. For every other length, preserve the existing temp_vram_addr + fine_x
+		mask path unchanged.
+
+	Step 353 contract — sprite-zero-hit uses the same mask:
 		The validated worktree does not finish this step; implement it carefully on main.
 		ppu_sprite_zero_hit_position(ppu) must obtain the viewport-aware opacity mask used
 		by full-frame rendering. Preserve the older local helper name through an import alias
@@ -583,7 +588,7 @@ Step 349) Compose each timed framebuffer row exactly once
 		used in emulator/console.py. Do not calculate nametable addresses in sprite-zero-hit
 		code. Keep find_sprite_zero_hit_position() pure and unchanged.
 
-	Step 353 manual validation:
+	Step 354 manual validation:
 		Run the complete suite first:
 
 			uv run pytest

@@ -12,7 +12,7 @@ from emulator.rendering.sprite_renderer import (
 from emulator.rendering.ppu_background_renderer import (
         PATTERN_TABLE_0_ADDR,
         PATTERN_TABLE_1_ADDR,
-        ppu_background_to_opaque_mask
+        ppu_background_viewport_to_opaque_mask as ppu_background_to_opaque_mask
 )
 
 

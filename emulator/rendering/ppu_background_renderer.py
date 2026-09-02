@@ -71,6 +71,56 @@ def _scanline_viewport_x(state: BackgroundScanlineState) -> int:
 
     return viewport_x
 
+def _timed_scanlines_to_opaque_mask(ppu: PPU) -> BackgroundOpaqueMask:
+    """
+    Compose a background opacity mask from completed scanline states.
+    Same logic as _timed_scanlines_to_framebuffer, modified lines are commented
+    """
+
+    states = ppu.completed_scanline_scroll_states
+
+    if len(states) != NAMETABLE_PIXEL_HEIGHT:
+        # Modified message:
+        raise ValueError("Timed opacity mask requires exactly 240 scanline states")
+    
+    # Modified initialization
+    result: BackgroundOpaqueMask = [False] * (NAMETABLE_PIXEL_WIDTH * NAMETABLE_PIXEL_HEIGHT)
+
+    # Modified tuple expected types
+    pair_cache: dict [int, tuple[BackgroundOpaqueMask, BackgroundOpaqueMask]] = {}
+
+    logical_width = NAMETABLE_PIXEL_WIDTH * 2
+
+    for screen_y, state in enumerate(states):
+        left_base, right_base = _scanline_horizontal_pair(state)
+
+        if left_base not in pair_cache:
+            pair_cache[left_base] = (
+                ppu_background_to_opaque_mask(ppu, base_nametable_addr=left_base),
+                ppu_background_to_opaque_mask(ppu, base_nametable_addr=right_base),
+            )
+
+        left, right = pair_cache[left_base]
+        viewport_x = _scanline_viewport_x(state)
+        destination_row = screen_y * NAMETABLE_PIXEL_WIDTH
+
+        for screen_x in range(NAMETABLE_PIXEL_WIDTH):
+            logical_x = (viewport_x + screen_x) % logical_width
+
+            if logical_x < NAMETABLE_PIXEL_WIDTH:
+                source = left
+                source_x = logical_x
+            else:
+                source = right
+                source_x = logical_x - NAMETABLE_PIXEL_WIDTH
+
+            destination_index = destination_row + screen_x
+            source_index = destination_row + source_x
+            # Modified line
+            result[destination_index] = source[source_index]
+
+    return result
+
 def _timed_scanlines_to_framebuffer(ppu: PPU) -> Framebuffer:
     states = ppu.completed_scanline_scroll_states
 
@@ -168,7 +218,7 @@ def ppu_background_to_opaque_mask(
         ppu: PPU,
         base_nametable_addr: int = BASE_NAMETABLE_ADDR,
 ) -> BackgroundOpaqueMask:
-
+    
     if base_nametable_addr not in LOGICAL_NAMETABLE_BASE_ADDRS:
         raise ValueError(
             "Logical nametable base address must be $2000, $2400, $2800, $2C00"
@@ -196,6 +246,10 @@ def ppu_background_to_opaque_mask(
     )
 
 def ppu_background_viewport_to_framebuffer(ppu: PPU) -> Framebuffer:
+    
+    if len(ppu.completed_scanline_scroll_states) == NAMETABLE_PIXEL_HEIGHT:
+        return _timed_scanlines_to_framebuffer(ppu)
+
     viewport_x, _ = decode_background_viewport_position(
         temp_vram_addr=ppu.temp_vram_addr,
         fine_x=ppu.fine_x
@@ -225,6 +279,10 @@ def ppu_background_viewport_to_framebuffer(ppu: PPU) -> Framebuffer:
 
 def ppu_background_viewport_to_opaque_mask(ppu: PPU) -> BackgroundOpaqueMask:
     # Use same logic as ppu_background_viewport_to_framebuffer with correct functions
+    
+    if len(ppu.completed_scanline_scroll_states) == NAMETABLE_PIXEL_HEIGHT:
+        return _timed_scanlines_to_opaque_mask(ppu)
+
     viewport_x, _ = decode_background_viewport_position(
         temp_vram_addr=ppu.temp_vram_addr,
         fine_x=ppu.fine_x
