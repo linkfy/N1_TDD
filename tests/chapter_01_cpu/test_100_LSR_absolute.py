@@ -1,15 +1,40 @@
 """
-Add LSR Absolute.
+Test 100 - Add LSR Absolute.
 
-Opcode:
-    0x4E -> LSR $hhhh
+In this step, expose memory LSR through the existing 16-bit absolute resolver.
 
-Goal:
-create lsr_absolute(cpu), use absolute(cpu), then lsr(cpu, address).
+File and symbols:
+    emulator/cpu/opcodes.py: lsr_absolute, OPCODE_TABLE[0x4E]
 
-Student guidance:
-Absolute operands are little-endian. For `4E 00 02`, the target address is
-$0200, not $0002.
+Why this step exists:
+After the zero-page forms, this transition exposes memory LSR through the existing
+16-bit `absolute` resolver while retaining the instruction-layer implementation.
+
+Suggested implementation for this step:
+
+    # emulator/cpu/opcodes.py
+    def lsr_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        lsr(cpu, addr)
+
+    OPCODE_TABLE = {
+        # existing entries unchanged
+        0x4E: lsr_absolute,
+    }
+
+Important invariants:
+    - `absolute(cpu)` decodes low byte then high byte
+    - two operand bytes make this a three-byte instruction
+    - `lsr` reads and writes the effective address and replaces C/Z/N
+    - A and index registers remain unchanged
+
+Common misconception:
+For `4E 00 02`, the little-endian target is $0200, not $0002.
+
+Out of scope:
+    - LSR Absolute,X in Test 101
+    - changes to absolute addressing or LSR behavior
+    - cycle timing and page-cross behavior
 """
 import inspect
 

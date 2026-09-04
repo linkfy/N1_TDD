@@ -1,29 +1,31 @@
-"""
-Add implied opcodes for flag-control instructions.
+"""Step 207: wire implied flag-control opcodes.
 
-Opcodes:
-    0x18 -> CLC
-    0x38 -> SEC
-    0x58 -> CLI
-    0x78 -> SEI
-    0xD8 -> CLD
-    0xF8 -> SED
-    0xB8 -> CLV
+Why this step exists:
+In this step, update ``emulator/cpu/opcodes.py``'s instruction import and
+``OPCODE_TABLE``.  The functions from step 206 become executable through
+``emulator/cpu/cpu.py::CPU.step``.
 
-Goal:
-add these opcodes to OPCODE_TABLE.
+Suggested implementation::
 
-Student guidance:
-All of these instructions use implied addressing. They have no operand bytes.
+    # Add clc, sec, cli, sei, cld, sed, clv to the instruction import.
+    OPCODE_TABLE = {
+        # existing entries
+        0x18: clc,
+        0x38: sec,
+        0x58: cli,
+        0x78: sei,
+        0xD8: cld,
+        0xF8: sed,
+        0xB8: clv,
+    }
 
-That means CPU.step() should:
-    1. fetch the opcode byte
-    2. dispatch directly to the instruction function
-    3. leave PC pointing to the next instruction byte
+Invariant: every mapping dispatches directly to a one-argument operation; each
+instruction is one byte, so opcode fetch alone advances PC to the next byte and
+only the target flag changes.  The common misconception is to add an addressing
+mode that consumes an operand, or to transpose set/clear opcode pairs.
 
-Common mistake:
-Do not create addressing-mode handlers that fetch extra bytes. These are
-one-byte instructions.
+Out of scope: NOP and opcode $EA belong to steps 208-209, and interrupt delivery
+semantics are later behavior.
 """
 import inspect
 

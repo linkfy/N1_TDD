@@ -1,14 +1,31 @@
-"""
-Add AND Absolute,Y.
+"""Lesson 122: add AND absolute,Y opcode ``0x39``.
 
-Opcode:
-    0x39 -> AND $hhhh,Y
+Why this step exists:
+This supplies the Y-indexed counterpart to absolute,X so AND can use either
+index register without duplicating its accumulator and flag semantics.
 
-Goal:
-create and_absolute_y(cpu), use absolute_y(cpu), read memory, then and_a(cpu, value).
+In this step, following absolute,X in lesson 121, add only this handler and
+registration to ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Decode the 16-bit base address first, then add Y.
+    def and_absolute_y(cpu: CPU):
+        addr = absolute_y(cpu)
+        value = cpu.bus.read(addr)
+        and_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x39: and_absolute_y,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute_y`` fetches the little-endian
+base word before adding ``cpu.y``.  The resolved memory value feeds the
+already-existing ``instructions.and_a``; A and Z/N change, while Y,
+Carry/Overflow, and memory remain invariant.  The opcode and word consume
+three bytes.
+
+Misconception: absolute,Y is not zero-page,Y and does not constrain indexing
+to page zero.  Out of scope: AND (indirect,X)/(indirect),Y (lessons 123-124)
+and the ORA/EOR/BIT additions in lessons 125-145.
 """
 import inspect
 

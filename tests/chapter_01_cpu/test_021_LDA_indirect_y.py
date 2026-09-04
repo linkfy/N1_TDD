@@ -1,18 +1,60 @@
 """
-Add one more LDA addressing mode: Indirect Indexed, also written as (d),Y.
+Test 021 — Add indirect-indexed LDA ($B1, written `(d),Y`).
 
-Create one function inside emulator/cpu/addressing_modes.py:
+Files to update:
+    emulator/cpu/addressing_modes.py
+    emulator/cpu/opcodes.py
 
-    def indirect_y(cpu):
-        ...
+Locations:
+    addressing_modes.indirect_y
+    opcodes import of indirect_y
+    opcodes.lda_indirect_y
+    opcodes.OPCODE_TABLE[$B1]
 
-Then create one opcode handler inside emulator/cpu/opcodes.py:
+Why this step exists:
+Test 020 indexed the zero-page pointer with X before dereferencing it. This mode
+instead reads an unindexed zero-page pointer and adds Y to the assembled 16-bit base
+address, completing LDA's two indirect indexed forms.
 
-    def lda_indirect_y(cpu):
-        ...
+Complete example implementation:
 
-The goal is simple:
-learn how Y is added after reading a pointer from zero page.
+    # emulator/cpu/addressing_modes.py
+    def indirect_y(cpu) -> int:
+        pointer = cpu.fetch_byte()
+        low = cpu.bus.read(pointer)
+        high = cpu.bus.read((pointer + 1) & 0xFF)
+        return (low | (high << 8)) + cpu.y
+
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import indirect_y
+
+
+    def lda_indirect_y(cpu) -> None:
+        address = indirect_y(cpu)
+        value = cpu.bus.read(address)
+        lda(cpu, value)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xB1: lda_indirect_y,
+    }
+
+Important invariants:
+    - exactly one operand byte is fetched
+    - the pointer high-byte read wraps from zero-page $FF to $00
+    - Y is added after the little-endian pointer is assembled
+    - the handler reads the final address and delegates A and Z/N updates to lda
+
+Common misconception:
+`(d),Y` does not add Y to the operand before reading the pointer; that would confuse
+it with Test 020's `(d,X)` ordering.
+
+Out of scope:
+    - STA and its opcode handlers
+    - page-cross cycle penalties
+    - a shared abstraction for the two indirect indexed modes
 """
 import inspect
 

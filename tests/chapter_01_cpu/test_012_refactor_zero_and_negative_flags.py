@@ -1,7 +1,63 @@
 """
-Create a method inside cpu called:
-    _update_zero_and_negative_flags(self, value) -> None
-    This method should delete the repeated code inside our cpu
+Test 012 — Extract shared Zero and Negative flag updates.
+
+File to update:
+    emulator/cpu/cpu.py
+
+Locations:
+    CPU._update_zero_and_negative_flags
+    CPU.step, existing $A9 and $AD branches
+
+Why this step exists:
+Immediate and absolute LDA currently repeat identical flag mutations. One helper
+makes the invariant executable once and accepts the result value explicitly so later
+instructions can reuse it without depending on accumulator A.
+
+Complete example implementation:
+
+    ZERO_FLAG = 1 << 1
+    NEGATIVE_FLAG = 1 << 7
+
+
+    class CPU:
+        def _update_zero_and_negative_flags(self, value: int) -> None:
+            if value == 0:
+                self.p |= ZERO_FLAG
+            else:
+                self.p &= ~ZERO_FLAG
+
+            if value & NEGATIVE_FLAG:
+                self.p |= NEGATIVE_FLAG
+            else:
+                self.p &= ~NEGATIVE_FLAG
+
+        def step(self) -> None:
+            opcode = self.fetch_byte()
+
+            if opcode == 0xA9:
+                self.a = self.fetch_byte()
+            elif opcode == 0xAD:
+                address = self.fetch_word()
+                self.a = self.bus.read(address)
+            else:
+                raise NotImplementedError(
+                    f"Opcode ${opcode:02X} is not implemented"
+                )
+
+            self._update_zero_and_negative_flags(self.a)
+
+Important invariants:
+    - flags are derived from the received value, not implicitly from cpu.a
+    - only Z and N change
+    - existing LDA behavior remains unchanged after the refactor
+
+Common misconception:
+A refactor is not permission to change behavior. Tests 010–011 remain the behavioral
+contract; this step only centralizes their mechanism.
+
+Out of scope:
+    - moving addressing logic out of CPU.step
+    - moving LDA behavior into instructions.py
 """
 import pytest
 

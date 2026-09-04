@@ -1,37 +1,23 @@
-"""
-Add the TXS instruction behavior.
+"""Step 201: implement the TXS operation.
 
-Instruction:
-    TXS -> Transfer X to Stack Pointer
+Why this step exists:
+In this step, add ``emulator/cpu/instructions.py::txs``. This operation is
+introduced now because stack transfers are the remaining stack-instruction
+behavior: X is copied into the stack-pointer byte without a memory access.
 
-Goal:
-implement txs(cpu) in instructions.py.
+Suggested implementation::
 
-Student guidance:
-TXS copies register X into the stack pointer S.
+    def txs(cpu: CPU):
+        cpu.s = cpu.x
 
-Important details:
-    - S is the low byte of the CPU stack address.
-    - The actual stack page is still $0100-$01FF.
-    - TXS only changes S.
-    - TXS does not change X.
-    - TXS does not update status flags.
+Invariants: X, P, PC, A, Y, and memory are unchanged; S remains the low-byte
+offset into the already-established $0100-$01FF stack page.  A common
+misconception is to update Zero and Negative as other register transfers do;
+TXS changes no flags, including when X is $00 or has bit 7 set.
 
-Example:
-    X = $80
-    S = $FD
-
-After TXS:
-    X = $80
-    S = $80
-
-Common mistake:
-Do not update Zero or Negative flags. Unlike TAX/TXA/TAY/TYA, TXS does not
-modify flags on the 6502.
-
-Implementation shape:
-
-    cpu.s = cpu.x
+Out of scope: registering implied opcode $9A in
+``emulator/cpu/opcodes.py::OPCODE_TABLE`` belongs to step 202; TSX and its
+opcode belong to steps 203-204.  Do not add those later APIs here.
 """
 
 from emulator.cpu.instructions import txs

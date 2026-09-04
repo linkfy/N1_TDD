@@ -1,15 +1,31 @@
-"""
-Add ORA (Indirect,X).
+"""Lesson 132: add ORA (indirect,X) opcode ``0x01``.
 
-Opcode:
-    0x01 -> ORA ($nn,X)
+Why this step exists:
+Pre-indexed indirect ORA supports zero-page pointer tables and confirms that
+pointer lookup is completed before the resulting memory value is ORed with A.
 
-Goal:
-create ora_indirect_x(cpu), use indirect_x(cpu), read memory, then or_a(cpu, value).
+In this step, lesson 131 has completed the direct ORA modes.  Add exactly the
+following to ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Indirect,X adds X to the zero-page operand first, then reads the 16-bit pointer
-from zero page.
+    def ora_indirect_x(cpu: CPU):
+        addr = indirect_x(cpu)
+        value = cpu.bus.read(addr)
+        or_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x01: ora_indirect_x,
+    }
+
+``emulator/cpu/addressing_modes.py::indirect_x`` fetches the operand, adds X
+with zero-page wrapping, and reads a little-endian pointer whose high-byte
+lookup also wraps in zero page.  The handler reads the pointed-to value and
+delegates ORA flags/result to ``instructions.or_a``.  A and Z/N may change;
+Carry/Overflow, memory, X, and Y remain invariant; PC advances two bytes.
+
+Misconception: X is added before pointer dereferencing, not to the final
+16-bit address.  Out of scope: ORA (indirect),Y (lesson 133) and EOR/BIT
+(134-145).
 """
 import inspect
 

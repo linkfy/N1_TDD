@@ -1,15 +1,45 @@
 """
-Add transfer opcodes to OPCODE_TABLE.
+Test 051 - Register the four transfer instructions as implied opcodes.
 
-These opcodes use implied addressing mode.
-They do not need opcode handlers because the instruction function already
-has the correct shape: def instruction(cpu).
+File to update:
+    emulator/cpu/opcodes.py
 
-Opcodes:
-    0xAA -> TAX
-    0x8A -> TXA
-    0xA8 -> TAY
-    0x98 -> TYA
+Symbols to update:
+    the instruction import and OPCODE_TABLE
+
+Why this step exists:
+The transfer operations from test 050 already have the same one-argument shape
+that `CPU.step` expects from an opcode-table entry. Implied instructions have no
+operand to decode, so an intermediate opcode handler would add no behavior.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.instructions import (
+        lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya,
+    )
+
+    OPCODE_TABLE = {
+        # ...the existing load/store entries...
+        0xAA: tax,
+        0x8A: txa,
+        0xA8: tay,
+        0x98: tya,
+    }
+
+Important invariants:
+    - each opcode maps directly to its instruction function
+    - `CPU.step` consumes only the opcode, leaving PC advanced by one byte
+    - the transfer and Zero/Negative behavior remains in the instruction layer
+
+Common misconception:
+Do not create `tax_implied`-style wrappers or fetch an operand; these four
+instructions use implied addressing and already match the dispatch contract.
+
+Out of scope:
+    - the FlagsHandler refactor introduced in test 052
+    - ADC and its opcode handlers
+    - cycle accounting
 """
 
 from emulator.bus.cpu_bus import CpuBus

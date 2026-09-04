@@ -1,11 +1,45 @@
 """
-Add ADC Absolute,Y.
+Test 059 - Connect ADC absolute,Y (opcode $79) to CPU dispatch.
 
-Opcode:
-    0x79 -> ADC $hhhh,Y
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute_y(cpu), read value, then adc(cpu, value).
+Symbols to create/update:
+    opcodes.adc_absolute_y
+    OPCODE_TABLE[$79]
+
+Why this step exists:
+This is the Y-indexed counterpart to test 058. `absolute_y` consumes the
+two-byte base address and applies Y; the handler reads the resulting location
+and delegates the value to `adc`.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def adc_absolute_y(cpu):
+        addr = absolute_y(cpu)
+        value = cpu.bus.read(addr)
+        adc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ...existing entries...
+        0x79: adc_absolute_y,
+    }
+
+Important invariants:
+    - Y is applied exactly once by `absolute_y`
+    - the effective address is not constrained to page zero
+    - PC advances by three bytes total
+    - the addressed value is passed to `adc`
+
+Common misconception:
+Do not copy the absolute,X handler and leave it using X; opcode $79 indexes the
+base address with Y.
+
+Out of scope:
+    - indirect ADC modes
+    - page-crossing timing penalties
+    - changes to the addressing or arithmetic helpers
 """
 import inspect
 

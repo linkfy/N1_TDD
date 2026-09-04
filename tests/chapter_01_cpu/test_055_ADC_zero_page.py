@@ -1,11 +1,45 @@
 """
-Add ADC Zero Page.
+Test 055 - Connect ADC zero page (opcode $65) to CPU dispatch.
 
-Opcode:
-    0x65 -> ADC $nn
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use zero_page(cpu), read value, then adc(cpu, value).
+Symbols to create/update:
+    opcodes.adc_zero_page
+    OPCODE_TABLE[$65]
+
+Why this step exists:
+Unlike immediate mode, `zero_page(cpu)` resolves the operand byte to an
+address. The handler must read the value at that address before handing the
+value to the existing `adc` instruction.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def adc_zero_page(cpu):
+        addr = zero_page(cpu)
+        value = cpu.bus.read(addr)
+        adc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ...existing entries...
+        0x65: adc_zero_page,
+    }
+
+Important invariants:
+    - the one-byte operand is an address in $0000-$00FF
+    - exactly one data value is read and passed to `adc`
+    - PC advances by two bytes total
+    - address resolution remains in the opcode layer
+
+Common misconception:
+Do not pass the zero-page address itself to `adc`; ADC adds the byte stored at
+that address.
+
+Out of scope:
+    - indexed, absolute, and indirect ADC modes
+    - changes to `zero_page` or `adc`
+    - cycle accounting
 """
 import inspect
 

@@ -1,15 +1,40 @@
 """
-Add ASL Absolute.
+Test 093 - Add ASL Absolute.
 
-Opcode:
-    0x0E -> ASL $hhhh
+In this step, extend memory ASL to the existing 16-bit absolute resolver.
 
-Goal:
-create asl_absolute(cpu), use absolute(cpu), then asl(cpu, address).
+File and symbols:
+    emulator/cpu/opcodes.py: asl_absolute, OPCODE_TABLE[0x0E]
 
-Student guidance:
-Absolute operands are little-endian. For `0E 00 02`, the target address is
-$0200, not $0002.
+Why this step exists:
+This transition extends the same memory ASL behavior from zero-page addresses to
+the existing 16-bit `absolute` resolver; instruction semantics remain unchanged.
+
+Suggested implementation for this step:
+
+    # emulator/cpu/opcodes.py
+    def asl_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        asl(cpu, addr)
+
+    OPCODE_TABLE = {
+        # existing entries unchanged
+        0x0E: asl_absolute,
+    }
+
+Important invariants:
+    - `absolute(cpu)` consumes low byte then high byte and returns a 16-bit address
+    - the three-byte instruction advances PC by three including the opcode
+    - `asl` reads and writes the resolved memory location and updates C, Z, and N
+    - A and X are unchanged
+
+Common misconception:
+For `0E 00 02`, little-endian decoding targets $0200, not $0002.
+
+Out of scope:
+    - ASL Absolute,X in Test 094
+    - changes to absolute addressing or ASL semantics
+    - cycle timing
 """
 import inspect
 

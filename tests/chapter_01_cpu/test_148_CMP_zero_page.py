@@ -1,14 +1,29 @@
-"""
-Add CMP Zero Page.
+"""Lesson 148: add CMP zero-page opcode ``0xC5``.
 
-Opcode:
-    0xC5 -> CMP $nn
+Why this step exists:
+CMP must compare A with memory as well as literals; this form resolves a compact
+zero-page address and passes the fetched byte to the common comparison logic.
 
-Goal:
-create cmp_zero_page(cpu), use zero_page(cpu), read memory, then cmp(cpu, value).
+In this step, lessons 146-147 already provide CMP semantics, import, and
+immediate wiring.  Add exactly the following to ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-The operand byte is the zero-page address where the compared value lives.
+    def cmp_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        value = cpu.bus.read(addr)
+        cmp(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0xC5: cmp_zero_page,
+    }
+
+The operand names a zero-page location; its bus value, not the address byte,
+is compared with A.  C/Z/N may change; A, Overflow, X, Y, and memory remain
+invariant; PC advances two bytes.
+
+Misconception: ``C5 10`` compares against ``RAM[$0010]``, not literal
+``$10``.  Out of scope: indexed zero page is lesson 149 and wider/indirect CMP
+modes are lessons 150-154.
 """
 import inspect
 

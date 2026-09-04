@@ -1,42 +1,36 @@
 """
-Create the INesHeader data class.
+Lesson 213: add
+`emulator/cartridge/ines.py::INesHeader`.
 
-Class to implement:
-    INesHeader
+Why this step exists:
+The object gives names to immutable metadata from the first 16 bytes and retains
+raw flags for later format features instead of making downstream code reparse
+the source bytes. Lesson 212's layout constants are the prerequisite vocabulary
+for the header represented here.
 
-Why this class exists:
-The first 16 bytes of an iNES file are the header. The header does not contain
-CPU instructions. It contains metadata that tells the emulator how to interpret
-the rest of the file.
+Suggested implementation after lesson 212's constants:
 
-Required fields:
-    prg_rom_banks: int
-        Number of 16KB PRG ROM banks. PRG ROM is what the CPU executes/reads.
+    from dataclasses import dataclass
 
-    chr_rom_banks: int
-        Number of 8KB CHR ROM banks. CHR ROM is graphics pattern data for the
-        PPU later.
 
-    mapper_number: int
-        Identifies which mapper/hardware layout the cartridge uses. For the next
-        stage, mapper 0 / NROM is the first one we will support.
+    @dataclass(frozen=True)
+    class INesHeader:
+        prg_rom_banks: int
+        chr_rom_banks: int
+        mapper_number: int
+        has_trainer: bool
+        flags_6: int
+        flags_7: int
 
-    has_trainer: bool
-        True when the file contains an optional 512-byte trainer after the
-        header. If present, ROM extraction must skip it.
+Invariants: field order is exact, and the dataclass is frozen because parsed
+metadata is a fact about the file. `prg_rom_banks` and `chr_rom_banks` remain
+counts, not byte lengths. Do not discard `flags_6`/`flags_7` after deriving the
+trainer and mapper values.
 
-    flags_6: int
-        Raw header byte 6. It stores mirroring/trainer bits and the lower nibble
-        of the mapper number.
-
-    flags_7: int
-        Raw header byte 7. It stores console/file-format bits and the upper
-        nibble of the mapper number.
-
-Why keep raw flags too?
-Even if we do not use every bit today, keeping flags_6 and flags_7 preserves the
-parsed facts so future mapper/mirroring features can use them without reparsing
-the original file bytes.
+Out of scope for this step:
+    1. Lesson 214 parses and validates the header bytes.
+    2. Lessons 215-216 represent and extract the ROM sections.
+    3. Mapper behavior and interpretation of mirroring bits come later.
 """
 
 import dataclasses

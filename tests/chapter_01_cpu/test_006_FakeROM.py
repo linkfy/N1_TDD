@@ -1,12 +1,50 @@
 """
-At this point we have a MemoryDevice Abstract Class
+Test 006 — Create writable FakeROM storage for CPU tests.
 
-It has the methods that we need to read+write on RAM and also on Fake ROMs
+File to create:
+    emulator/memory/fake_rom.py
 
-Let's create a FakeROM device to test it
+Location:
+    class FakeROM(MemoryDevice)
 
-The CpuBus will be responsible for mapping CPU addresses
-to the appropriate memory device.
+Why this step exists:
+Instruction tests need deterministic program bytes before real cartridge parsing is
+available. FakeROM models the maximum $8000-$FFFF PRG window as 0x8000 local bytes and
+allows tests to populate it directly.
+
+Complete example implementation:
+
+    from dataclasses import dataclass, field
+
+    from emulator.memory.memory_device import MemoryDevice
+
+
+    @dataclass
+    class FakeROM(MemoryDevice):
+        _data: bytearray = field(
+            default_factory=lambda: bytearray(0x8000),
+            init=False,
+        )
+
+        def read(self, addr: int) -> int:
+            return self._data[addr]
+
+        def write(self, addr: int, value: int) -> None:
+            self._data[addr] = value
+
+Important invariants:
+    - FakeROM stores exactly 0x8000 bytes
+    - its addresses are local offsets $0000-$7FFF
+    - writes exist only to arrange test programs and data
+
+Common misconception:
+FakeROM is not a real cartridge mapper and its write method does not claim that NES
+PRG ROM is writable. It is controlled test infrastructure.
+
+Out of scope:
+    - mapping FakeROM into CPU addresses
+    - iNES parsing
+    - bank switching
 """
 
 from pathlib import Path

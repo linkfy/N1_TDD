@@ -1,5 +1,15 @@
-"""
-Add RTS Implied.
+"""Step 187: wire implied RTS opcode $60.
+
+Prerequisite: step 186 supplied ``rts``. In this step, add its import and direct
+table mapping in
+``emulator/cpu/opcodes.py``:
+
+    from emulator.cpu.instructions import rts
+
+    OPCODE_TABLE = {
+        # existing entries...
+        0x60: rts,
+    }
 
 Opcode:
     0x60 -> RTS
@@ -22,6 +32,16 @@ Execution steps:
 
 Common mistake:
 Do not fetch an operand byte for RTS. It is an implied instruction.
+
+Why this step exists:
+``CPU.step`` has already consumed the sole opcode byte, and ``rts``
+gets its return word from the stack, so no wrapper or addressing mode is
+needed.  Invariants: $60 maps directly to the one-argument function; dispatch
+does not consume $8001; RTS alone performs the two pulls and PC update.
+Misconception: every opcode does not require a named handler.
+
+Out of scope: flag helpers and BRK are steps 188-190; RTI and opcode $40 are
+steps 191-192.
 """
 import inspect
 

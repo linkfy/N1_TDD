@@ -1,11 +1,45 @@
 """
-Add ADC Absolute.
+Test 057 - Connect ADC absolute (opcode $6D) to CPU dispatch.
 
-Opcode:
-    0x6D -> ADC $hhhh
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute(cpu), read value, then adc(cpu, value).
+Symbols to create/update:
+    opcodes.adc_absolute
+    OPCODE_TABLE[$6D]
+
+Why this step exists:
+Absolute mode expands ADC to a little-endian 16-bit operand address. The
+existing `absolute` helper consumes that word; the opcode handler reads the
+addressed byte and delegates arithmetic to `adc`.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def adc_absolute(cpu):
+        addr = absolute(cpu)
+        value = cpu.bus.read(addr)
+        adc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ...existing entries...
+        0x6D: adc_absolute,
+    }
+
+Important invariants:
+    - `absolute` combines the low operand byte before the high operand byte
+    - the handler reads from the resulting 16-bit address
+    - PC advances by three bytes total
+    - `adc` remains the sole owner of arithmetic and flag behavior
+
+Common misconception:
+Do not pass the fetched 16-bit address to `adc`; first read the byte stored at
+that address.
+
+Out of scope:
+    - absolute,X and absolute,Y ADC modes
+    - page-crossing timing
+    - changes to `absolute` or `adc`
 """
 import inspect
 

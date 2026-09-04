@@ -1,14 +1,30 @@
-"""
-Add CMP Absolute,Y.
+"""Lesson 152: add CMP absolute,Y opcode ``0xD9``.
 
-Opcode:
-    0xD9 -> CMP $hhhh,Y
+Why this step exists:
+Absolute,Y provides the corresponding indexed comparison through Y while
+reusing the shared CMP behavior.
 
-Goal:
-create cmp_absolute_y(cpu), use absolute_y(cpu), read memory, then cmp(cpu, value).
+In this step, lesson 151 has already added absolute,X.  Add exactly the
+following to ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Decode the 16-bit base address first, then add Y.
+    def cmp_absolute_y(cpu: CPU):
+        addr = absolute_y(cpu)
+        value = cpu.bus.read(addr)
+        cmp(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0xD9: cmp_absolute_y,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute_y`` fetches the little-endian
+base word and adds Y before the bus read.  ``instructions.cmp`` changes only
+C/Z/N; A, Y, memory, and Overflow remain invariant, while opcode plus word
+advances PC three bytes.
+
+Misconception: Y modifies the effective address, not the fetched value, and
+the base bytes are not big-endian.  Out of scope: CMP indirect,X and
+indirect,Y (153-154), then CPX/CPY (155-162).
 """
 import inspect
 

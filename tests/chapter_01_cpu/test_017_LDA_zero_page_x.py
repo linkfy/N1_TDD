@@ -1,18 +1,52 @@
 """
-Add one more LDA addressing mode: Zero Page,X.
+Test 017 — Add zero-page,X LDA ($B5).
 
-Create one function inside emulator/cpu/addressing_modes.py:
+Files to update:
+    emulator/cpu/addressing_modes.py
+    emulator/cpu/opcodes.py
 
-    def zero_page_x(cpu):
-        ...
+Locations:
+    addressing_modes.zero_page_x
+    opcodes.lda_zero_page_x
+    opcodes.OPCODE_TABLE[$B5]
 
-Then create one opcode handler inside emulator/cpu/opcodes.py:
+Why this step exists:
+Zero-page,X adds register X to an 8-bit base address. The addition wraps within page
+$00 rather than carrying into page $01.
 
-    def lda_zero_page_x(cpu):
-        ...
+Complete example implementation:
 
-The goal is simple:
-learn how the X register can change the final address.
+    # emulator/cpu/addressing_modes.py
+    def zero_page_x(cpu) -> int:
+        base = cpu.fetch_byte()
+        return (base + cpu.x) & 0xFF
+
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import zero_page_x
+
+
+    def lda_zero_page_x(cpu) -> None:
+        address = zero_page_x(cpu)
+        lda(cpu, cpu.bus.read(address))
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xB5: lda_zero_page_x,
+    }
+
+Important invariant:
+    final_address = (operand + X) & 0xFF
+
+Common misconception:
+$FF + X=$01 produces $0000, not $0100. This wrapping rule is specific to zero-page
+indexed addressing.
+
+Out of scope:
+    - absolute,X page crossing
+    - zero-page,Y
+    - cycle timing
 """
 import inspect
 

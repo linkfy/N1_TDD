@@ -1,44 +1,29 @@
 """
-Create the iNES parser file and top-level constants.
+Lesson 212: define iNES layout constants in
+`emulator/cartridge/ines.py`.
 
-File to create:
-    emulator/cartridge/ines.py
+Why this step exists:
+The iNES format belongs under `cartridge`, not generic memory, because these
+values describe a cartridge file container. Defining the shared sizes first
+gives the following parser lessons one consistent description of that layout.
 
-Why a new cartridge folder?
-The iNES format describes a NES cartridge file. It is not just generic memory.
+Suggested implementation:
 
-    emulator/memory/rom.py
-        Generic read-only bytes.
-
-    emulator/cartridge/ines.py
-        Knows how to parse the .nes/iNES file format.
-
-Design rule:
-Keep file-format parsing separate from CPU execution, CPU bus mapping, and raw
-memory devices.
-
-Constants to define:
     INES_MAGIC = b"NES\x1A"
-        The first four bytes that identify an iNES file.
-
     INES_HEADER_SIZE = 16
-        Every iNES file starts with a 16-byte header.
-
     TRAINER_SIZE = 512
-        Some old ROMs include an optional 512-byte trainer after the header.
-
     PRG_ROM_BANK_SIZE = 16 * 1024
-        Header byte 4 stores the number of 16KB PRG ROM banks.
-        PRG ROM is program code/data visible to the CPU.
-
     CHR_ROM_BANK_SIZE = 8 * 1024
-        Header byte 5 stores the number of 8KB CHR ROM banks.
-        CHR ROM is graphics pattern data used by the PPU later.
 
-Why this is the first iNES step:
-Before parsing fields or extracting ROM sections, students need stable names for
-the file-format sizes. This keeps later code readable and avoids magic numbers
-like 16, 512, 16384, and 8192 spread through the parser.
+Invariants: magic is exactly four bytes; headers and trainers are fixed-size;
+header bytes 4 and 5 count 16 KiB PRG and 8 KiB CHR banks, respectively. Do not
+mistake bank counts for byte lengths or put these format constants in
+`emulator/memory/rom.py`.
+
+Out of scope for this step:
+    1. Lesson 213 adds `INesHeader`.
+    2. Lesson 214 adds `parse_ines_header`.
+    3. Lessons 215-216 add `INesRom` and `parse_ines_rom`.
 """
 
 import importlib
@@ -47,8 +32,7 @@ from pathlib import Path
 
 def test_cartridge_folder_and_ines_file_exist():
     """
-    Objective:
-    Create a new cartridge folder and an ines.py file inside it.
+    Objective: place the iNES format constants in the cartridge package.
     """
     assert Path("emulator/cartridge").exists()
     assert Path("emulator/cartridge/ines.py").exists()

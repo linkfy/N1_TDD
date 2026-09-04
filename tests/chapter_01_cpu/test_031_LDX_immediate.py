@@ -1,11 +1,47 @@
 """
-Add LDX Immediate.
+Test 031 - Add LDX immediate ($A2).
 
-Opcode:
-    0xA2 -> LDX #$nn
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use immediate(cpu), then ldx(cpu, value).
+Locations:
+    opcodes import of ldx
+    opcodes.ldx_immediate
+    opcodes.OPCODE_TABLE[$A2]
+
+Why this step exists:
+Test 030 introduced the value-level `ldx` instruction. This lesson connects its
+first machine-code encoding by fetching the literal operand and delegating register
+and flag behavior to that existing instruction.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.instructions import lda, sta, ldx
+
+
+    def ldx_immediate(cpu: CPU):
+        ldx(cpu, immediate(cpu))
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xA2: ldx_immediate,
+    }
+
+Important invariants:
+    - $A2 maps to ldx_immediate
+    - immediate fetches exactly one byte, so the full instruction advances PC by two
+    - the operand byte itself is loaded into X; it is not used as an address
+    - `ldx` remains responsible for updating Zero and Negative
+
+Common misconception:
+Do not read memory at the operand's numeric value. `A2 42` loads $42 itself into X.
+
+Out of scope:
+    - zero-page, zero-page,Y, and absolute LDX encodings
+    - changes to immediate or ldx
+    - cycle timing
 """
 import inspect
 

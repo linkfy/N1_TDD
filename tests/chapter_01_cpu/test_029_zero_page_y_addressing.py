@@ -1,13 +1,39 @@
 """
-Add one more addressing mode: Zero Page,Y.
+Test 029 — Add zero-page,Y addressing.
 
-Create one function inside emulator/cpu/addressing_modes.py:
+File to update:
+    emulator/cpu/addressing_modes.py
 
-    def zero_page_y(cpu):
-        ...
+Location:
+    addressing_modes.zero_page_y
 
-Goal:
-read one byte, add register Y, and keep the result inside page $00.
+Why this step exists:
+Some later instruction encodings index a zero-page operand with Y rather than X.
+This lesson introduces only that reusable address calculation, parallel to Test 017's
+`zero_page_x`, before connecting it to any opcode.
+
+Complete example implementation:
+
+    # emulator/cpu/addressing_modes.py
+    def zero_page_y(cpu) -> int:
+        base = cpu.fetch_byte()
+        address = (base + cpu.y) & 0xFF
+        return address
+
+Important invariants:
+    - exactly one operand byte is fetched
+    - Y, not X, is added to the operand
+    - the result wraps to eight bits and therefore remains in page $00
+    - the helper returns an address and performs no memory read at that address
+
+Common misconception:
+Mask the sum, not merely the operand: `$FF + $01` must become $0000 rather than
+$0100.
+
+Out of scope:
+    - adding or changing opcode handlers
+    - the LDX instruction itself
+    - cycle timing
 """
 import inspect
 
@@ -65,7 +91,7 @@ def test_zero_page_y_wraps_inside_page_zero():
     Zero Page,Y wraps inside page $00.
 
     Example:
-    0xFF + Y=0x01 becomes 0x00, not 0x0100.
+    0xFF + Y where Y is 0x01 becomes 0x00, not 0x0100.
     """
     cpu, _, rom = make_cpu_with_rom()
 

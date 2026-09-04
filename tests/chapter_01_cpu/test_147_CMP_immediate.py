@@ -1,14 +1,30 @@
-"""
-Add CMP Immediate.
+"""Lesson 147: add CMP immediate opcode ``0xC9``.
 
-Opcode:
-    0xC9 -> CMP #$nn
+Why this step exists:
+The immediate form first exposes CMP through CPU execution, comparing A with a
+literal byte while leaving all comparison flag logic in the shared primitive.
 
-Goal:
-create cmp_immediate(cpu), use immediate(cpu), then cmp(cpu, value).
+In this step, lesson 146 already adds ``cmp``.  As CMP's first opcode lesson,
+add its import and exactly the following handler/table entry in
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Immediate mode returns the compared value directly. CMP does not modify A.
+    from emulator.cpu.instructions import (..., cmp)
+
+    def cmp_immediate(cpu: CPU):
+        cmp(cpu, immediate(cpu))
+
+    OPCODE_TABLE = {
+        ...
+        0xC9: cmp_immediate,
+    }
+
+``addressing_modes.immediate`` returns the fetched operand value directly, so
+there is no data-memory read.  C/Z/N may change; A, Overflow, X, Y, and memory
+are invariant; opcode plus operand advances PC two bytes.
+
+Misconception: immediate CMP does not treat its operand as an address or store
+the subtraction.  Out of scope: CMP memory modes are lessons 148-154; CPX and
+CPY remain later lessons.
 """
 import inspect
 

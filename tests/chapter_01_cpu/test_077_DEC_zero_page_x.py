@@ -1,11 +1,31 @@
-"""
-Add DEC Zero Page,X.
+"""Lesson 077: wire DEC Zero Page,X (`0xD6`).
 
-Opcode:
-    0xD6 -> DEC $nn,X
+In this step, with `dec` imported by lesson 076, add
+`emulator/cpu/opcodes.py:dec_zero_page_x` and `OPCODE_TABLE[0xD6]` only.
 
-Goal:
-use zero_page_x(cpu), then dec(cpu, address).
+Why this step exists:
+Delegate indexed page-zero address calculation to the existing
+addressing helper and memory mutation to the existing DEC primitive.
+
+Suggested implementation in `emulator/cpu/opcodes.py`:
+
+    def dec_zero_page_x(cpu: CPU):
+        addr = zero_page_x(cpu)
+        dec(cpu, addr)
+
+Add this exact entry to the existing `OPCODE_TABLE`:
+
+    0xD6: dec_zero_page_x,
+
+Invariants: one operand byte is consumed; base plus X wraps at `$FF` within page
+zero; PC advances to the next two-byte instruction; DEC writes an 8-bit result
+and updates only Z/N.
+
+Misconception: `$FF,X` with X=1 does not target `$0100`; zero-page indexed
+addressing resolves `$0000` before DEC runs.
+
+Out of scope: `dec_absolute`/`0xCE` and `dec_absolute_x`/`0xDE` are lessons
+078-079.
 """
 import inspect
 

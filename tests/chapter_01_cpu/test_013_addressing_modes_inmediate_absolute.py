@@ -1,17 +1,63 @@
 """
-Refactor the addressing code we already have in CPU.step().
+Test 013 — Extract immediate and absolute addressing modes.
 
-Create two functions inside emulator/cpu/addressing_modes.py:
+Files to update:
+    emulator/cpu/addressing_modes.py
+    emulator/cpu/cpu.py
 
-    def immediate(cpu):
-        ...
+Locations:
+    addressing_modes.immediate
+    addressing_modes.absolute
+    CPU.step, existing $A9 and $AD branches
 
-    def absolute(cpu):
-        ...
+Why this step exists:
+Addressing modes determine where an instruction gets its operand. Separating that
+mechanism keeps CPU.step focused on opcode selection while preserving the behavior
+already established for immediate and absolute LDA.
 
-The goal is simple:
-move the code that gets values or addresses out of CPU.step().
-This will make CPU.step() smaller and easier to read.
+Complete example implementation:
+
+    # emulator/cpu/addressing_modes.py
+    def immediate(cpu) -> int:
+        return cpu.fetch_byte()
+
+
+    def absolute(cpu) -> int:
+        return cpu.fetch_word()
+
+
+    # emulator/cpu/cpu.py
+    from emulator.cpu.addressing_modes import absolute, immediate
+
+
+    class CPU:
+        def step(self) -> None:
+            opcode = self.fetch_byte()
+
+            if opcode == 0xA9:
+                self.a = immediate(self)
+            elif opcode == 0xAD:
+                address = absolute(self)
+                self.a = self.bus.read(address)
+            else:
+                raise NotImplementedError(
+                    f"Opcode ${opcode:02X} is not implemented"
+                )
+
+            self._update_zero_and_negative_flags(self.a)
+
+Important distinction:
+`immediate(cpu)` returns a value. `absolute(cpu)` returns an address that the opcode
+path must dereference through the bus.
+
+Common misconception:
+Do not make every addressing mode return a loaded value. Store instructions will also
+need addresses, so address-producing modes should remain independent of LDA.
+
+Out of scope:
+    - instructions.lda, introduced in Test 014
+    - zero-page and indexed addressing
+    - an opcode table
 """
 import inspect
 
@@ -58,7 +104,7 @@ def test_absolute_addressing_mode_exists():
     - Read the next two bytes from the CPU bus.
     - The first byte is low.
     - The second byte is high.
-    - Return the final address.
+    - Return the final address without reading from it.
 
     Example:
     AD 34 12 means LDA $1234.
@@ -70,19 +116,3 @@ def test_absolute_addressing_mode_exists():
     assert callable(addressing_modes.absolute)
     assert list(inspect.signature(addressing_modes.absolute).parameters) == ["cpu"]
     assert cpu is not None
-
-
-"""
-At this point, code inside cpu step should have something like:
-    ...
-    ...
-    if opcode == 0xA9: # LDA Inmediate
-        return lda(self, immediate(self))
-
-    elif opcode == 0xAD: # LDA Absolute
-        addr = absolute(self)
-        value = self.bus.read(addr)
-        return lda(self, value)
-    ...
-        
-"""

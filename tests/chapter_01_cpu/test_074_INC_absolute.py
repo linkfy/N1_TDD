@@ -1,11 +1,30 @@
-"""
-Add INC Absolute.
+"""Lesson 074: wire INC Absolute (`0xEE`).
 
-Opcode:
-    0xEE -> INC $hhhh
+In this step, with `inc` already imported, add
+`emulator/cpu/opcodes.py:inc_absolute` and `OPCODE_TABLE[0xEE]` only.
 
-Goal:
-use absolute(cpu), then inc(cpu, address).
+Why this step exists:
+`addressing_modes.absolute` centralizes little-endian decoding of the
+two-byte address while the existing INC primitive performs the read-modify-write.
+
+Suggested implementation in `emulator/cpu/opcodes.py`:
+
+    def inc_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        inc(cpu, addr)
+
+Add this exact entry to the existing `OPCODE_TABLE`:
+
+    0xEE: inc_absolute,
+
+Invariants: the low operand byte precedes the high byte; `absolute(cpu)` consumes
+both and advances PC twice; `EE 00 02` targets `$0200`; total instruction length
+is three bytes; INC updates memory and Z/N, not registers, Carry, or Overflow.
+
+Misconception: do not reverse the operand bytes or pass the fetched byte value to
+`inc`; the helper returns the effective 16-bit address.
+
+Out of scope: `inc_absolute_x` and `OPCODE_TABLE[0xFE]` are lesson 075.
 """
 import inspect
 

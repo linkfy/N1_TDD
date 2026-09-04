@@ -1,15 +1,28 @@
-"""
-Add EOR Immediate.
+"""Lesson 135: expose EOR immediate opcode ``0x49``.
 
-Opcode:
-    0x49 -> EOR #$nn
+Why this step exists:
+The immediate form makes EOR executable with a literal operand and establishes
+the opcode-layer delegation to the shared exclusive-OR primitive.
 
-Goal:
-create eor_immediate(cpu), use immediate(cpu), then or_e(cpu, value).
+In this step, after lesson 134 introduces ``or_e``, add ``or_e`` to the
+instruction import and add the following in ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Immediate mode returns the operand value directly. Do not read from memory
-again for the operand.
+    def eor_immediate(cpu: CPU):
+        or_e(cpu, immediate(cpu))
+
+    OPCODE_TABLE = {
+        ...
+        0x49: eor_immediate,
+    }
+
+``emulator/cpu/addressing_modes.py::immediate`` calls ``CPU.fetch_byte`` and
+returns the operand value while advancing PC.  No second bus read is needed by
+the handler.  ``instructions.or_e`` writes A and updates Z/N; Carry/Overflow,
+memory, X, and Y remain invariant, and opcode plus operand advances PC twice.
+
+Misconception: immediate mode supplies a value, not an address to dereference.
+Out of scope: all memory-addressed EOR handlers (lessons 136-142) and BIT
+(143-145).
 """
 import inspect
 

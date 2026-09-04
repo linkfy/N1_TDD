@@ -1,14 +1,46 @@
 """
-Add SBC Immediate.
+Test 063 - Add SBC Immediate.
 
-Opcode:
-    0xE9 -> SBC #$nn
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use immediate(cpu), then sbc(cpu, value).
+Symbols to add/update:
+    the `sbc` import, opcodes.sbc_immediate, and OPCODE_TABLE[0xE9]
 
-Reference:
-https://www.nesdev.org/wiki/Instruction_reference#SBC
+Why this step exists:
+This is the first opcode wrapper for the core `sbc` instruction. Immediate mode
+already returns the operand value, so the wrapper only resolves and delegates.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.instructions import (
+        lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc, sbc,
+    )
+
+    def sbc_immediate(cpu: CPU):
+        value = immediate(cpu)
+        sbc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0xE9: sbc_immediate,
+    }
+
+Important invariants:
+    - opcode $E9 maps to `sbc_immediate`
+    - `immediate` fetches and returns exactly one operand byte
+    - that returned value is passed directly to `sbc`
+    - executing the two-byte instruction advances PC by two bytes
+
+Common misconception:
+Do not read the bus using the result of `immediate`; unlike memory addressing
+helpers, it returns the operand value rather than an address.
+
+Out of scope:
+    - all memory-addressed SBC opcode wrappers
+    - changes to core SBC arithmetic or flags
+    - cycle timing and decimal mode
 """
 import inspect
 

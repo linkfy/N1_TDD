@@ -1,11 +1,43 @@
 """
-Add SBC (Indirect),Y.
+Test 070 - Add SBC (Indirect),Y.
 
-Opcode:
-    0xF1 -> SBC ($nn),Y
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use indirect_y(cpu), read value, then sbc(cpu, value).
+Symbols to add/update:
+    opcodes.sbc_indirect_y and OPCODE_TABLE[0xF1]
+
+Why this step exists:
+This final SBC addressing variant uses the existing `indirect_y` resolver to read
+a base pointer from zero page, add Y, and supply the target byte to `sbc`.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def sbc_indirect_y(cpu: CPU):
+        addr = indirect_y(cpu)
+        value = cpu.bus.read(addr)
+        sbc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0xF1: sbc_indirect_y,
+    }
+
+Important invariants:
+    - `indirect_y` reads the zero-page pointer before adding Y
+    - the handler reads the byte at the final address exactly once
+    - the read value is passed to `sbc`, which owns A and flag updates
+    - executing the two-byte instruction advances PC by two bytes
+
+Common misconception:
+(Indirect),Y does not add Y to the zero-page pointer location before dereferencing;
+that pre-indexing behavior belongs to (Indirect,X).
+
+Out of scope:
+    - later INC and other instruction families
+    - changes to indirect addressing or SBC arithmetic
+    - cycle timing and page-cross penalties
 """
 import inspect
 

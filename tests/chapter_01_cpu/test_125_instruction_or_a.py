@@ -1,15 +1,30 @@
-"""
-Add the ORA instruction behavior.
+"""Lesson 125: implement addressing-independent ORA behavior.
 
-Instruction:
-    ORA -> A = A | value
+Why this step exists:
+A single value-oriented ORA primitive centralizes inclusive-OR result and flag
+rules before opcode handlers introduce the individual addressing forms.
 
-Goal:
-implement or_a(cpu, value) in instructions.py.
+In this step, after lessons 116-124 complete AND, add only this symbol to
+``emulator/cpu/instructions.py``:
 
-Student guidance:
-6502 calls bitwise OR `ORA`. It always stores the result in A. The operand can
-come from immediate mode or memory, so this function receives a value.
+    def or_a(cpu: CPU, value: int):
+        result_8 = (cpu.a | value) & 0xFF
+
+        # Flags:
+        cpu.flags.set_zero_flag(result_8 == 0)
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+
+        cpu.a = result_8
+
+The value-oriented API keeps ORA semantics independent of addressing.  The
+eight-bit result is stored in A; Zero reflects equality to zero and Negative
+reflects result bit 7.  Carry, Overflow, memory, X, Y, and PC are invariant
+because ``or_a`` does not touch them.
+
+Misconception: ORA means inclusive bitwise OR, not XOR, and ``value`` is not a
+bus address.  Out of scope: importing ``or_a`` into
+``emulator/cpu/opcodes.py`` and all ORA handlers (lessons 126-133), plus the
+EOR and BIT symbols introduced in lessons 134 and 143.
 """
 
 from emulator.cpu.instructions import or_a

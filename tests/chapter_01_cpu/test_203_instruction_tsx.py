@@ -1,43 +1,24 @@
-"""
-Add the TSX instruction behavior.
+"""Step 203: implement the TSX operation.
 
-Instruction:
-    TSX -> Transfer Stack Pointer to X
+Why this step exists:
+In this step, add ``emulator/cpu/instructions.py::tsx``. TSX complements
+step 201 by copying the stack-pointer byte into X and deriving the two result
+flags from the copied value.
 
-Goal:
-implement tsx(cpu) in instructions.py.
+Suggested implementation::
 
-Student guidance:
-TSX copies the stack pointer S into register X.
+    def tsx(cpu: CPU):
+        cpu.x = cpu.s
+        cpu.flags.set_zero_flag(cpu.x == 0)
+        cpu.flags.set_negative_flag((cpu.x & 0b1000_0000) != 0)
 
-Important details:
-    - S is only the low byte of the stack address.
-    - TSX copies that low byte into X.
-    - TSX updates Zero and Negative flags from the new X value.
-    - TSX does not modify S.
+Invariants: S, A, Y, PC, memory, and status bits other than Zero and Negative
+are unchanged.  Zero is set exactly for $00; Negative follows bit 7, not bit 6.
+The common misconception is to treat TSX like TXS and preserve every flag, or
+to calculate flags from X before copying S.
 
-Important difference from TXS:
-    TXS does not update flags.
-    TSX does update Zero and Negative flags.
-
-Example:
-    S = $80
-
-After TSX:
-    X = $80
-    Negative flag = set
-    Zero flag = clear
-
-Common mistakes:
-    - Forgetting to update Zero/Negative.
-    - Updating flags from old X instead of the copied S value.
-    - Modifying S by accident.
-
-Implementation shape:
-
-    cpu.x = cpu.s
-    cpu.flags.set_zero_flag(cpu.x == 0)
-    cpu.flags.set_negative_flag((cpu.x & 0x80) != 0)
+Out of scope: importing TSX and mapping implied opcode $BA in
+``emulator/cpu/opcodes.py`` belongs to step 204; no other stack API is added.
 """
 
 from emulator.cpu.instructions import tsx

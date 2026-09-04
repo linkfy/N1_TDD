@@ -1,15 +1,43 @@
 """
-Add LSR Zero Page.
+Test 098 - Add LSR Zero Page.
 
-Opcode:
-    0x46 -> LSR $nn
+In this step, expose memory `lsr` from Test 095 through its first addressed
+opcode.
 
-Goal:
-create lsr_zero_page(cpu), use zero_page(cpu), then lsr(cpu, address).
+File and symbols:
+    emulator/cpu/opcodes.py: imported lsr, lsr_zero_page, OPCODE_TABLE[0x46]
 
-Student guidance:
-The operand byte is the zero-page address, not the value to shift. For
-`46 10`, read/modify/write RAM[$0010].
+Why this step exists:
+With memory `lsr` already defined by Test 095, this transition introduces its first
+addressed opcode and keeps operand decoding separate from instruction behavior.
+
+Suggested implementation for this step:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.instructions import lsr
+
+    def lsr_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        lsr(cpu, addr)
+
+    OPCODE_TABLE = {
+        # existing entries unchanged
+        0x46: lsr_zero_page,
+    }
+
+Important invariants:
+    - `zero_page(cpu)` consumes one operand and yields an address in $0000-$00FF
+    - `lsr` performs read/modify/write and replaces C/Z/N
+    - the two-byte instruction advances PC by two
+    - A is unchanged
+
+Common misconception:
+For `46 10`, the operand 0x10 identifies RAM[$0010]; it is not the shifted value.
+
+Out of scope:
+    - indexed and absolute LSR forms in Tests 099-101
+    - changes to `zero_page` or `lsr`
+    - cycle-accurate bus behavior
 """
 import inspect
 

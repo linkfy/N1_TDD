@@ -1,20 +1,29 @@
-"""
-Add the CPX instruction behavior.
+"""Lesson 155: implement addressing-independent CPX behavior.
 
-Instruction:
-    CPX -> compare X with value
+Why this step exists:
+CPX needs one value-oriented definition of its no-borrow, equality, and
+wrapped-subtraction flags before its addressing-specific opcodes are added.
 
-Goal:
-implement cpx(cpu, value) in instructions.py.
+In this step, after all CMP lessons, add exactly this symbol to
+``emulator/cpu/instructions.py``:
 
-Student guidance:
-CPX computes X - value for flags only. It does not store the subtraction result
-back into X.
+    def cpx(cpu: CPU, value: int):
+        result_8 = (cpu.x - value) & 0xFF
 
-Flags:
-    C = X >= value
-    Z = X == value
-    N = bit 7 of (X - value)
+        # Flags:
+        cpu.flags.set_carry_flag(cpu.x >= value)
+        cpu.flags.set_zero_flag(cpu.x == value)
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) !=0)
+
+The wrapped subtraction exists only to derive Negative.  Carry means no
+unsigned borrow (X >= value), and Zero tests equality.  X, the operand,
+memory, A, Y, PC, and Overflow are invariant because no result is stored and
+those locations are untouched.
+
+Misconception: CPX is not SBC and neither consumes Carry nor writes the
+subtraction back to X.  Out of scope: importing ``cpx`` into
+``emulator/cpu/opcodes.py`` and its immediate, zero-page, and absolute
+handlers (lessons 156-158), plus CPY (159-162).
 """
 
 from emulator.cpu.instructions import cpx

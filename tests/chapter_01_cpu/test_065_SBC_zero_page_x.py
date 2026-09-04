@@ -1,11 +1,43 @@
 """
-Add SBC Zero Page,X.
+Test 065 - Add SBC Zero Page,X.
 
-Opcode:
-    0xF5 -> SBC $nn,X
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use zero_page_x(cpu), read value, then sbc(cpu, value).
+Symbols to add/update:
+    opcodes.sbc_zero_page_x and OPCODE_TABLE[0xF5]
+
+Why this step exists:
+SBC now gains indexed zero-page access by composing the existing `zero_page_x`
+resolver with a memory read and the existing `sbc` instruction.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def sbc_zero_page_x(cpu: CPU):
+        addr = zero_page_x(cpu)
+        value = cpu.bus.read(addr)
+        sbc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0xF5: sbc_zero_page_x,
+    }
+
+Important invariants:
+    - `zero_page_x` fetches one operand, adds X, and wraps within page $00
+    - the handler reads the resolved address exactly once
+    - the read value, not its address, is passed to `sbc`
+    - executing the two-byte instruction advances PC by two bytes
+
+Common misconception:
+Do not reproduce indexing in the opcode wrapper or allow `$FF + X` to enter page
+$01; wrapping is already the responsibility of `zero_page_x`.
+
+Out of scope:
+    - absolute and indirect SBC wrappers
+    - changes to addressing helpers or SBC arithmetic
+    - cycle timing
 """
 import inspect
 

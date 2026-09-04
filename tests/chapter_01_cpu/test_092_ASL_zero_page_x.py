@@ -1,15 +1,40 @@
 """
-Add ASL Zero Page,X.
+Test 092 - Add ASL Zero Page,X.
 
-Opcode:
-    0x16 -> ASL $nn,X
+In this step, extend the Zero Page form from Test 091 with X indexing.
 
-Goal:
-create asl_zero_page_x(cpu), use zero_page_x(cpu), then asl(cpu, address).
+File and symbols:
+    emulator/cpu/opcodes.py: asl_zero_page_x, OPCODE_TABLE[0x16]
 
-Student guidance:
-Zero Page,X wraps inside the zero page. For base=0xFE and X=0x03, the final
-address is (0xFE + 0x03) & 0xFF == 0x01.
+Why this step exists:
+After Test 091 wired plain zero-page ASL, this transition reuses the established
+`zero_page_x` resolver so indexing and zero-page wrap remain addressing concerns.
+
+Suggested implementation for this step:
+
+    # emulator/cpu/opcodes.py
+    def asl_zero_page_x(cpu: CPU):
+        addr = zero_page_x(cpu)
+        asl(cpu, addr)
+
+    OPCODE_TABLE = {
+        # existing entries unchanged
+        0x16: asl_zero_page_x,
+    }
+
+Important invariants:
+    - the effective address is `(operand + cpu.x) & 0xFF`
+    - one operand byte is consumed, so PC advances by two including the opcode
+    - `asl` owns the memory write and Carry, Zero, and Negative updates
+    - indexing changes the destination, not the value passed to `asl`
+
+Common misconception:
+Zero Page,X does not spill into page one: base 0xFE plus X=0x03 targets $0001.
+
+Out of scope:
+    - ASL Absolute and Absolute,X in Tests 093-094
+    - changing `zero_page_x` or `asl`
+    - cycle timing
 """
 import inspect
 

@@ -1,46 +1,15 @@
-"""
-Add the RTI instruction behavior.
+"""Step 191: implement RTI behavior.
 
-Instruction:
-    RTI -> Return from Interrupt
+In this step, change only ``emulator/cpu/instructions.py`` by adding
+``rti(cpu)``. Prerequisite: step 188 introduced the required interrupt and Break
+flag APIs.
 
-Goal:
-implement rti(cpu) in instructions.py.
+Why this step exists:
+Interrupt entry leaves status, return-PC low, and return-PC high at
+the next three stack slots. RTI must pull those bytes in that LIFO order and
+restore the exact PC; unlike RTS, it must not add one.
 
-Student guidance:
-RTI is the matching return instruction for interrupt handling.
-
-BRK/interrupt entry pushes three bytes to the stack:
-
-    1. return PC high byte
-    2. return PC low byte
-    3. processor status flags
-
-Because the 6502 stack is last-in, first-out, RTI pulls them back in the
-opposite order:
-
-    1. status flags
-    2. PC low byte
-    3. PC high byte
-
-Important difference from RTS:
-    RTS pulls an address and then adds 1.
-    RTI restores the exact PC from the stack. It does not add 1.
-
-Example stack before RTI:
-
-    S = $FA
-    $01FB = $85    saved status flags
-    $01FC = $34    return PC low byte
-    $01FD = $12    return PC high byte
-
-After RTI:
-
-    P  = $85 with bits 4 and 5 cleared in this emulator model
-    PC = $1234
-    S  = $FD
-
-Implementation shape:
+Suggested implementation::
 
     cpu.s = (cpu.s + 1) & 0xFF
     flags = cpu.bus.read(0x0100 | cpu.s)
@@ -54,11 +23,17 @@ Implementation shape:
 
     cpu.pc = (high << 8) | low
 
-Common mistakes:
-    - Pulling PC before status.
-    - Adding 1 to PC like RTS.
-    - Reading stack before incrementing S.
-    - Keeping Break as persistent CPU state after RTI.
+Place those statements in ``def rti(cpu: CPU)``.
+
+Invariants: increment the 8-bit S before every read; read only stack page
+$0100; replace P after masking bits 4 and 5; pull low before high; increase S
+three times; leave the restored PC unincremented.
+
+Misconception: RTI is not RTS for interrupts. Applying RTS's final ``+ 1``
+returns to the wrong instruction.
+
+Out of scope: opcode import/registration at $40 belongs to step 192. NMI
+behavior belongs to later steps and must not be added here.
 """
 
 from emulator.cpu.instructions import rti

@@ -1,20 +1,40 @@
 """
-Add ASL Accumulator.
+Test 090 - Wire the ASL accumulator opcode.
 
-Opcode:
-    0x0A -> ASL A
+In this step, use `asl_a` from Test 089 and add only accumulator dispatch.
+Tests 091-094 add the memory forms.
 
-Goal:
-map opcode 0x0A directly to asl_a(cpu).
+Production location and symbols:
+    emulator/cpu/opcodes.py: imported `asl_a` and `OPCODE_TABLE[0x0A]`
 
-Student guidance:
-ASL A is a special ASL form because it does not decode a memory address.
-The destination is the accumulator register itself, so the opcode handler can
-call asl_a(cpu) directly.
+Why this step exists:
+Opcode 0x0A selects the accumulator itself, so dispatch can call `asl_a(cpu)`
+directly rather than resolving a memory address.
 
-Important:
-Do not use zero_page(cpu), absolute(cpu), or any other addressing helper here.
-Opcode 0x0A is one byte long, so PC advances by exactly 1.
+Suggested implementation for this step:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.instructions import asl_a  # alongside existing imports
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0x0A: asl_a,
+    }
+
+Important invariants:
+    - opcode 0x0A maps to the exact `asl_a(cpu)` function
+    - no addressing helper or memory read/write occurs
+    - this one-byte instruction advances PC by exactly one
+    - test 089's function owns A masking and C/Z/N updates
+
+Common misconception:
+ASL A is not zero-page ASL with an omitted operand; it is a distinct accumulator
+form and therefore needs no `asl_*` addressing wrapper.
+
+Out of scope:
+    - `asl_zero_page`, `asl_zero_page_x`, `asl_absolute`, and `asl_absolute_x`
+    - mappings 0x06, 0x16, 0x0E, and 0x1E from tests 091-094
+    - cycle timing and bus-accurate read-modify-write behavior
 """
 import inspect
 

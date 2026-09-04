@@ -1,14 +1,31 @@
-"""
-Add AND Absolute,X.
+"""Lesson 121: add AND absolute,X opcode ``0x3D``.
 
-Opcode:
-    0x3D -> AND $hhhh,X
+Why this step exists:
+Programs need AND over table-like memory addressed by a full base plus X; this
+step connects that effective-address calculation to the shared AND behavior.
 
-Goal:
-create and_absolute_x(cpu), use absolute_x(cpu), read memory, then and_a(cpu, value).
+In this step, with AND semantics and the unindexed absolute handler already
+present, add exactly this incremental code to ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Decode the 16-bit base address first, then add X.
+    def and_absolute_x(cpu: CPU):
+        addr = absolute_x(cpu)
+        value = cpu.bus.read(addr)
+        and_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x3D: and_absolute_x,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute_x`` fetches the little-endian
+base word, then adds ``cpu.x``.  The handler reads the resolved address and
+passes its value to ``instructions.and_a``.  A and Z/N change; X,
+Carry/Overflow, and memory are invariant; opcode plus word advances PC three
+bytes.
+
+Misconception: X indexes the decoded address, not either operand byte or the
+loaded value.  Out of scope: AND absolute,Y and indirect modes (lessons
+122-124), plus ORA/EOR/BIT work in lessons 125-145.
 """
 import inspect
 

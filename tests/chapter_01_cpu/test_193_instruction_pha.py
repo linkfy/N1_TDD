@@ -1,40 +1,28 @@
-"""
-Add the PHA instruction behavior.
+"""Step 193: implement PHA behavior.
 
-Instruction:
-    PHA -> Push Accumulator
+In this step, change only ``emulator/cpu/instructions.py`` by adding
+``pha(cpu)``. The stack page begins at ``STACK_BASE = 0x0100``.
 
-Goal:
-implement pha(cpu) in instructions.py.
+Why this step exists:
+PHA copies A to the 6502 hardware stack. A push writes to the
+current $0100 | S slot first and then decrements the 8-bit stack pointer.
 
-Student guidance:
-PHA saves the current value of register A on the CPU stack.
-
-6502 stack rule:
-    Push writes first, then decrements S.
-
-So if:
-    A = $42
-    S = $FD
-
-Then PHA must:
-    1. write $42 to $01FD
-    2. decrement S to $FC
-
-Important details:
-    - The stack lives in page $0100-$01FF.
-    - S is only the low byte of the stack address.
-    - PHA pushes A exactly as it is.
-    - PHA does not modify A.
-    - PHA does not modify status flags.
-
-Common mistake:
-Do not decrement S before writing. That would store A at the wrong stack slot.
-
-Implementation shape:
+Suggested implementation::
 
     cpu.bus.write(0x0100 | cpu.s, cpu.a)
     cpu.s = (cpu.s - 1) & 0xFF
+
+Place those statements in ``def pha(cpu: CPU)``; using the module-level
+``STACK_BASE = 0x0100`` in place of the literal is equivalent.
+
+Invariants: push exactly A; write before decrementing; wrap S to eight bits;
+leave A and all status flags unchanged.
+
+Misconception: pre-decrementing S does not implement a 6502 push; it writes to
+the next free slot rather than the current stack slot.
+
+Out of scope: importing/registering opcode $48 belongs to step 194. PLA, PHP,
+PLP, TXS, and TSX belong to later steps 195-204 and must not be added here.
 """
 
 from emulator.cpu.instructions import pha

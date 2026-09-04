@@ -1,15 +1,44 @@
 """
-Add the ASL memory instruction behavior.
+Test 088 - Add memory-targeted ASL behavior.
 
-Instruction:
-    ASL memory -> memory[address] = memory[address] << 1
+In this step, add the reusable memory instruction. Accumulator behavior is
+Test 089, and opcode wrappers start at Test 090.
 
-Goal:
-implement asl(cpu, address) in instructions.py for memory destinations.
+Production location and symbol:
+    emulator/cpu/instructions.py: `asl(cpu: CPU, addr: int)`
 
-Important:
-ASL stores old bit 7 into Carry, then writes the 8-bit shifted result back
-to memory. Zero and Negative are based on the final 8-bit result.
+Why this step exists:
+Memory ASL is a read-modify-write operation. The instruction function receives
+an already resolved address so later opcode handlers can share the same logic.
+
+Suggested implementation:
+
+    def asl(cpu: CPU, addr: int):
+        value = cpu.bus.read(addr)
+        result = value << 1
+        result_8 = result & 0xFF
+
+        # Set flags
+        cpu.flags.set_carry_flag((value & 0b1000_0000) != 0)
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+        cpu.flags.set_zero_flag(result_8 == 0)
+
+        cpu.bus.write(addr, result_8)
+
+Important invariants:
+    - Carry receives old bit 7, before the result is masked
+    - Zero and Negative reflect the final 8-bit result
+    - exactly the supplied address is read and written; A is unchanged
+    - all status bits other than C, Z, and N are preserved
+
+Common misconception:
+Carry does not come from the shifted result's bit 7; it captures the bit shifted
+out of the original value.
+
+Out of scope:
+    - accumulator-specific `asl_a` (test 089)
+    - opcode 0x0A and memory addressing wrappers (tests 090-094)
+    - cycle timing and bus-accurate dummy writes
 """
 
 from emulator.cpu.instructions import asl

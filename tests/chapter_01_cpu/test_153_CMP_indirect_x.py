@@ -1,15 +1,30 @@
-"""
-Add CMP (Indirect,X).
+"""Lesson 153: add CMP (indirect,X) opcode ``0xC1``.
 
-Opcode:
-    0xC1 -> CMP ($nn,X)
+Why this step exists:
+The (indirect,X) form lets CMP use pre-indexed zero-page pointer tables while
+leaving pointer resolution to the addressing helper.
 
-Goal:
-create cmp_indirect_x(cpu), use indirect_x(cpu), read memory, then cmp(cpu, value).
+In this step, after lessons 146-152, add exactly the following to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Indirect,X adds X to the zero-page operand first, then reads the 16-bit pointer
-from zero page.
+    def cmp_indirect_x(cpu: CPU):
+        addr = indirect_x(cpu)
+        value = cpu.bus.read(addr)
+        cmp(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0xC1: cmp_indirect_x,
+    }
+
+``emulator/cpu/addressing_modes.py::indirect_x`` fetches the operand, computes
+``(base + X) & 0xFF``, and reads a little-endian pointer whose high-byte lookup
+also wraps in zero page.  The handler then reads the pointed value.  Only
+C/Z/N change; A, X, pointer bytes, target memory, and Overflow are invariant;
+the opcode and operand advance PC two bytes.
+
+Misconception: X is applied before dereferencing, not to the final 16-bit
+address.  Out of scope: CMP (indirect),Y (154) and CPX/CPY (155-162).
 """
 import inspect
 

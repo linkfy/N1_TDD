@@ -1,39 +1,22 @@
-"""
-Add the NOP instruction behavior.
+"""Step 208: implement the NOP operation.
 
-Instruction:
-    NOP -> No Operation
+Why this step exists:
+In this step, add ``emulator/cpu/instructions.py::nop``. The explicit no-op
+gives the official instruction a callable while leaving opcode-fetch concerns
+to CPU.step.
 
-Goal:
-implement nop(cpu) in instructions.py.
+Suggested implementation::
 
-Student guidance:
-NOP intentionally does nothing.
-
-That may feel strange, but it is useful for timing, padding, debugging, and
-alignment. In this emulator architecture, CPU.step() already fetches the opcode
-and advances PC. Therefore nop(cpu) itself should not change PC or any CPU
-state.
-
-Important timeline:
-    Before CPU.step():
-        PC = $8000
-
-    CPU.step() fetches opcode $EA:
-        PC = $8001
-
-    nop(cpu) runs:
-        no changes
-
-Common mistakes:
-    - Incrementing PC inside nop(cpu).
-    - Clearing flags.
-    - Treating NOP as an unimplemented opcode error.
-
-Implementation shape:
-
-    def nop(cpu):
+    def nop(cpu: CPU):
         pass
+
+Invariant: a direct call changes no register, P bit, S, PC, or memory.  The
+common misconception is to increment PC inside ``nop``; dispatch has already
+fetched the opcode, and the operation itself owns no bytes.
+
+Out of scope: importing NOP and mapping official opcode $EA in
+``emulator/cpu/opcodes.py::OPCODE_TABLE`` belongs to step 209.  Unofficial NOP
+variants, timing changes, and later tracing facilities are not introduced.
 """
 
 from emulator.cpu.instructions import nop

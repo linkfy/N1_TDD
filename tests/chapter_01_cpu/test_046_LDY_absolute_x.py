@@ -1,11 +1,50 @@
 """
-Add LDY Absolute,X.
+Test 046 - Add LDY absolute,X ($BC).
 
-Opcode:
-    0xBC -> LDY $hhhh,X
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute_x(cpu), read value, then ldy(cpu, value).
+Locations:
+    opcodes imports of absolute_x and ldy
+    opcodes.ldy_absolute_x
+    opcodes.OPCODE_TABLE[$BC]
+
+Why this step exists:
+This lesson completes the LDY opcode family by reusing absolute,X address resolution,
+then reading the effective address and applying the existing `ldy` behavior.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import absolute_x
+    from emulator.cpu.instructions import ldy
+
+
+    def ldy_absolute_x(cpu: CPU):
+        addr = absolute_x(cpu)
+        value = cpu.bus.read(addr)
+        ldy(cpu, value)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xBC: ldy_absolute_x,
+    }
+
+Important invariants:
+    - $BC maps to ldy_absolute_x and consumes two operand bytes
+    - X, not Y, is added to the decoded 16-bit base address
+    - the effective address is read before its value is passed to ldy
+    - `ldy` updates Zero and Negative from the loaded byte
+
+Common misconception:
+LDY absolute,X does not index with the destination register Y; the encoding explicitly
+uses X.
+
+Out of scope:
+    - STY opcode handlers
+    - page-crossing cycle penalties
+    - changes to absolute_x
 """
 import inspect
 

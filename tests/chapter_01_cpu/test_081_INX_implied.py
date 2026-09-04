@@ -1,15 +1,39 @@
 """
-Add INX Implied.
+Test 081 - Wire the INX implied opcode.
 
-Opcode:
-    0xE8 -> INX
+In this step, add only the INX opcode integration after Test 080 has provided
+`instructions.inx`.
 
-Goal:
-map opcode 0xE8 directly to inx(cpu).
+Production location and symbols:
+    emulator/cpu/opcodes.py: imported `inx` and `OPCODE_TABLE[0xE8]`
 
-Why direct mapping?
-INX uses implied addressing: the operand is implied by the instruction itself.
-There is no address or immediate byte to decode.
+Why this step exists:
+INX has implied addressing, so dispatch can call the instruction function
+directly. No wrapper or addressing-mode helper is needed.
+
+Suggested implementation for this step:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.instructions import inx  # alongside existing imports
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0xE8: inx,
+    }
+
+Important invariants:
+    - opcode 0xE8 dispatches to the exact `inx(cpu)` function
+    - no operand byte is fetched, so CPU.step advances PC by one byte
+    - register wrapping and Z/N updates remain owned by test 080's `inx`
+
+Common misconception:
+Do not create an `inx_implied` wrapper; implied instructions can be direct table
+entries, and a wrapper would add no decoding behavior.
+
+Out of scope:
+    - test 082's `dex` instruction behavior and test 083's DEX mapping
+    - later INY/DEY and shift instructions
+    - cycle timing
 """
 import inspect
 

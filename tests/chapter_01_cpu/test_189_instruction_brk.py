@@ -1,5 +1,30 @@
-"""
-Add the BRK instruction behavior.
+"""Step 189: add addressing-independent BRK behavior.
+
+Prerequisite: step 188 added the I, B, and unused-bit helpers. In this step, add
+this complete ``emulator/cpu/instructions.py::brk`` implementation:
+
+    def brk(cpu: CPU):
+        return_addr = (cpu.pc + 1) & 0xFFFF
+        STACK_BASE = 0x0100
+        high = (return_addr >> 8) & 0xFF
+        low = return_addr & 0xFF
+
+        cpu.bus.write(STACK_BASE | cpu.s, high)
+        cpu.s = (cpu.s - 1) & 0xFF
+        cpu.bus.write(STACK_BASE | cpu.s, low)
+        cpu.s = (cpu.s - 1) & 0xFF
+
+        cpu.flags.set_break_flag(True)
+        cpu.flags.set_one_flag(True)
+        cpu.bus.write(STACK_BASE | cpu.s, cpu.p)
+        cpu.s = (cpu.s - 1) & 0xFF
+        cpu.flags.set_interrupt_disable_flag(True)
+        cpu.flags.set_break_flag(False)
+        cpu.flags.set_one_flag(False)
+
+        low = cpu.bus.read(0xFFFE)
+        high = cpu.bus.read(0xFFFF)
+        cpu.pc = (high << 8) | low
 
 Instruction:
     BRK -> Force Interrupt / Software Interrupt
@@ -42,6 +67,18 @@ Common mistakes:
     - Thinking the padding byte must be $00. It can be anything.
     - Writing status to $0100 | P instead of $0100 | S.
     - Loading only one vector byte from $FFFE.
+
+Why this step exists:
+Direct calls enter with PC on the padding byte because opcode fetch
+already advanced it; BRK saves the post-padding return address and pre-I status,
+then vectors through little-endian $FFFE/$FFFF.  Invariants: pushes are PC high,
+PC low, status; S wraps after each; pushed P has B/ONE set; live P ends with I
+set and B/ONE clear.  Misconception: BRK does not execute or require a zero
+padding byte, and B is a property of the stacked status copy.
+
+Out of scope: importing/mapping opcode $00 is step 190.  RTI, hardware
+IRQ/NMI entry, and later ``CPU.push_byte``/``CPU.push_word`` helpers must not be
+introduced here.
 """
 
 from emulator.bus.cpu_bus import CpuBus

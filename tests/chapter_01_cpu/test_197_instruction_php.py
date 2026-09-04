@@ -1,45 +1,32 @@
-"""
-Add the PHP instruction behavior.
+"""Step 197: implement PHP behavior.
 
-Instruction:
-    PHP -> Push Processor Status
+In this step, change only ``emulator/cpu/instructions.py`` by adding
+``php(cpu)``. Prerequisite: ``FlagsHandler.set_break_flag`` already exists.
 
-Goal:
-implement php(cpu) in instructions.py.
+Why this step exists:
+PHP pushes P with the emulator's Break marker set, then
+clears that transient marker from live CPU state. As with every push, it writes
+to $0100 | S before decrementing the 8-bit S.
 
-Student guidance:
-PHP saves the processor status register P on the CPU stack.
+Suggested implementation::
 
-6502 stack rule:
-    Push writes first, then decrements S.
+    def php(cpu: CPU):
+        cpu.flags.set_break_flag(True)
+        cpu.flags.set_one_flag(True)
+        cpu.bus.write(STACK_BASE | cpu.s, cpu.p)
+        cpu.flags.set_break_flag(False)
+        cpu.flags.set_one_flag(False)
+        cpu.s = (cpu.s - 1) & 0xFF
 
-So if:
-    P = $01
-    S = $FD
+Invariants: preserve every pre-existing status bit; set Break and ONE in the
+stacked copy; clear both from live P afterward; write before decrementing and
+wrap S; do not derive Z or N from the status byte.
 
-Then PHP must:
-    1. create a status byte with Break set and ONE/unused bit set
-    2. write that status byte to $01FD
-    3. decrement S to $FC
+Misconception: Break is not left enabled in ``cpu.p`` after PHP merely because
+it is set in the byte written to the stack.
 
-Important Break flag detail:
-    In this emulator model, Break is represented in the status byte pushed to
-    the stack, but it is not kept as persistent CPU state after PHP finishes.
-
-Common mistakes:
-    - Decrementing S before writing.
-    - Pushing P without setting Break.
-    - Leaving Break set in cpu.p after PHP.
-    - Updating Zero/Negative as if PHP were a load instruction.
-
-Implementation shape:
-
-    cpu.flags.set_break_flag(True)
-    cpu.flags.set_one_flag(True)
-    cpu.bus.write(0x0100 | cpu.s, cpu.p)
-    cpu.flags.set_break_flag(False)
-    cpu.flags.set_one_flag(False)
-    cpu.s = (cpu.s - 1) & 0xFF
+Out of scope: opcode $08 registration belongs to step 198. Any later changes to
+the pushed status-byte rules belong to their own numbered steps.
 """
 
 from emulator.cpu.instructions import php

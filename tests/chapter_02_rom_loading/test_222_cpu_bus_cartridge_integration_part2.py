@@ -1,8 +1,15 @@
 """
 Read cartridge PRG ROM through CpuBus, part 2.
 
+Prerequisite:
+Lesson 221's cartridge field, `__post_init__`, and mapper factory wiring must be
+complete before changing the read path here.
+
 File to update:
     emulator/bus/cpu_bus.py
+
+Symbol to update:
+    emulator.bus.cpu_bus.CpuBus.read
 
 What this part implements:
     - CpuBus routes CPU reads in $8000-$FFFF to mapper.read_prg(addr) when a
@@ -38,6 +45,38 @@ uses the full CPU address because mappers implement CPU-address translation.
 Common mistake:
 Do not call mapper.read_prg(addr - 0x8000). That would pass an offset to code
 that expects a CPU address in $8000-$FFFF.
+
+Suggested implementation:
+
+    def read(self, addr: int) -> int:
+        # Read from CPU Bus.
+        if 0x0 <= addr <= 0x1FFF:
+            return self.ram.read(addr & 0x07FF)
+        if 0x8000 <= addr <= 0xFFFF:
+            if self.mapper is not None:
+                return self.mapper.read_prg(addr)
+            if self.program_rom is not None:
+                return self.program_rom.read(addr - 0x8000)
+            raise ValueError("No program ROM or cartridge attached")
+
+        raise ValueError(f"Unsupported CPU bus read: {addr:04X}")
+
+Rationale and invariants:
+CpuBus owns address-range routing while Mapper000.read_prg owns NROM address
+translation. Internal RAM mirroring remains unchanged. Cartridge reads receive
+the full CPU address; the legacy MemoryDevice receives a zero-based offset; and
+a configured source is required throughout the inclusive $8000-$FFFF range.
+The mapper path takes priority only because part 1 forbids both sources from
+being configured, so there is never an ambiguous valid construction.
+
+Another common misconception is to copy Mapper000's 16KB modulo rule into
+CpuBus. The $C000 mirror assertion is evidence that delegation works, not a new
+bus responsibility.
+
+Out of scope:
+    1. PPU register reads at $2000-$3FFF belong to Chapter 3.
+    2. PRG and mapper writes are not added here.
+    3. PPU/CHR routing, timing, and later behavior must not be anticipated.
 """
 
 import pytest

@@ -1,11 +1,50 @@
 """
-Add LDY Zero Page,X.
+Test 044 - Add LDY zero page,X ($B4).
 
-Opcode:
-    0xB4 -> LDY $nn,X
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use zero_page_x(cpu), read value, then ldy(cpu, value).
+Locations:
+    opcodes imports of zero_page_x and ldy
+    opcodes.ldy_zero_page_x
+    opcodes.OPCODE_TABLE[$B4]
+
+Why this step exists:
+This encoding reuses the established zero-page,X address calculation, including its
+eight-bit wrap, before loading the resolved byte through the core `ldy` instruction.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import zero_page_x
+    from emulator.cpu.instructions import ldy
+
+
+    def ldy_zero_page_x(cpu: CPU):
+        addr = zero_page_x(cpu)
+        value = cpu.bus.read(addr)
+        ldy(cpu, value)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xB4: ldy_zero_page_x,
+    }
+
+Important invariants:
+    - $B4 maps to ldy_zero_page_x and consumes one operand byte
+    - X, not Y, indexes the zero-page operand
+    - the effective address wraps within page $00
+    - the resolved memory value is passed to ldy, which updates Zero and Negative
+
+Common misconception:
+LDY names the destination register, not the index register. The $B4 encoding uses X
+to calculate the address.
+
+Out of scope:
+    - absolute and absolute,X LDY encodings
+    - changing zero_page_x
+    - cycle timing
 """
 import inspect
 

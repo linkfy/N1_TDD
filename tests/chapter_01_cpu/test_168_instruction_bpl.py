@@ -1,14 +1,26 @@
-"""
-Add the BPL instruction behavior.
+"""Lesson 168: implement Branch if Plus behavior.
 
-Instruction:
-    BPL -> Branch if Plus
+Why this step exists:
+In 6502 terminology, "plus" means the existing Negative flag is clear, so BPL
+selects on that flag rather than inspecting the offset or PC.
 
-Goal:
-implement bpl(cpu, offset) in instructions.py.
+In this step, after BNE, add exactly:
 
-Student guidance:
-In 6502 terminology, "plus" means Negative flag is clear.
+``emulator/cpu/instructions.py::bpl``::
+
+    def bpl(cpu: CPU, offset: int):
+        if not cpu.flags.get_negative_flag():
+            cpu.pc = (cpu.pc + offset) & 0xFFFF
+
+The function applies the decoded signed offset to the post-operand PC
+and masks the result to the 16-bit address space.
+
+Invariants: Negative clear takes the branch; Negative set leaves PC unchanged.
+No flags, other registers, or memory change.  Misconception: BPL does not test
+whether PC or ``offset`` is positive and does not recompute Negative.
+
+Out of scope: BMI/BVC/BVS are lessons 169-171.  Opcode imports, relative
+handlers, and table entries are lessons 172-179.
 """
 
 from emulator.cpu.instructions import bpl

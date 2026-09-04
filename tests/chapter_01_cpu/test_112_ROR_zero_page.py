@@ -1,15 +1,32 @@
-"""
-Add ROR Zero Page.
+"""Lesson 112: add ROR zero-page opcode ``0x66``.
 
-Opcode:
-    0x66 -> ROR $nn
+In this step, after lesson 111, add ``ror`` to the instruction imports in
+``emulator/cpu/opcodes.py`` and add the zero-page handler and table entry.
 
-Goal:
-create ror_zero_page(cpu), use zero_page(cpu), then ror(cpu, address).
+Why this step exists:
+This connects the shared ROR memory operation to the first compact addressing
+form, proving that an encoded zero-page address selects the byte to rotate.
 
-Student guidance:
-The operand byte is the zero-page address, not the value to rotate. For
-`66 10`, read/modify/write RAM[$0010].
+Suggested implementation:
+
+    def ror_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        ror(cpu, addr)
+
+    OPCODE_TABLE = {
+        ...
+        0x66: ror_zero_page,
+    }
+
+``zero_page`` already exists in ``emulator/cpu/addressing_modes.py`` and
+fetches one byte.  ``ror`` already exists in ``emulator/cpu/instructions.py``;
+it performs the bus read/modify/write, rotates through old Carry, sets Carry
+from old bit 0, and sets Zero/Negative from the result.  Thus ``66 10``
+modifies ``cpu.bus[$0010]``, not A, and PC advances two bytes total.
+
+Misconception: the fetched ``0x10`` is an address, not the value to pass to
+``ror``.  Out of scope: indexed and absolute ROR modes are lessons 113-115;
+do not duplicate addressing or rotate logic in this opcode handler.
 """
 import inspect
 

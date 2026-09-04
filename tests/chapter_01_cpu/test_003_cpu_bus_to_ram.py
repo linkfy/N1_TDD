@@ -1,13 +1,59 @@
-"""This test ensures that CpuBus exists and
-proceeds to read and write to ram addresses
+"""
+Test 003 — Route CPU RAM addresses through CpuBus.
 
-Focus: 
-- Create CpuBus with RAM initialized
-- Create Read/Write functions
-- Include Support for Ram addresses
+File to update:
+    emulator/bus/cpu_bus.py
 
-https://www.nesdev.org/wiki/CPU_memory_map
+Location:
+    class CpuBus
 
+Reference:
+    https://www.nesdev.org/wiki/CPU_memory_map
+
+Why this step exists:
+The CPU uses a 16-bit address space, while internal RAM contains only 0x800 physical
+bytes. Addresses $0000-$1FFF repeat that same RAM four times.
+
+Complete example implementation:
+
+    from dataclasses import dataclass, field
+
+    from emulator.memory.ram import RAM
+
+
+    @dataclass
+    class CpuBus:
+        ram: RAM = field(default_factory=RAM)
+
+        def read(self, addr: int) -> int:
+            if 0x0000 <= addr <= 0x1FFF:
+                return self.ram.read(addr & 0x07FF)
+
+            raise ValueError(f"Unsupported CPU bus read: {addr:04X}")
+
+        def write(self, addr: int, value: int) -> None:
+            if 0x0000 <= addr <= 0x1FFF:
+                self.ram.write(addr & 0x07FF, value)
+                return
+
+            raise ValueError(f"Unsupported CPU bus write: {addr:04X}")
+
+Important invariant:
+    physical_ram_address = cpu_address & 0x07FF
+
+Minimal example:
+Writing $42 to CPU address $0800 changes physical RAM byte $0000, so reading $0000,
+$0800, $1000, or $1800 observes the same storage.
+
+Common misconception:
+Mirroring does not allocate four RAM arrays. The bus translates four CPU ranges onto
+one RAM device. At this step, unsupported addresses raise ValueError, while bytearray
+itself rejects values outside the unsigned 8-bit range.
+
+Out of scope:
+    - program ROM routing
+    - PPU and controller registers
+    - CPU execution
 """
 import pytest
 from emulator.bus.cpu_bus import CpuBus

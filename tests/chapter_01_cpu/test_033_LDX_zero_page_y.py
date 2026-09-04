@@ -1,11 +1,46 @@
 """
-Add LDX Zero Page,Y.
+Test 033 - Add LDX zero-page,Y ($B6).
 
-Opcode:
-    0xB6 -> LDX $nn,Y
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use zero_page_y(cpu), read value, then ldx(cpu, value).
+Locations:
+    opcodes.ldx_zero_page_y
+    opcodes.OPCODE_TABLE[$B6]
+
+Why this step exists:
+Test 029 introduced the wrapping zero-page,Y address helper. This lesson gives that
+helper its first opcode use by combining it with a memory read and the existing
+`ldx` instruction.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def ldx_zero_page_y(cpu: CPU):
+        addr = zero_page_y(cpu)
+        value = cpu.bus.read(addr)
+        ldx(cpu, value)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xB6: ldx_zero_page_y,
+    }
+
+Important invariants:
+    - $B6 maps to ldx_zero_page_y
+    - the index is Y, not X
+    - base plus Y wraps to eight bits before the bus read
+    - one operand byte is consumed, and ldx owns X and flag updates
+
+Common misconception:
+LDX's destination register does not select the index register: this encoding uses Y,
+and `$FF,Y` with Y=$01 reads $0000 rather than $0100.
+
+Out of scope:
+    - changing zero_page_y or ldx
+    - absolute LDX encodings
+    - cycle timing
 """
 import inspect
 

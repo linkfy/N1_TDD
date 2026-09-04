@@ -1,15 +1,32 @@
-"""
-Add EOR (Indirect,X).
+"""Lesson 141: add EOR (indirect,X) opcode ``0x41``.
 
-Opcode:
-    0x41 -> EOR ($nn,X)
+Why this step exists:
+Pre-indexed indirect EOR enables pointer-table access through zero page while
+preserving the split between effective-address resolution and exclusive OR.
 
-Goal:
-create eor_indirect_x(cpu), use indirect_x(cpu), read memory, then or_e(cpu, value).
+In this step, lessons 134-140 already provide ``or_e``, its opcode import, and
+the earlier EOR modes.  Add exactly the following to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Indirect,X adds X to the zero-page operand first, then reads the 16-bit pointer
-from zero page.
+    def eor_indirect_x(cpu: CPU):
+        addr = indirect_x(cpu)
+        value = cpu.bus.read(addr)
+        or_e(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x41: eor_indirect_x,
+    }
+
+``emulator/cpu/addressing_modes.py::indirect_x`` adds X to the operand in
+zero page, reads the wrapped little-endian pointer there, and returns its
+target.  The handler reads that target and delegates XOR semantics to
+``emulator/cpu/instructions.py::or_e``.  A and Z/N may change; Carry,
+Overflow, X, Y, and memory remain invariant; opcode plus operand advances PC
+two bytes.
+
+Misconception: X indexes the zero-page pointer location, not the final target.
+Out of scope: EOR (indirect),Y is lesson 142; BIT begins in lesson 143.
 """
 import inspect
 

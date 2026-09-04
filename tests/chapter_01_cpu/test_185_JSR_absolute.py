@@ -1,5 +1,19 @@
-"""
-Add JSR Absolute.
+"""Step 185: wire JSR absolute opcode $20.
+
+Prerequisite: step 184 added ``jsr``. In this step, add these changes in
+``emulator/cpu/opcodes.py``:
+
+    from emulator.cpu.instructions import jsr
+    from emulator.cpu.addressing_modes import absolute
+
+    def jsr_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        jsr(cpu, addr)
+
+    OPCODE_TABLE = {
+        # existing entries...
+        0x20: jsr_absolute,
+    }
 
 Opcode:
     0x20 -> JSR $hhhh
@@ -22,6 +36,16 @@ Execution steps:
 
 Common mistake:
 Do not call jmp(cpu, addr). JSR must push the return address first.
+
+Why this step exists:
+``absolute`` consumes the two-byte target, leaving PC at the next
+instruction so ``jsr`` can push PC-minus-one and jump.  Invariants: one step
+consumes opcode plus operand, pushes high then low, decrements S twice, changes
+PC to the target, and preserves status.  Misconception: sharing JMP's addressing
+mode does not make JSR a plain jump.
+
+Out of scope: ``rts`` and opcode $60 are steps 186-187.  BRK, RTI, and later
+general stack helpers are not part of this transition.
 """
 import inspect
 

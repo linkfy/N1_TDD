@@ -1,5 +1,6 @@
-"""
-Add the JSR instruction behavior.
+"""Step 184: add addressing-independent JSR behavior.
+
+In this step, add ``emulator/cpu/instructions.py::jsr``:
 
 Instruction:
     JSR -> Jump to Subroutine
@@ -32,6 +33,18 @@ Example implementation shape:
     cpu.s = (cpu.s - 1) & 0xFF
 
     cpu.pc = addr & 0xFFFF
+
+Why this step exists:
+Operand decoding has already advanced PC past JSR, while the 6502
+stack protocol stores one less than the continuation address for a future RTS.
+Invariants: writes occur high then low at ``$0100 | S``; S decrements and wraps
+after each write; PC and the supplied address are 16-bit; flags and other
+registers are preserved.  Misconception: pushing the current PC, or pushing low
+first, produces an incompatible return frame.
+
+Out of scope: no opcode import, ``jsr_absolute`` handler, or $20 table entry
+until step 185.  ``rts`` does not exist until step 186; it explains the
+PC-minus-one convention but must not be implemented here.
 """
 
 from emulator.cpu.instructions import jsr

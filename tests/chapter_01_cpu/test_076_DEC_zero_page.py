@@ -1,11 +1,50 @@
-"""
-Add DEC Zero Page.
+"""Lesson 076: add DEC and wire Zero Page (`0xC6`).
 
-Opcode:
-    0xC6 -> DEC $nn
+In this step, add `emulator/cpu/instructions.py:dec` and the zero-page
+import, handler, and table wiring in `emulator/cpu/opcodes.py`. Unlike INC,
+there is no separate DEC primitive step.
 
-Goal:
-use zero_page(cpu), then dec(cpu, address).
+Why this step exists:
+Establish one memory decrement primitive, then expose its first
+addressing mode. Later DEC handlers need only resolve an effective address.
+
+Suggested implementation in `emulator/cpu/instructions.py`, after
+`inc`:
+
+    def dec(cpu: CPU, address: int):
+        value = cpu.bus.read(address)
+        result = value - 1
+        result_8 = result & 0xFF
+
+        # Set flags
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+        cpu.flags.set_zero_flag(result_8 == 0)
+
+        # Set value on address
+        cpu.bus.write(address, result_8)
+
+Complete lesson-076 wiring in `emulator/cpu/opcodes.py`:
+
+    from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc, sbc, inc, dec
+
+    def dec_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        dec(cpu, addr)
+
+Add this exact entry to the existing `OPCODE_TABLE`:
+
+    0xC6: dec_zero_page,
+
+Invariants: DEC receives an address and accesses memory through the bus; masking
+makes `$00 - 1 == $FF`; Zero and Negative reflect the stored byte; Carry,
+Overflow, and A/X/Y are preserved; zero-page consumes one operand byte and the
+whole instruction is two bytes.
+
+Misconception: DEC is not SBC. It neither consumes nor updates Carry and it does
+not operate on A; the zero-page operand names the memory location.
+
+Out of scope: zero-page-X, absolute, and absolute-X DEC wiring belongs to
+lessons 077-079.
 """
 import inspect
 

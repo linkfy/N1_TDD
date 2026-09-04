@@ -1,8 +1,60 @@
 """
-Create the basic CPU Class
-CPU Class should have one bus as a contrusctor parameter CPU(cpu_bus)
+Test 004 — Create basic CPU state and fetch helpers.
 
-https://www.nesdev.org/wiki/CPU_registers
+File to update:
+    emulator/cpu/cpu.py
+
+Location:
+    class CPU
+
+Reference:
+    https://www.nesdev.org/wiki/CPU_registers
+
+Why this step exists:
+The CPU needs explicit registers and a bus dependency before it can fetch or execute
+instructions. Fetching advances the program counter because instruction bytes are
+consumed sequentially.
+
+Complete example implementation:
+
+    from dataclasses import dataclass
+
+    from emulator.bus.cpu_bus import CpuBus
+
+
+    @dataclass
+    class CPU:
+        bus: CpuBus
+        a: int = 0
+        x: int = 0
+        y: int = 0
+        pc: int = 0
+        s: int = 0
+        p: int = 0
+
+        def fetch_byte(self) -> int:
+            value = self.bus.read(self.pc)
+            self.pc += 1
+            return value
+
+        def fetch_word(self) -> int:
+            low = self.fetch_byte()
+            high = self.fetch_byte()
+            return low | (high << 8)
+
+Important invariants:
+    - CPU retains the exact bus object supplied by its caller
+    - fetch_byte advances PC by one
+    - fetch_word consumes low byte first and advances PC by two
+
+Common misconception:
+Little-endian storage changes byte order in memory, not the numeric result. Bytes
+$34 then $12 produce the integer $1234.
+
+Out of scope:
+    - reset-vector behavior
+    - opcode decoding
+    - hardware-accurate power-up register values
 """
 import pytest
 from emulator.bus.cpu_bus import CpuBus

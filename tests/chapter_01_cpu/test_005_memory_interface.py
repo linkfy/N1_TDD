@@ -1,21 +1,66 @@
-
 """
-At this point we need both RAM and ROM-like devices to test
-the CPU memory map.
+Test 005 — Introduce the common memory-device interface.
 
-RAM supports both read and write operations.
+File to create:
+    emulator/memory/memory_device.py
 
-A real ROM would only allow reads. However, for testing purposes,
-we need a memory device that can be populated with arbitrary data.
+File to update:
+    emulator/memory/ram.py
 
-For that reason we will create a FakeROM. Despite its name, this
-device is writable so tests can easily load instructions and data.
+Locations:
+    class MemoryDevice
+    class RAM(MemoryDevice)
 
-Before implementing FakeROM, we will introduce a common abstract
-base class that defines the interface shared by all memory devices.
+Why this step exists:
+CpuBus will soon route accesses to different devices. A small abstract interface lets
+the bus depend on read/write behavior instead of the concrete RAM representation.
 
-The CpuBus will be responsible for mapping CPU addresses
-to the appropriate memory device.
+Complete example implementation:
+
+    # emulator/memory/memory_device.py
+    from abc import ABC, abstractmethod
+
+
+    class MemoryDevice(ABC):
+        @abstractmethod
+        def read(self, addr: int) -> int:
+            ...
+
+        @abstractmethod
+        def write(self, addr: int, value: int) -> None:
+            ...
+
+
+    # emulator/memory/ram.py
+    from dataclasses import dataclass, field
+
+    from emulator.memory.memory_device import MemoryDevice
+
+
+    @dataclass
+    class RAM(MemoryDevice):
+        _data: bytearray = field(
+            default_factory=lambda: bytearray(0x800),
+            init=False,
+        )
+
+        def read(self, addr: int) -> int:
+            return self._data[addr]
+
+        def write(self, addr: int, value: int) -> None:
+            self._data[addr] = value
+
+Important invariant:
+MemoryDevice defines the operations but does not own storage or address mapping.
+
+Common misconception:
+An abstract base class does not make RAM contents abstract. RAM still owns concrete
+byte storage; only its callable boundary is shared.
+
+Out of scope:
+    - FakeROM, introduced in Test 006
+    - program-ROM bus mapping
+    - read-only cartridge behavior
 """
 
 from inspect import signature

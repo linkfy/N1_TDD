@@ -1,14 +1,31 @@
-"""
-Add AND (Indirect),Y.
+"""Lesson 124: add AND (indirect),Y opcode ``0x31``.
 
-Opcode:
-    0x31 -> AND ($nn),Y
+Why this step exists:
+This completes AND addressing coverage with a zero-page pointer followed by Y
+indexing, reusing both the indirect helper and the common AND primitive.
 
-Goal:
-create and_indirect_y(cpu), use indirect_y(cpu), read memory, then and_a(cpu, value).
+In this step, complete the numbered AND modes by adding the following to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Indirect,Y reads the zero-page pointer first, then adds Y to the final address.
+    def and_indirect_y(cpu: CPU):
+        addr = indirect_y(cpu)
+        value = cpu.bus.read(addr)
+        and_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x31: and_indirect_y,
+    }
+
+``emulator/cpu/addressing_modes.py::indirect_y`` fetches a zero-page pointer
+location, reads its little-endian word with zero-page wrapping for the high
+byte, and only then adds ``cpu.y``.  The target value goes to
+``instructions.and_a``.  A and Z/N change; Y, Carry/Overflow, pointer bytes,
+and target memory remain invariant; PC advances two bytes.
+
+Misconception: (indirect),Y does not add Y to the zero-page pointer location;
+that ordering belongs to (indirect,X).  Out of scope: ORA, EOR, and BIT work,
+beginning with lesson 125.
 """
 import inspect
 

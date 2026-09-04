@@ -1,28 +1,30 @@
-"""
-Add PHP Implied.
+"""Step 198: register implied PHP.
 
-Opcode:
-    0x08 -> PHP
+Prerequisite: step 197 added ``php``. In this step, change only
+``emulator/cpu/opcodes.py`` by importing ``php`` and registering it in
+``OPCODE_TABLE``.
 
-Goal:
-add opcode 0x08 to OPCODE_TABLE.
+Why this step exists:
+PHP obtains P and S directly from CPU state. Opcode $08 therefore
+has no operand and dispatches directly to ``php(cpu)``.
 
-Student guidance:
-PHP uses implied addressing. It has no operand bytes.
+Suggested implementation::
 
-The instruction knows what to push from its name:
+    from emulator.cpu.instructions import php
 
-    PHP -> Push Processor Status
+    OPCODE_TABLE = {
+        # existing entries
+        0x08: php,
+    }
 
-Execution steps:
-    1. CPU.step() fetches opcode 0x08.
-    2. OPCODE_TABLE dispatches directly to php(cpu).
-    3. PHP pushes a status byte with Break set and ONE/unused bit set.
-    4. PHP decrements S.
+Invariants: preserve existing mappings; map exactly $08 to the ``php``
+function object; use no addressing wrapper or operand fetch; consume one
+opcode byte and retain step 197's stack/status semantics.
 
-Common mistake:
-Do not fetch an operand byte for PHP. The byte after opcode 0x08 is the next
-instruction, not data used by PHP.
+Misconception: the byte after $08 is not status data; PHP pushes live P.
+
+Out of scope: PHP behavior belongs to step 197, and PLP begins at step 199.
+Changes to PHP's pushed byte do not belong to this opcode-registration step.
 """
 import inspect
 

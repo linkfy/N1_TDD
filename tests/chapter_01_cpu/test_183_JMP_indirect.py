@@ -1,5 +1,19 @@
-"""
-Add JMP Indirect.
+"""Step 183: wire JMP indirect opcode $6C.
+
+Prerequisites: step 180 added ``indirect`` and step 181 added ``jmp``. In this
+step, add these changes to ``emulator/cpu/opcodes.py``:
+
+    from emulator.cpu.instructions import jmp
+    from emulator.cpu.addressing_modes import indirect
+
+    def jmp_indirect(cpu: CPU):
+        addr = indirect(cpu)
+        jmp(cpu, addr)
+
+    OPCODE_TABLE = {
+        # existing entries...
+        0x6C: jmp_indirect,
+    }
 
 Opcode:
     0x6C -> JMP ($hhhh)
@@ -27,6 +41,16 @@ not read memory again at that returned address.
 NES/6502 bug:
 If the pointer ends in $FF, the high byte wraps inside the same page:
     JMP ($02FF) reads high byte from $0200, not $0300.
+
+Why this step exists:
+``addressing_modes.indirect`` consumes the pointer operand, follows
+it with the 6502 page-boundary behavior, and returns the final target; ``jmp``
+then assigns it.  Invariants: the handler performs no extra target read,
+preserves flags/registers/stack/memory, and maps only $6C.  Misconception: the
+value returned by ``indirect`` is not another pointer.
+
+Out of scope: implementing or changing ``addressing_modes.indirect`` belongs
+to step 180. JSR starts at step 184; RTS and interrupts are later steps.
 """
 import inspect
 

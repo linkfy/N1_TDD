@@ -1,14 +1,33 @@
-"""
-Add AND Zero Page,X.
+"""Lesson 119: add AND zero-page,X opcode ``0x35``.
 
-Opcode:
-    0x35 -> AND $nn,X
+In this step, after lesson 118, add only the indexed zero-page handler and table
+entry in ``emulator/cpu/opcodes.py``.
 
-Goal:
-create and_zero_page_x(cpu), use zero_page_x(cpu), read memory, then and_a(cpu, value).
+Why this step exists:
+This adds indexed access to zero-page AND and verifies that address calculation
+wraps within the zero page before the memory value reaches the AND primitive.
 
-Student guidance:
-Zero Page,X wraps inside zero page: (base + X) & 0xFF.
+Suggested implementation:
+
+    def and_zero_page_x(cpu: CPU):
+        addr = zero_page_x(cpu)
+        value = cpu.bus.read(addr)
+        and_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x35: and_zero_page_x,
+    }
+
+``emulator/cpu/addressing_modes.py::zero_page_x`` computes
+``(base + cpu.x) & 0xFF``.  The resolved byte is read once conceptually and
+passed to ``instructions.and_a``: A and Z/N change, Carry/Overflow and memory
+do not, and PC advances two bytes.  Base ``0xFE`` plus X ``0x03`` must read
+``$0001``, not ``$0101``.
+
+Misconception: indexing does not alter the data and must wrap before the bus
+read.  Out of scope: absolute through indirect,Y AND (lessons 120-124), and
+changes to the already-existing addressing helper or instruction semantics.
 """
 import inspect
 

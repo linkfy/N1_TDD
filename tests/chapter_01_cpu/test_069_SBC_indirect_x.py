@@ -1,11 +1,43 @@
 """
-Add SBC (Indirect,X).
+Test 069 - Add SBC (Indirect,X).
 
-Opcode:
-    0xE1 -> SBC ($nn,X)
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use indirect_x(cpu), read value, then sbc(cpu, value).
+Symbols to add/update:
+    opcodes.sbc_indirect_x and OPCODE_TABLE[0xE1]
+
+Why this step exists:
+SBC gains pre-indexed indirect access by composing the existing `indirect_x`
+resolver with the standard memory-read and instruction-delegation wrapper.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def sbc_indirect_x(cpu: CPU):
+        addr = indirect_x(cpu)
+        value = cpu.bus.read(addr)
+        sbc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0xE1: sbc_indirect_x,
+    }
+
+Important invariants:
+    - `indirect_x` adds X to the zero-page operand before reading the pointer
+    - the pointer bytes and their zero-page wrap are handled by the resolver
+    - the wrapper reads the final address and passes that byte to `sbc`
+    - executing the two-byte instruction advances PC by two bytes
+
+Common misconception:
+Do not read the zero-page pointer location as the SBC operand; `indirect_x` returns
+the final 16-bit target address whose contents must be read.
+
+Out of scope:
+    - the (Indirect),Y SBC wrapper
+    - changes to indirect addressing or SBC arithmetic
+    - cycle timing
 """
 import inspect
 

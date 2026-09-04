@@ -1,14 +1,31 @@
-"""
-Add ORA Absolute,Y.
+"""Lesson 131: add ORA absolute,Y opcode ``0x19``.
 
-Opcode:
-    0x19 -> ORA $hhhh,Y
+Why this step exists:
+The Y-indexed absolute form gives ORA equivalent access through either index
+register and continues to reuse the same addressing-independent primitive.
 
-Goal:
-create ora_absolute_y(cpu), use absolute_y(cpu), read memory, then or_a(cpu, value).
+In this step, after lessons 125-130, ``or_a`` and the first five ORA modes
+already exist.  Add exactly the following to ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Decode the 16-bit base address first, then add Y.
+    def ora_absolute_y(cpu: CPU):
+        addr = absolute_y(cpu)
+        value = cpu.bus.read(addr)
+        or_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x19: ora_absolute_y,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute_y`` fetches the little-endian
+base word and adds Y; the handler then reads that effective address and passes
+the value to ``emulator/cpu/instructions.py::or_a``.  A and Z/N may change;
+Carry/Overflow, memory, X, and Y are invariant, and opcode plus word advances
+PC three bytes.
+
+Misconception: Y indexes the decoded address, not either operand byte, and the
+handler must read memory rather than OR the address itself.  Out of scope:
+ORA (indirect,X)/(indirect),Y (lessons 132-133) and all EOR/BIT work (134-145).
 """
 import inspect
 

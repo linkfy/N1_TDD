@@ -1,12 +1,45 @@
 """
-Add STA Absolute.
+Test 024 — Add absolute STA ($8D).
 
-Opcode:
-    0x8D -> STA $hhhh
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute(cpu) to get the target address,
-then store register A there with sta(cpu, address).
+Locations:
+    opcodes.sta_absolute
+    opcodes.OPCODE_TABLE[$8D]
+
+Why this step exists:
+STA now needs a full 16-bit destination. The lesson reuses `absolute` and `sta` to
+demonstrate that changing operand width belongs in addressing, not in the store
+instruction itself.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def sta_absolute(cpu) -> None:
+        address = absolute(cpu)
+        sta(cpu, address)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0x8D: sta_absolute,
+    }
+
+Important invariants:
+    - absolute consumes low byte then high byte
+    - the resulting 16-bit address is passed directly to sta
+    - $8D advances PC by three bytes including the opcode
+    - storing A leaves Zero and Negative unchanged
+
+Common misconception:
+The two operand bytes encode one little-endian destination address; they are not two
+values to write and must not be read as big-endian.
+
+Out of scope:
+    - indexed absolute STA opcodes
+    - changes to absolute or sta
+    - cycle timing
 """
 import inspect
 

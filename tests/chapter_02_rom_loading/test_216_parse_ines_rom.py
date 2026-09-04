@@ -1,54 +1,43 @@
 """
-Implement parse_ines_rom(data).
+Lesson 216: add
+`emulator/cartridge/ines.py::parse_ines_rom`.
 
-Function to implement:
-    parse_ines_rom(data: bytes) -> INesRom
+Why this step exists:
+This function turns header claims into clean PRG/CHR slices so later Cartridge
+and mapper code never needs to understand iNES headers or trainer offsets. It
+uses all of the format constants and parser models from lessons 212-215.
 
-Why this function exists:
-parse_ines_header(data) tells us what the file claims to contain. parse_ines_rom
-uses those header facts to extract the actual PRG ROM and CHR ROM byte sections.
+Suggested implementation:
 
-Implementation guide:
+    def parse_ines_rom(data: bytes) -> INesRom:
+        header = parse_ines_header(data)
+        prg_size = header.prg_rom_banks * PRG_ROM_BANK_SIZE
+        chr_size = header.chr_rom_banks * CHR_ROM_BANK_SIZE
+        prg_start = INES_HEADER_SIZE + (
+            TRAINER_SIZE if header.has_trainer else 0
+        )
+        prg_end = prg_start + prg_size
+        chr_start = prg_end
+        chr_end = chr_start + chr_size
+        if len(data) < chr_end:
+            raise ValueError(
+                "iNES data is too short for declared PRG/CHR ROM"
+            )
+        return INesRom(
+            header=header,
+            prg_rom=data[prg_start:prg_end],
+            chr_rom=data[chr_start:chr_end],
+        )
 
-1. Parse the iNES header.
+Invariants: sizes come from bank counts; PRG starts after the header and optional
+512-byte trainer; CHR immediately follows PRG; and all declared bytes must exist
+before slicing. Do not rely on forgiving short Python slices, which would accept
+a truncated image silently.
 
-       header = parse_ines_header(data)
-
-2. Compute declared section sizes.
-
-       prg_size = header.prg_rom_banks * PRG_ROM_BANK_SIZE
-       chr_size = header.chr_rom_banks * CHR_ROM_BANK_SIZE
-
-3. Compute where PRG ROM starts.
-
-       prg_start = INES_HEADER_SIZE + (TRAINER_SIZE if header.has_trainer else 0)
-
-   Why:
-   PRG ROM starts after the 16-byte header. If a trainer exists, skip those 512
-   bytes too.
-
-4. Compute section boundaries.
-
-       prg_end = prg_start + prg_size
-       chr_start = prg_end
-       chr_end = chr_start + chr_size
-
-5. Validate the input contains all declared bytes.
-
-       if len(data) < chr_end:
-           raise ValueError("iNES data is too short for declared PRG/CHR ROM")
-
-6. Return INesRom with slices.
-
-       return INesRom(
-           header=header,
-           prg_rom=data[prg_start:prg_end],
-           chr_rom=data[chr_start:chr_end],
-       )
-
-Why this step matters before Cartridge/Mapper work:
-The mapper should receive clean PRG ROM bytes. It should not need to understand
-iNES headers or trainer offsets. This parser isolates that file-format work.
+Out of scope for this step:
+    1. Extra trailing-byte policy and CHR RAM allocation are not introduced here.
+    2. Lesson 217 constructs a `Cartridge` from this parser result.
+    3. Lessons 218-220 add mapper behavior and mapper selection.
 """
 
 import importlib

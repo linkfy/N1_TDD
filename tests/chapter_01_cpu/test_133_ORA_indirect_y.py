@@ -1,14 +1,30 @@
-"""
-Add ORA (Indirect),Y.
+"""Lesson 133: add ORA (indirect),Y opcode ``0x11``.
 
-Opcode:
-    0x11 -> ORA ($nn),Y
+Why this step exists:
+This completes ORA's addressing forms by resolving a zero-page pointer and then
+adding Y, without duplicating the operation's result or flag logic.
 
-Goal:
-create ora_indirect_y(cpu), use indirect_y(cpu), read memory, then or_a(cpu, value).
+In this step, complete ORA after lessons 125-132 by adding the following to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Indirect,Y reads the zero-page pointer first, then adds Y to the final address.
+    def ora_indirect_y(cpu: CPU):
+        addr = indirect_y(cpu)
+        value = cpu.bus.read(addr)
+        or_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x11: ora_indirect_y,
+    }
+
+``emulator/cpu/addressing_modes.py::indirect_y`` fetches a zero-page pointer,
+reads its little-endian target with a wrapping high-byte lookup, and only then
+adds Y.  The handler reads that indexed target and calls ``instructions.or_a``.
+A and Z/N may change; Carry/Overflow, memory, X, and Y are invariant; opcode
+plus operand advances PC two bytes.
+
+Misconception: unlike (indirect,X), Y does not select the pointer location; it
+indexes the resolved target.  Out of scope: EOR and BIT (lessons 134-145).
 """
 import inspect
 

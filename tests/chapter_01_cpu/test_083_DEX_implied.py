@@ -1,15 +1,39 @@
 """
-Add DEX Implied.
+Test 083 - Wire the DEX implied opcode.
 
-Opcode:
-    0xCA -> DEX
+In this step, use `instructions.dex` from Test 082 and add only its opcode
+integration.
 
-Goal:
-map opcode 0xCA directly to dex(cpu).
+Production location and symbols:
+    emulator/cpu/opcodes.py: imported `dex` and `OPCODE_TABLE[0xCA]`
 
-Why direct mapping?
-DEX uses implied addressing: the operand is implied by the instruction itself.
-There is no address or immediate byte to decode.
+Why this step exists:
+DEX has no explicit operand, so its opcode maps directly to `dex(cpu)` without
+an addressing wrapper.
+
+Suggested implementation for this step:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.instructions import dex  # alongside existing imports
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0xCA: dex,
+    }
+
+Important invariants:
+    - opcode 0xCA resolves to the exact `dex` function
+    - no addressing helper consumes bytes, so PC advances by exactly one
+    - test 082's function remains responsible for X wrapping and Z/N flags
+
+Common misconception:
+The implied operand is X itself; do not fetch a byte and treat it as an address
+or decrement memory.
+
+Out of scope:
+    - the already completed INX behavior/mapping from tests 080-081
+    - tests 084-087's INY/DEY work
+    - cycle timing
 """
 import inspect
 

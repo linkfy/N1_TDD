@@ -1,45 +1,53 @@
 """
-Add Mapper000 / NROM PRG ROM mapping.
+Lesson 218: create
+`emulator/cartridge/mapper000.py::Mapper000.read_prg` for NROM CPU mapping.
 
-File to create:
-    emulator/cartridge/mapper000.py
-
-What is Mapper000?
-Mapper000 is the simplest NES cartridge mapper. It is also called NROM.
-
-At this stage, we only test CPU reads from PRG ROM:
-
-    read_prg(addr: int) -> int
-
-Mapper000 should already store both:
-
-    prg_rom: bytes
-    chr_rom: bytes
-----
-Note: chr_rom will be used in the next test
-We are not testing PPU CHR reads, nametable mirroring, mapper writes, or bank
-switching in this file yet.
-----
 Why this step exists:
-The CPU does not read PRG ROM using offset 0 directly. It reads CPU addresses in
-the range:
+NROM-128 mirrors one 16 KiB bank across $8000-$FFFF; NROM-256 maps 32 KiB
+directly. Keeping this translation in the mapper prevents Cartridge from becoming
+hardware behavior. It uses the PRG and CHR payloads exposed by lesson 217.
 
-    $8000-$FFFF
+Suggested implementation at this lesson boundary:
 
-The mapper translates those CPU addresses into offsets inside PRG ROM bytes.
+    from dataclasses import dataclass
 
-Mapper000 rules:
+    PRG_ROM_START = 0x8000
+    PRG_ROM_END = 0xFFFF
+    NROM_128_SIZE = 16 * 1024
+    NROM_256_SIZE = 32 * 1024
+    CHR_ROM_SIZE = 8 * 1024
 
-    NROM-128: 16KB PRG ROM
-        $8000-$BFFF -> PRG offset $0000-$3FFF
-        $C000-$FFFF -> mirror of the same 16KB
 
-    NROM-256: 32KB PRG ROM
-        $8000-$FFFF -> PRG offset $0000-$7FFF
+    @dataclass(frozen=True)
+    class Mapper000:
+        prg_rom: bytes
+        chr_rom: bytes
 
-Common mistake:
-Do not put this address translation in Cartridge. Cartridge stores ROM data and
-mapper number. Mapper000 performs the hardware address mapping.
+        def read_prg(self, addr: int) -> int:
+            if not (PRG_ROM_START <= addr <= PRG_ROM_END):
+                raise ValueError(
+                    f"Address out of PRG ROM range: {addr:04X}"
+                )
+            if len(self.prg_rom) == NROM_128_SIZE:
+                offset = (addr - PRG_ROM_START) % NROM_128_SIZE
+            elif len(self.prg_rom) == NROM_256_SIZE:
+                offset = addr - PRG_ROM_START
+            else:
+                raise ValueError(
+                    "Mapper000 supports only 16KB or 32KB PRG ROM"
+                )
+            return self.prg_rom[offset]
+
+Invariants: accept only CPU $8000-$FFFF and exactly 16 or 32 KiB PRG; mirror only
+the 16 KiB case; retain PRG/CHR constructor order. A common mistake is indexing
+`prg_rom` with the CPU address directly or implementing the translation on
+Cartridge. `read_chr`, PPU routing, CHR RAM, writes, mirroring, and bank switching
+are out of scope for this step.
+
+Out of scope for this step:
+    1. Lesson 219 adds `read_chr` for the PPU-side CHR range.
+    2. Lesson 220 adds mapper selection.
+    3. PPU routing, CHR RAM, writes, mirroring, and bank switching come later.
 """
 
 import dataclasses

@@ -1,5 +1,38 @@
-"""
-Expand FlagsHandler with Interrupt Disable and Break flag helpers.
+"""Step 188: add I, B, and unused-bit flag helpers.
+
+In this step, define Break as bit 4 and the pushed-status unused bit as bit 5.
+Add to ``emulator/cpu/flags_handler.py``:
+
+    INTERRUPT_FLAG = 1 << 2
+    B_FLAG = 1 << 4
+    ONE_FLAG = 1 << 5
+
+    def set_interrupt_disable_flag(self, enabled: bool):
+        if enabled:
+            self.cpu.p |= INTERRUPT_FLAG
+        else:
+            self.cpu.p &= ~INTERRUPT_FLAG
+
+    def set_break_flag(self, enabled: bool):
+        if enabled:
+            self.cpu.p |= B_FLAG
+        else:
+            self.cpu.p &= ~B_FLAG
+
+    def set_one_flag(self, enabled: bool):
+        if enabled:
+            self.cpu.p |= ONE_FLAG
+        else:
+            self.cpu.p &= ~ONE_FLAG
+
+    def get_interrupt_disable_flag(self) -> bool:
+        return bool(self.cpu.p & INTERRUPT_FLAG)
+
+    def get_break_flag(self) -> bool:
+        return bool(self.cpu.p & B_FLAG)
+
+    def get_one_flag(self) -> bool:
+        return bool(self.cpu.p & ONE_FLAG)
 
 Why this step exists:
 We are preparing to implement BRK.
@@ -32,6 +65,15 @@ Do not confuse the BRK opcode with the Break flag.
     BRK opcode: 0x00, the instruction byte in memory
     B flag:     bit 4 inside the status byte pushed to the stack
     ONE flag:   bit 5, usually set in pushed status bytes
+
+Rationale: named setters centralize independent read-modify-write operations on
+P and getters expose booleans.  Invariants: each setter changes only its bit;
+I, B, ONE, and all existing flags remain independent.  Misconception: B and
+the always-one pushed-status bit are not the same bit, and opcode $00 is neither.
+
+Out of scope: this step does not implement BRK or decide when bits are set;
+those are steps 189-190. RTI/PHP/PLP, NMI behavior, and CPU stack helpers remain
+later work.
 """
 
 import inspect

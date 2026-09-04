@@ -1,18 +1,25 @@
-"""
-Add the BCS instruction behavior.
+"""Lesson 165: implement Branch if Carry Set behavior.
 
-Instruction:
-    BCS -> Branch if Carry Set
+Why this step exists:
+The addressing layer has already consumed and signed the operand, so BCS only
+selects on Carry and applies the displacement to the next-instruction PC.
 
-Goal:
-implement bcs(cpu, offset) in instructions.py.
+In this step, after BCC in lesson 164, add exactly:
 
-Student guidance:
-The offset is already signed by relative(cpu). BCS only checks Carry and, if
-Carry is set, adds the offset to PC.
+``emulator/cpu/instructions.py::bcs``::
 
-Remember:
-PC is 16-bit, so branch targets must use `& 0xFFFF`.
+    def bcs(cpu: CPU, offset: int):
+        if cpu.flags.get_carry_flag():
+            cpu.pc = (cpu.pc + offset) & 0xFFFF
+
+Masking makes both overflow and underflow wrap to 16 bits.
+
+Invariants: Carry set takes the branch; Carry clear leaves PC unchanged.  No
+status flag, other register, or memory changes.  Misconception: BCS does not
+set Carry and does not branch when Carry is clear; it merely reads that flag.
+
+Out of scope: subsequent branch instruction functions are lessons 166-171;
+all branch opcode imports, handlers, and table entries are lessons 172-179.
 """
 
 from emulator.cpu.instructions import bcs

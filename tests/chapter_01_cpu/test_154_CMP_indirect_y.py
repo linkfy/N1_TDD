@@ -1,14 +1,29 @@
-"""
-Add CMP (Indirect),Y.
+"""Lesson 154: add CMP (indirect),Y opcode ``0xD1``.
 
-Opcode:
-    0xD1 -> CMP ($nn),Y
+Why this step exists:
+The (indirect),Y form completes CMP addressing by indexing a resolved
+zero-page pointer rather than the pointer location itself.
 
-Goal:
-create cmp_indirect_y(cpu), use indirect_y(cpu), read memory, then cmp(cpu, value).
+In this step, close the CMP opcode sequence by adding to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Indirect,Y reads the zero-page pointer first, then adds Y to the final address.
+    def cmp_indirect_y(cpu: CPU):
+        addr = indirect_y(cpu)
+        value = cpu.bus.read(addr)
+        cmp(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0xD1: cmp_indirect_y,
+    }
+
+``emulator/cpu/addressing_modes.py::indirect_y`` reads a little-endian pointer
+from zero page (wrapping the pointer high-byte lookup), then adds Y to that
+16-bit address.  Only C/Z/N change; A, Y, pointer bytes, target memory, and
+Overflow are invariant; opcode plus operand advances PC two bytes.
+
+Misconception: unlike (indirect,X), Y is added after pointer dereference, not
+to the zero-page operand.  Out of scope: CPX and CPY in lessons 155-162.
 """
 import inspect
 

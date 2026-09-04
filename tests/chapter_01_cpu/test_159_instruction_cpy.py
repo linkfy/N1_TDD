@@ -1,20 +1,27 @@
-"""
-Add the CPY instruction behavior.
+"""Lesson 159: implement addressing-independent CPY behavior.
 
-Instruction:
-    CPY -> compare Y with value
+Why this step exists:
+CPY needs a value-oriented comparison primitive so every addressing form uses
+the same no-borrow, equality, and wrapped-subtraction flag rules.
 
-Goal:
-implement cpy(cpu, value) in instructions.py.
+In this step, after CPX, add exactly this symbol to
+``emulator/cpu/instructions.py``:
 
-Student guidance:
-CPY computes Y - value for flags only. It does not store the subtraction result
-back into Y.
+    def cpy(cpu: CPU, value: int):
+        result_8 = (cpu.y - value) & 0xFF
 
-Flags:
-    C = Y >= value
-    Z = Y == value
-    N = bit 7 of (Y - value)
+        # Flags:
+        cpu.flags.set_carry_flag(cpu.y >= value)
+        cpu.flags.set_zero_flag(cpu.y == value)
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) !=0)
+
+The subtraction wraps solely to derive Negative; Carry represents no unsigned
+borrow and Zero represents equality.  Y, the operand, memory, A, X, PC, and
+Overflow are invariant because CPY stores no subtraction result.
+
+Misconception: CPY neither consumes the existing Carry flag nor writes back to
+Y.  Out of scope: importing ``cpy`` into ``emulator/cpu/opcodes.py`` and its
+immediate, zero-page, and absolute handlers (lessons 160-162).
 """
 
 from emulator.cpu.instructions import cpy

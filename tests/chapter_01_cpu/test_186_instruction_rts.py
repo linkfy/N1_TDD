@@ -1,5 +1,7 @@
-"""
-Add the RTS instruction behavior.
+"""Step 186: add addressing-independent RTS behavior.
+
+Prerequisite: steps 184-185 added JSR behavior and opcode wiring. In this step,
+add ``emulator/cpu/instructions.py::rts``:
 
 Instruction:
     RTS -> Return from Subroutine
@@ -38,6 +40,16 @@ Example implementation shape:
 
     addr = (high << 8) | low
     cpu.pc = (addr + 1) & 0xFFFF
+
+Why this step exists:
+JSR stored PC-minus-one, so RTS reconstructs that word and advances
+once to the continuation.  Invariants: each pull increments 8-bit S before its
+read; low is pulled before high; final PC wraps to 16 bits; status, other
+registers, and memory are unchanged.  Misconception: reading before incrementing
+S, or omitting the final PC increment, does not invert JSR's stack protocol.
+
+Out of scope: importing/mapping opcode $60 is step 187.  BRK/RTI and shared
+CPU stack helpers belong to later steps.
 """
 
 from emulator.cpu.instructions import rts

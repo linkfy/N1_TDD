@@ -1,4 +1,29 @@
-"""Add BVC Relative: 0x50 -> BVC offset."""
+"""Step 178: connect BVC to its relative opcode.
+
+Prerequisite: step 177 wired BMI. In this step, add the following to
+``emulator/cpu/opcodes.py``:
+
+    from emulator.cpu.instructions import bvc
+
+    def bvc_relative(cpu: CPU):
+        offset = relative(cpu)
+        bvc(cpu, offset)
+
+    OPCODE_TABLE[0x50] = bvc_relative
+
+The import and entry should join the existing grouped import and table literal.
+Why this step exists:
+The handler decodes one signed operand, then step 170's
+``instructions.bvc`` makes the Overflow-clear branch decision.
+
+Invariants: opcode ``0x50`` always consumes its operand; Overflow clear applies
+the offset from post-operand PC and Overflow set leaves PC there.  No flag or
+memory is modified.  Misconception: BVC does not clear Overflow and does not
+derive overflow from the branch offset; it only observes the current flag.
+
+Out of scope: BVS opcode wiring is step 179.  Indirect JMP addressing follows
+as step 180.
+"""
 import inspect
 
 from emulator.bus.cpu_bus import CpuBus

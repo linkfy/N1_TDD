@@ -1,18 +1,27 @@
-"""
-Add the BIT instruction behavior.
+"""Lesson 143: implement addressing-independent BIT behavior.
 
-Instruction:
-    BIT -> test bits in value using A
+Why this step exists:
+BIT has unusual flag semantics: Z comes from A AND value while N and V copy
+operand bits, so one shared primitive prevents addressing handlers from drifting.
 
-Goal:
-implement bit(cpu, value) in instructions.py.
+In this step, after the EOR lessons, add exactly this symbol to
+``emulator/cpu/instructions.py``:
 
-Student guidance:
-BIT is a test-only instruction. It does not store A & value back into A.
-It only updates flags:
-    Z = (A & value) == 0
-    N = value bit 7
-    V = value bit 6
+    def bit(cpu: CPU, value: int):
+        result_8 = (cpu.a & value) & 0xFF
+
+        # Flags:
+        cpu.flags.set_zero_flag(result_8 == 0)
+        cpu.flags.set_negative_flag((value & 0b1000_0000) != 0)
+        cpu.flags.set_overflow_flag((value & 0b0100_0000) != 0)
+
+BIT separates the zero test from the two copied operand bits: Z reflects
+``A & value``, while N and V reflect value bits 7 and 6.  A, Carry, memory,
+X, Y, and PC are invariant; only Z/N/V are rewritten.
+
+Misconception: BIT neither stores ``A & value`` in A nor derives N/V from that
+AND result.  Out of scope: importing ``bit`` into ``emulator/cpu/opcodes.py``
+and wiring zero-page and absolute opcodes are lessons 144-145.
 """
 
 from emulator.cpu.instructions import bit

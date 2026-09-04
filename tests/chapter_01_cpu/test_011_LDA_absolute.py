@@ -1,3 +1,76 @@
+"""
+Test 011 — Add absolute-addressed LDA ($AD).
+
+File to update:
+    emulator/cpu/cpu.py
+
+Location:
+    CPU.step, new $AD branch
+
+Why this step exists:
+Immediate LDA loads its operand directly. Absolute LDA instead consumes a two-byte
+little-endian address, reads the value stored there, and applies the same Zero and
+Negative flag behavior learned in Test 010.
+
+Complete example implementation:
+
+    ZERO_FLAG = 1 << 1
+    NEGATIVE_FLAG = 1 << 7
+
+
+    class CPU:
+        def step(self) -> None:
+            opcode = self.fetch_byte()
+
+            if opcode == 0xA9:
+                self.a = self.fetch_byte()
+                if self.a == 0:
+                    self.p |= ZERO_FLAG
+                else:
+                    self.p &= ~ZERO_FLAG
+
+                if self.a & NEGATIVE_FLAG:
+                    self.p |= NEGATIVE_FLAG
+                else:
+                    self.p &= ~NEGATIVE_FLAG
+                return
+
+            if opcode == 0xAD:
+                address = self.fetch_word()
+                self.a = self.bus.read(address)
+
+                # In this step, flag behavior is intentionally
+                # duplicated before Test 012 extracts the common helper.
+                if self.a == 0:
+                    self.p |= ZERO_FLAG
+                else:
+                    self.p &= ~ZERO_FLAG
+
+                if self.a & NEGATIVE_FLAG:
+                    self.p |= NEGATIVE_FLAG
+                else:
+                    self.p &= ~NEGATIVE_FLAG
+                return
+
+            raise NotImplementedError(
+                f"Opcode ${opcode:02X} is not implemented"
+            )
+
+Important invariants:
+    - $AD consumes three instruction bytes: opcode, low address, high address
+    - the bus read uses the assembled 16-bit address
+    - both setting and clearing Z/N work across consecutive instructions
+
+Common misconception:
+The bytes `34 12` are not the value $1234 loaded into A. They form address $1234;
+LDA then loads the byte stored at that address.
+
+Out of scope:
+    - extracting shared flag logic into a helper
+    - extracting addressing and instruction functions
+    - other LDA addressing modes
+"""
+
 from emulator.cpu.cpu import CPU
 from emulator.bus.cpu_bus import CpuBus
 from emulator.memory.fake_rom import FakeROM

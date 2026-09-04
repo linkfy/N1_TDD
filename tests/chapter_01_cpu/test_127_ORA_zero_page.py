@@ -1,14 +1,31 @@
-"""
-Add ORA Zero Page.
+"""Lesson 127: add ORA zero-page opcode ``0x05``.
 
-Opcode:
-    0x05 -> ORA $nn
+Why this step exists:
+ORA must distinguish a zero-page address operand from literal data, read the
+addressed byte, and then apply the already-defined inclusive-OR behavior.
 
-Goal:
-create ora_zero_page(cpu), use zero_page(cpu), read memory, then or_a(cpu, value).
+In this step, with ``or_a`` imported by lesson 126, the complete incremental
+implementation in
+``emulator/cpu/opcodes.py`` is:
 
-Student guidance:
-The operand byte is the zero-page address where the value lives.
+    def ora_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        value = cpu.bus.read(addr)
+        or_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x05: ora_zero_page,
+    }
+
+``emulator/cpu/addressing_modes.py::zero_page`` fetches the one-byte address,
+then the handler reads its value before calling ``instructions.or_a``.  A and
+Z/N change; Carry/Overflow and memory remain invariant; ``05 10`` reads
+``$0010`` and advances PC two bytes.
+
+Misconception: pass the byte stored at ``$0010`` to ``or_a``, not address
+``0x10``, and do not write the result back to memory.  Out of scope:
+zero-page,X through indirect,Y ORA modes (lessons 128-133).
 """
 import inspect
 

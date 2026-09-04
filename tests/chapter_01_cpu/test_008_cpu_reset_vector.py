@@ -1,4 +1,49 @@
-"""In this test we should implement the usage of CPU reset method
+"""
+Test 008 — Initialize CPU state from the reset vector.
+
+File to update:
+    emulator/cpu/cpu.py
+
+Location:
+    CPU.reset
+
+Reference:
+    https://www.nesdev.org/wiki/CPU_power_up_state
+
+Why this step exists:
+The CPU does not choose its program start address directly. On reset it reads a
+little-endian 16-bit vector from CPU addresses $FFFC-$FFFD through CpuBus.
+
+Complete example implementation:
+
+    class CPU:
+        # Keep the constructor and fetch helpers from Test 004.
+
+        def reset(self) -> None:
+            low = self.bus.read(0xFFFC)
+            high = self.bus.read(0xFFFD)
+
+            self.pc = low | (high << 8)
+            self.s = 0xFD
+            self.p = 0x04
+
+Important invariants:
+    - vector low byte comes from $FFFC
+    - vector high byte comes from $FFFD
+    - reset reads through the bus rather than indexing FakeROM directly
+
+Minimal example:
+FakeROM offsets $7FFC=$00 and $7FFD=$80 appear at CPU addresses $FFFC-$FFFD and set
+PC to $8000. The next fetch therefore reads FakeROM offset $0000.
+
+Common misconception:
+Reset must not increment PC while reading the vector. It assigns PC from fixed bus
+addresses; instruction fetching begins afterward.
+
+Out of scope:
+    - opcode dispatch
+    - interrupt entry
+    - cycle timing
 """
 
 from emulator.bus.cpu_bus import CpuBus

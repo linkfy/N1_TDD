@@ -1,15 +1,31 @@
-"""
-Add ROR Accumulator.
+"""Lesson 111: expose the already-built ROR A as opcode ``0x6A``.
 
-Opcode:
-    0x6A -> ROR A
+In this step, use ``ror`` and ``ror_a`` from lessons 109-110 and add only the
+accumulator opcode integration in ``emulator/cpu/opcodes.py``.
 
-Goal:
-map opcode 0x6A directly to ror_a(cpu).
+Why this step exists:
+ROR A needs an opcode-table entry before programs can reach the accumulator
+primitive through normal CPU execution without incorrectly fetching an operand.
 
-Student guidance:
-Accumulator mode has no operand byte. Do not call an addressing helper here.
-Opcode 0x6A is one byte long, so PC advances by exactly 1.
+Suggested implementation:
+
+    from emulator.cpu.instructions import (..., ror_a)
+
+    OPCODE_TABLE = {
+        ...
+        0x6A: ror_a,
+    }
+
+The direct table entry is the complete example implementation: ``CPU.step`` has
+already fetched the opcode, and ``ror_a(cpu)`` needs no operand decoder.
+It rotates A right through the old Carry, moves old A bit 0 to Carry, updates
+Zero/Negative from the 8-bit result, and leaves memory untouched.  The
+one-byte instruction therefore advances PC by exactly one.
+
+Misconception: accumulator mode is not an addressing mode wrapper; adding a
+``ror_accumulator`` handler or fetching an operand would consume an extra
+byte.  Out of scope here: the memory handlers/opcodes ``0x66``, ``0x76``,
+``0x6E``, and ``0x7E`` belong to lessons 112-115; AND begins at lesson 116.
 """
 import inspect
 

@@ -1,15 +1,33 @@
-"""
-Add ROL Absolute,X.
+"""Lesson 108: wire ROL Absolute,X (opcode ``0x3E``).
 
-Opcode:
-    0x3E -> ROL $hhhh,X
+In this step, complete the ROL sequence by adding only the Absolute,X adapter
+and dispatch entry after lesson 107.
 
-Goal:
-create rol_absolute_x(cpu), use absolute_x(cpu), then rol(cpu, address).
+Complete example implementation in the production locations:
 
-Student guidance:
-Absolute,X first decodes the 16-bit little-endian base address, then adds X.
-For `3E 00 02` with X=0x04, the target address is $0204.
+``emulator/cpu/opcodes.py::rol_absolute_x``::
+
+    def rol_absolute_x(cpu: CPU):
+        addr = absolute_x(cpu)
+        rol(cpu, addr)
+
+``emulator/cpu/opcodes.py::OPCODE_TABLE``::
+
+    0x3E: rol_absolute_x,
+
+Why this step exists:
+``absolute_x`` centralizes little-endian decoding and X indexing;
+``rol`` handles only operation semantics.
+
+Invariants: consume two operand bytes, decode the 16-bit base, then add X;
+``3E 00 02`` with X=``0x04`` targets ``$0204`` and PC ends at start+3.  The
+memory primitive's C/Z/N behavior remains unchanged.
+
+Misconception: do not index a single operand byte or apply zero-page wrapping;
+this mode indexes the decoded 16-bit absolute base.
+
+Out of scope: ROR primitives begin at 109 and ROR opcodes at 111; page-cross
+and cycle-accurate read/modify/write behavior are later work.
 """
 import inspect
 

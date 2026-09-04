@@ -1,15 +1,41 @@
 """
-Add the DEX instruction behavior.
+Test 082 - Add DEX instruction behavior.
 
-Instruction:
-    DEX -> X = X - 1
+In this step, add only the instruction function. Opcode 0xCA is the following
+Test 083 step.
 
-Goal:
-implement dex(cpu) in instructions.py.
+Production location and symbol:
+    emulator/cpu/instructions.py: `dex(cpu: CPU)`
 
-Important:
-DEX only modifies the X register, Zero flag, and Negative flag.
-It must not modify Carry or Overflow.
+Why this step exists:
+DEX is register behavior independent of opcode decoding. Python integers do not
+wrap automatically, so subtraction must be normalized to an 8-bit result.
+
+Suggested implementation:
+
+    def dex(cpu: CPU):
+        result = cpu.x - 1
+        result_8 = result & 0xFF
+
+        # Set flags
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+        cpu.flags.set_zero_flag(result_8 == 0)
+
+        cpu.x = result_8
+
+Important invariants:
+    - X wraps from 0x00 to 0xFF through `& 0xFF`
+    - Zero and Negative are derived from the final 8-bit value
+    - Carry, Overflow, memory, and all other registers are untouched
+
+Common misconception:
+DEX is not subtraction through SBC: it neither consumes nor changes Carry and
+does not apply SBC's overflow rules.
+
+Out of scope:
+    - importing `dex` into opcodes and mapping 0xCA (test 083)
+    - later Y-register increments/decrements
+    - cycle timing
 """
 
 from emulator.cpu.instructions import dex

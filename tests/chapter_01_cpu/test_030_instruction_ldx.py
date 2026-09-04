@@ -1,15 +1,38 @@
 """
-Add a new instruction: LDX.
+Test 030 — Add the core LDX instruction.
 
-LDX means Load X Register.
+File to update:
+    emulator/cpu/instructions.py
 
-Create one function inside emulator/cpu/instructions.py:
+Location:
+    instructions.ldx, beside lda and sta
 
-    def ldx(cpu, value):
-        ...
+Why this step exists:
+LDX starts the next load family while preserving the instruction/opcode boundary
+established for LDA. The core instruction receives an already-resolved value, stores
+it in X, and applies the same Zero/Negative rules as `lda`.
 
-Goal:
-put value into register X and update Zero/Negative flags.
+Complete example implementation:
+
+    # emulator/cpu/instructions.py
+    def ldx(cpu, value) -> None:
+        cpu.x = value
+        cpu._update_zero_and_negative_flags(cpu.x)
+
+Important invariants:
+    - ldx receives a value, not an address
+    - X receives the value while A and Y remain unchanged
+    - Zero is set exactly for $00 and cleared otherwise
+    - Negative mirrors bit 7 and is cleared when bit 7 is zero
+
+Common misconception:
+Do not fetch an operand or read the bus inside `ldx`; opcode handlers will perform
+addressing and memory access before calling this instruction.
+
+Out of scope:
+    - all LDX opcode handlers and opcode-table entries
+    - zero-page,Y integration with an opcode
+    - the later FlagsHandler refactor
 """
 import inspect
 

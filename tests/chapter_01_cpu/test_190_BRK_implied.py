@@ -1,5 +1,14 @@
-"""
-Add BRK Implied.
+"""Step 190: wire implied BRK opcode $00.
+
+Prerequisite: step 189 completed ``brk`` with the required status-bit behavior.
+In this step, add this import and direct mapping in ``emulator/cpu/opcodes.py``:
+
+    from emulator.cpu.instructions import brk
+
+    OPCODE_TABLE = {
+        # existing entries...
+        0x00: brk,
+    }
 
 Opcode:
     0x00 -> BRK
@@ -28,6 +37,17 @@ Example:
     $8002: EA    next real instruction
 
 After CPU.step() executes BRK, the pushed return address should be $8002.
+
+Why this step exists:
+``CPU.step`` fetches $00 and advances PC once; direct dispatch to
+``brk`` accounts for the implicit padding byte and performs all stack/vector
+work.  Invariants: there is one table entry and no addressing-mode fetch;
+padding contents do not affect A or the destination; the step-189 BRK state
+and stack rules remain unchanged.  Misconception: BRK's two-byte architectural
+length does not imply a two-byte opcode or an operand-decoding wrapper.
+
+Out of scope: RTI/$40 are steps 191-192.  Hardware interrupt dispatch, NMI,
+shared stack helpers, and later opcode APIs are not part of this transition.
 """
 import inspect
 

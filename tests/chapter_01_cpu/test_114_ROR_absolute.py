@@ -1,15 +1,32 @@
-"""
-Add ROR Absolute.
+"""Lesson 114: add ROR absolute opcode ``0x6E``.
 
-Opcode:
-    0x6E -> ROR $hhhh
+In this step, use the instruction and addressing imports from prior lessons and
+add only the absolute handler and table entry in ``emulator/cpu/opcodes.py``.
 
-Goal:
-create ror_absolute(cpu), use absolute(cpu), then ror(cpu, address).
+Why this step exists:
+ROR needs a full-address memory form so programs can rotate bytes outside the
+zero page while reusing the same read-modify-write instruction primitive.
 
-Student guidance:
-Absolute operands are little-endian. For `6E 00 02`, the target address is
-$0200, not $0002.
+Suggested implementation:
+
+    def ror_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        ror(cpu, addr)
+
+    OPCODE_TABLE = {
+        ...
+        0x6E: ror_absolute,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute`` calls ``CPU.fetch_word`` and
+therefore decodes the low byte before the high byte.  ``6E 00 02`` rotates
+the byte at ``$0200`` through Carry via ``instructions.ror``.  Memory is
+read/modified/written once conceptually, A is unchanged, C/Z/N follow the
+rotate result, and the opcode plus two-byte operand advances PC by three.
+
+Misconception: ``00 02`` is not address ``$0002`` and is not itself the data
+to rotate.  Out of scope: adding X (lesson 115), changing ``absolute``, or
+reimplementing ``ror`` in the handler.
 """
 import inspect
 

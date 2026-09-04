@@ -1,15 +1,32 @@
-"""
-Add ROL Absolute.
+"""Lesson 107: wire ROL Absolute (opcode ``0x2E``).
 
-Opcode:
-    0x2E -> ROL $hhhh
+In this step, after the zero-page modes, add only the absolute adapter and
+table entry.
 
-Goal:
-create rol_absolute(cpu), use absolute(cpu), then rol(cpu, address).
+Complete example implementation in the production locations:
 
-Student guidance:
-Absolute operands are little-endian. For `2E 00 02`, the target address is
-$0200, not $0002.
+``emulator/cpu/opcodes.py::rol_absolute``::
+
+    def rol_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        rol(cpu, addr)
+
+``emulator/cpu/opcodes.py::OPCODE_TABLE``::
+
+    0x2E: rol_absolute,
+
+Why this step exists:
+Operand decoding stays in ``absolute`` while ``rol`` remains a
+destination-address operation shared by all memory modes.
+
+Invariants: two operand bytes are consumed little-endian; ``2E 00 02``
+targets ``$0200``; PC ends at start+3; only target memory and C/Z/N change.
+
+Misconception: bytes ``00 02`` encode ``$0200``, not ``$0002`` and not the
+literal value to rotate.
+
+Out of scope: Absolute,X is lesson 108, ROR begins at 109, and page/cycle
+timing was not part of this transition.
 """
 import inspect
 

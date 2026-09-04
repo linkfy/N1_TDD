@@ -1,15 +1,44 @@
 """
-Add the LSR memory instruction behavior.
+Test 095 - Add the LSR memory instruction behavior.
 
-Instruction:
-    LSR memory -> memory[address] = memory[address] >> 1
+In this step, add only memory-targeted LSR behavior. Accumulator behavior and
+opcode wiring follow in Tests 096-101.
 
-Goal:
-implement lsr(cpu, address) in instructions.py for memory destinations.
+File and symbol:
+    emulator/cpu/instructions.py: lsr
 
-Student guidance:
-LSR shifts right. The old bit 0 is the bit that falls out, so it becomes
-Carry. Bit 7 is filled with 0, so Negative is always cleared.
+Why this step exists:
+The instruction layer must define LSR's read/modify/write and flag semantics once
+before addressing-mode handlers are wired. This transition is memory-only.
+
+Suggested implementation for this step:
+
+    # emulator/cpu/instructions.py
+    def lsr(cpu: CPU, addr: int):
+        value = cpu.bus.read(addr)
+        result = value >> 1
+        result_8 = result & 0xFF
+
+        # Set flags
+        cpu.flags.set_carry_flag((value & 0x01) != 0)
+        cpu.flags.set_negative_flag(False)
+        cpu.flags.set_zero_flag(result_8 == 0)
+
+        cpu.bus.write(addr, result_8)
+
+Important invariants:
+    - Carry is replaced from the original bit 0, including being cleared when absent
+    - Zero is based on the final 8-bit result and Negative is always cleared
+    - exactly the supplied memory address is read and written; A is unchanged
+    - logical right shift introduces zero at bit 7
+
+Common misconception:
+Carry does not come from the result and Negative is not copied from the old bit 7.
+
+Out of scope:
+    - accumulator behavior in Test 096 and opcode wiring in Tests 097-101
+    - cycle-accurate read/modify/write sequencing
+    - unrelated cleanup to `asl_a`
 """
 
 from emulator.cpu.instructions import lsr

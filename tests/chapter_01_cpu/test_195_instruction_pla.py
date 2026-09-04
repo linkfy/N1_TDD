@@ -1,43 +1,32 @@
-"""
-Add the PLA instruction behavior.
+"""Step 195: implement PLA behavior.
 
-Instruction:
-    PLA -> Pull Accumulator
+In this step, change only ``emulator/cpu/instructions.py`` by adding
+``pla(cpu)``. Prerequisites: ``STACK_BASE`` and the zero/negative flag setters
+already exist.
 
-Goal:
-implement pla(cpu) in instructions.py.
+Why this step exists:
+A pull first advances S to the occupied stack slot, loads that byte
+into A, and derives Z and N from the newly loaded accumulator.
 
-Student guidance:
-PLA restores one byte from the CPU stack into register A.
-
-6502 stack rule:
-    Pull increments S first, then reads from the stack.
-
-So if:
-    S = $FC
-    $01FD = $42
-
-Then PLA must:
-    1. increment S to $FD
-    2. read $42 from $01FD
-    3. store $42 into A
-    4. update Zero and Negative flags from the new A value
-
-Important difference from PHA:
-    PHA does not update flags.
-    PLA does update Zero and Negative flags.
-
-Common mistakes:
-    - Reading before incrementing S.
-    - Forgetting to update Zero and Negative.
-    - Checking bit 6 instead of bit 7 for Negative.
-
-Implementation shape:
+Suggested implementation::
 
     cpu.s = (cpu.s + 1) & 0xFF
     cpu.a = cpu.bus.read(0x0100 | cpu.s)
     cpu.flags.set_zero_flag(cpu.a == 0)
     cpu.flags.set_negative_flag((cpu.a & 0x80) != 0)
+
+Place those statements in ``def pla(cpu: CPU)``. ``STACK_BASE`` and the
+equivalent binary bit-7 mask ``0b1000_0000`` may be used.
+
+Invariants: increment and wrap S before reading; read stack page $0100; replace
+A with the pulled byte; update only Z and N, using bit 7 for N; preserve all
+other status bits.
+
+Misconception: PLA is not merely PHA in reverse. Unlike PHA, it updates Z and
+N from A, but it does not replace the whole status register.
+
+Out of scope: opcode $68 registration belongs to step 196. PHP and PLP begin
+at steps 197 and 199; do not add their APIs or behavior here.
 """
 
 from emulator.cpu.instructions import pla

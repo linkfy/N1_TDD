@@ -1,15 +1,40 @@
 """
-Add the DEY instruction behavior.
+Test 086 - Add DEY instruction behavior.
 
-Instruction:
-    DEY -> Y = Y - 1
+In this step, add only `dey`; Test 087 wires the opcode after the behavior
+exists.
 
-Goal:
-implement dey(cpu) in instructions.py.
+Production location and symbol:
+    emulator/cpu/instructions.py: `dey(cpu: CPU)`
 
-Important:
-DEY only modifies the Y register, Zero flag, and Negative flag.
-It must not modify Carry or Overflow.
+Why this step exists:
+DEY owns the Y-register decrement and status effects independently of decoding.
+Masking is required to model underflow in an 8-bit register.
+
+Suggested implementation:
+
+    def dey(cpu: CPU):
+        result = cpu.y - 1
+        result_8 = result & 0xFF
+
+        # Set flags
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+        cpu.flags.set_zero_flag(result_8 == 0)
+
+        cpu.y = result_8
+
+Important invariants:
+    - Y wraps from 0x00 to 0xFF
+    - Zero and Negative reflect the masked 8-bit result
+    - Carry and Overflow are preserved; memory is not accessed
+
+Common misconception:
+DEY is not SBC applied to Y and must not use Carry as a borrow input.
+
+Out of scope:
+    - importing `dey` and mapping opcode 0x88 (test 087)
+    - prior INY behavior and dispatch
+    - later ASL work and cycle timing
 """
 
 from emulator.cpu.instructions import dey

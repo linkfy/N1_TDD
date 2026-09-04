@@ -1,31 +1,28 @@
 """
-Create the INesRom data class.
+Lesson 215: add
+`emulator/cartridge/ines.py::INesRom`.
 
-Class to implement:
-    INesRom
+Why this step exists:
+This immutable parser result keeps the interpreted header and extracted program
+and graphics sections together so `parse_ines_rom` need not return loose values.
+It builds on the header model and parser from lessons 213-214.
 
-Why this class exists:
-Once the header is parsed, the emulator needs one object that keeps the parsed
-metadata together with the actual ROM sections:
+Suggested implementation after `parse_ines_header`:
 
-    header: INesHeader
-        The parsed iNES header. It tells us how many PRG/CHR banks exist,
-        whether a trainer was present, and which mapper number the cartridge
-        declares.
+    @dataclass(frozen=True)
+    class INesRom:
+        header: INesHeader
+        prg_rom: bytes
+        chr_rom: bytes
 
-    PRG ROM
-        Program bytes used by the CPU.
+Invariants: the field order is `header`, `prg_rom`, `chr_rom`; both payloads are
+`bytes`; and the dataclass is frozen because it describes file contents. Do not
+confuse this format-level result with the emulator-facing `Cartridge`.
 
-    CHR ROM
-        Graphics pattern bytes used by the PPU later.
-
-INesRom groups:
-    - header: INesHeader
-    - prg_rom: bytes
-    - chr_rom: bytes
-
-This keeps parse_ines_rom(data) clean: it can return one object containing both
-metadata and extracted sections.
+Out of scope for this step:
+    1. Lesson 216 calculates offsets, skips trainers, and validates payload size.
+    2. Lesson 217 introduces the emulator-facing `Cartridge`.
+    3. Lessons 218-219 implement mapper address translation.
 """
 
 import dataclasses

@@ -1,19 +1,37 @@
-"""
-Add a new instruction: INC.
+"""Lesson 071: add the INC instruction primitive.
 
-INC means Increment Memory.
+In this step, add only `emulator/cpu/instructions.py:inc`. The opcode import,
+handlers, and table entries belong to lessons 072-075.
 
-Create one function inside emulator/cpu/instructions.py:
+Why this step exists:
+INC is a memory read-modify-write operation. Keeping the arithmetic
+in one instruction primitive lets each later addressing-mode handler resolve an
+address and delegate identical mutation and flag behavior.
 
-    def inc(cpu, address):
-        ...
+Suggested implementation in `emulator/cpu/instructions.py`, inserted
+after `sbc`:
 
-Goal:
-read one byte from memory, add 1, write it back to the same address,
-and update Zero/Negative flags.
+    def inc(cpu: CPU, address: int):
+        value = cpu.bus.read(address)
+        result = value + 1
+        result_8 = result & 0xFF
 
-Reference:
-https://www.nesdev.org/wiki/Instruction_reference#INC
+        # Set flags
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+        cpu.flags.set_zero_flag(result_8 == 0)
+
+        # Set value on address
+        cpu.bus.write(address, result_8)
+
+Invariants: `address` is an effective address, not an operand value; the byte is
+read and written through `cpu.bus`; masking provides 8-bit wraparound; Zero and
+Negative reflect the masked result; Carry, Overflow, and A/X/Y remain unchanged.
+
+Misconception: do not increment A or pass `cpu.bus.read(address)` to `inc`.
+INC owns the memory read and writes the result back to the same address.
+
+Out of scope: opcode wiring is not part of step 071; zero-page through
+absolute-X integration follows in lessons 072-075.
 """
 import inspect
 

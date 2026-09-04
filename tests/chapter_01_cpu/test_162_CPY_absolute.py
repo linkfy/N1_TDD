@@ -1,14 +1,31 @@
-"""
-Add CPY Absolute.
+"""Lesson 162: add CPY absolute opcode ``0xCC``.
 
-Opcode:
-    0xCC -> CPY $hhhh
+Why this step exists:
+Absolute CPY compares Y with a byte anywhere in CPU memory and verifies the
+two-byte operand is decoded as a little-endian address.
 
-Goal:
-create cpy_absolute(cpu), use absolute(cpu), read memory, then cpy(cpu, value).
+In this step, after lessons 159-161 provide ``cpy`` and its immediate and
+zero-page handlers, add exactly the following to ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Absolute operands are little-endian. `CC 00 02` targets $0200.
+    def cpy_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        value = cpu.bus.read(addr)
+        cpy(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0xCC: cpy_absolute,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute`` consumes a little-
+endian address through ``CPU.fetch_word``; ``CC 00 02`` therefore compares Y
+with the byte read from ``$0200`` via ``instructions.cpy``.
+
+Invariants: Y and memory are unchanged; only C/Z/N change, and opcode plus the
+two-byte operand advances PC by three bytes.  Misconception: ``00 02`` is not
+the literal value ``0x0002`` to compare and is not a big-endian address.
+
+Out of scope: relative addressing and branches begin at lesson 163.
 """
 import inspect
 

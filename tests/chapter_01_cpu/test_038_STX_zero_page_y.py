@@ -1,12 +1,45 @@
 """
-Add STX Zero Page,Y.
+Test 038 - Add STX zero-page,Y ($96).
 
-Opcode:
-    0x96 -> STX $nn,Y
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use zero_page_y(cpu) to get the target address,
-then store register X there with stx(cpu, address).
+Locations:
+    opcodes.stx_zero_page_y
+    opcodes.OPCODE_TABLE[$96]
+
+Why this step exists:
+This lesson reuses the zero-page,Y helper first introduced in Test 029 to add STX's
+indexed zero-page encoding. Address calculation remains separate from the core store
+operation.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def stx_zero_page_y(cpu: CPU):
+        addr = zero_page_y(cpu)
+        stx(cpu, addr)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0x96: stx_zero_page_y,
+    }
+
+Important invariants:
+    - $96 maps to stx_zero_page_y
+    - Y, not X, indexes the one-byte operand
+    - base plus Y wraps within page $00
+    - stx writes X and leaves Zero and Negative unchanged
+
+Common misconception:
+The register being stored does not choose the index register. STX $nn,Y stores X but
+uses Y to calculate the destination.
+
+Out of scope:
+    - absolute STX
+    - changes to zero_page_y or stx
+    - cycle timing
 """
 import inspect
 

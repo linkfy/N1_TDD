@@ -1,20 +1,27 @@
-"""
-Add the CMP instruction behavior.
+"""Lesson 146: implement addressing-independent CMP behavior.
 
-Instruction:
-    CMP -> compare A with value
+Why this step exists:
+CMP needs one value-oriented definition of no-borrow Carry, equality Zero, and
+wrapped-subtraction Negative semantics before adding any addressing modes.
 
-Goal:
-implement cmp(cpu, value) in instructions.py.
+In this step, before the addressing-specific compare lessons, add exactly this
+symbol to ``emulator/cpu/instructions.py``:
 
-Student guidance:
-CMP computes A - value for flags only. It does not store the subtraction result
-back into A.
+    def cmp(cpu: CPU, value: int):
+        result_8 = (cpu.a - value) & 0xFF
 
-Flags:
-    C = A >= value
-    Z = A == value
-    N = bit 7 of (A - value)
+        # Flags:
+        cpu.flags.set_carry_flag(cpu.a >= value)
+        cpu.flags.set_zero_flag(cpu.a == value)
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) !=0)
+
+CMP performs an unsigned comparison while using the wrapped subtraction only
+for N.  C means no borrow (A >= value), Z means equality, and N is result bit
+7.  A, Overflow, memory, X, Y, and PC are invariant.
+
+Misconception: Carry is set, not cleared, when A is at least the operand, and
+the subtraction result is never stored.  Out of scope: importing ``cmp`` and
+CMP opcodes are lessons 147 onward; CPX/CPY are lessons 155-162.
 """
 
 from emulator.cpu.instructions import cmp

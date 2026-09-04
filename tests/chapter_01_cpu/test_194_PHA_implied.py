@@ -1,32 +1,31 @@
-"""
-Add PHA Implied.
+"""Step 194: register implied PHA.
 
-Opcode:
-    0x48 -> PHA
+Prerequisite: step 193 added ``pha``. In this step, change only
+``emulator/cpu/opcodes.py`` by importing ``pha`` and adding its entry to
+``OPCODE_TABLE``.
 
-Goal:
-add opcode 0x48 to OPCODE_TABLE.
+Why this step exists:
+PHA gets its source from CPU register A, so opcode $48 requires no
+addressing mode or operand and can dispatch directly to ``pha(cpu)``.
 
-Student guidance:
-PHA uses implied addressing. It has no operand bytes.
+Suggested implementation::
 
-The instruction knows what to push from its name:
+    from emulator.cpu.instructions import pha
 
-    PHA -> Push Accumulator
+    OPCODE_TABLE = {
+        # existing entries
+        0x48: pha,
+    }
 
-So the opcode handler can dispatch directly to:
+Invariants: preserve existing mappings; map exactly $48 to the ``pha``
+function object; consume only the opcode byte; leave stack behavior to step
+193's function.
 
-    pha(cpu)
+Misconception: the byte following $48 is the next opcode, not an accumulator
+value to push.
 
-Execution steps:
-    1. CPU.step() fetches opcode 0x48.
-    2. OPCODE_TABLE dispatches to pha(cpu).
-    3. PHA writes A to $0100 | S.
-    4. PHA decrements S.
-
-Common mistake:
-Do not fetch an operand byte for PHA. The byte after opcode 0x48 is the next
-instruction, not data used by PHA.
+Out of scope: implementing ``pha`` is step 193. PLA starts at step 195; other
+stack instruction mappings belong to their later numbered steps.
 """
 import inspect
 

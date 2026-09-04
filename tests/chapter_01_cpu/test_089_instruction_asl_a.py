@@ -1,15 +1,44 @@
 """
-Add the ASL accumulator instruction behavior.
+Test 089 - Add accumulator-targeted ASL behavior.
 
-Instruction:
-    ASL A -> A = A << 1
+In this step, add only `asl_a`, using the memory form from Test 088 as context
+and leaving ASL opcode mapping to Tests 090-094.
 
-Goal:
-implement asl_a(cpu) in instructions.py for the accumulator destination.
+Production location and symbol:
+    emulator/cpu/instructions.py: `asl_a(cpu: CPU)`
 
-Why this is separate from asl(cpu, address):
-ASL A does not decode an address and does not touch memory. The destination is
-the accumulator register itself, so the instruction must read and write cpu.a.
+Why this step exists:
+ASL A has the same bit and flag rules as memory ASL but its destination is the
+accumulator. A separate function avoids pretending A is a bus address.
+
+Suggested implementation:
+
+    def asl_a(cpu: CPU):
+        value = cpu.a
+        result = cpu.a << 1
+        result_8 = result & 0xFF
+
+        # Set flags
+        cpu.flags.set_carry_flag((value & 0b1000_0000) != 0)
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+        cpu.flags.set_zero_flag(result_8 == 0)
+
+        cpu.a = result_8
+
+Important invariants:
+    - Carry receives A's original bit 7
+    - A is masked to eight bits; Z and N use that masked result
+    - no memory address is decoded and no bus location is modified
+    - status bits other than C, Z, and N are preserved
+
+Common misconception:
+Do not call memory `asl(cpu, cpu.a)`: the accumulator's value is data, not an
+address, and ASL A must not touch memory.
+
+Out of scope:
+    - importing `asl_a` and mapping opcode 0x0A (test 090)
+    - memory opcode wrappers and mappings (tests 091-094)
+    - cycle timing
 """
 
 from emulator.cpu.instructions import asl_a

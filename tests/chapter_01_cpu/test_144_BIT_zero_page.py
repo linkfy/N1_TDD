@@ -1,15 +1,32 @@
-"""
-Add BIT Zero Page.
+"""Lesson 144: add BIT zero-page opcode ``0x24``.
 
-Opcode:
-    0x24 -> BIT $nn
+Why this step exists:
+The first BIT opcode must fetch an operand from memory rather than modify A,
+then delegate its distinct Z/N/V rules to the instruction primitive.
 
-Goal:
-create bit_zero_page(cpu), use zero_page(cpu), read memory, then bit(cpu, value).
+In this step, lesson 143 already adds ``bit``.  As BIT's first opcode lesson,
+add its import and exactly the following handler/table entry in
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-The operand byte is the zero-page address where the tested value lives.
-BIT does not modify A or memory; it only updates Z, N, and V.
+    from emulator.cpu.instructions import (..., bit)
+
+    def bit_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        value = cpu.bus.read(addr)
+        bit(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x24: bit_zero_page,
+    }
+
+``addressing_modes.zero_page`` consumes the operand as an address; the bus
+read supplies the value whose bits BIT tests.  Z/N/V may change, while A,
+Carry, X, Y, and memory are invariant; opcode plus operand advances PC two
+bytes.
+
+Misconception: the operand byte is not tested directly and BIT does not write
+the addressed byte.  Out of scope: BIT absolute is lesson 145.
 """
 import inspect
 

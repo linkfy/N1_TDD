@@ -1,28 +1,26 @@
-"""
-Add TSX Implied.
+"""Step 204: wire implied TSX opcode $BA.
 
-Opcode:
-    0xBA -> TSX
+Why this step exists:
+In this step, the targets are ``emulator/cpu/opcodes.py``'s instruction import and
+``OPCODE_TABLE``; ``emulator/cpu/instructions.py::tsx`` is supplied by step
+203.  This transition exposes TSX to ``emulator/cpu/cpu.py::CPU.step``.
 
-Goal:
-add opcode 0xBA to OPCODE_TABLE.
+Suggested implementation::
 
-Student guidance:
-TSX uses implied addressing. It has no operand bytes.
+    from emulator.cpu.instructions import tsx  # add to the existing import
 
-The instruction knows both source and destination from its name:
+    OPCODE_TABLE = {
+        # existing entries
+        0xBA: tsx,
+    }
 
-    TSX -> Transfer Stack Pointer to X
+Invariant: $BA is a one-byte implied instruction.  Opcode fetch advances PC
+once, then ``tsx(cpu)`` copies S to X, updates only Zero/Negative, and leaves S
+unchanged.  The common misconception is to fetch an operand byte or to omit
+the flag behavior because the addressing mode is implied.
 
-Execution steps:
-    1. CPU.step() fetches opcode 0xBA.
-    2. OPCODE_TABLE dispatches directly to tsx(cpu).
-    3. TSX copies S into X.
-    4. TSX updates Zero and Negative flags.
-
-Common mistake:
-Do not fetch an operand byte for TSX. The byte after opcode 0xBA is the next
-instruction, not data used by TSX.
+Out of scope: Decimal-flag helpers and flag-control instructions begin at step
+205; cycle accounting and later CPU facilities are unchanged here.
 """
 import inspect
 

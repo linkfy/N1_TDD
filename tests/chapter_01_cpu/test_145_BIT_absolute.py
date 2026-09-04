@@ -1,16 +1,30 @@
-"""
-Add BIT Absolute.
+"""Lesson 145: add BIT absolute opcode ``0x2C``.
 
-Opcode:
-    0x2C -> BIT $hhhh
+Why this step exists:
+Absolute BIT extends the flag-only test to the full address space and verifies
+that its two-byte operand is decoded as a little-endian memory address.
 
-Goal:
-create bit_absolute(cpu), use absolute(cpu), read memory, then bit(cpu, value).
+In this step, with BIT semantics and its opcode import established in lessons
+143-144, add exactly the following to ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Absolute operands are little-endian. `2C 02 20` targets $2002, which is the
-NES PPUSTATUS register. Later, reading that address must trigger PPU side
-effects in the bus/PPU layer; BIT itself only consumes the read value.
+    def bit_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        value = cpu.bus.read(addr)
+        bit(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x2C: bit_absolute,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute`` uses ``CPU.fetch_word`` to
+decode the little-endian address.  The handler performs one bus read and BIT
+only consumes that value.  Z/N/V may change; A, Carry, X, Y, and memory remain
+invariant; opcode plus word advances PC three bytes.
+
+Misconception: ``2C 02 20`` does not test literal ``$2002``; it reads that
+address, with any bus-owned side effects remaining bus behavior.  Out of scope:
+CMP and its compare opcodes begin in lesson 146.
 """
 import inspect
 

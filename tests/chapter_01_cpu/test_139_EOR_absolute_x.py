@@ -1,14 +1,30 @@
-"""
-Add EOR Absolute,X.
+"""Lesson 139: add EOR absolute,X opcode ``0x5D``.
 
-Opcode:
-    0x5D -> EOR $hhhh,X
+Why this step exists:
+Programs need EOR over full-address data indexed by X; this step connects that
+effective-address form to the already-tested exclusive-OR semantics.
 
-Goal:
-create eor_absolute_x(cpu), use absolute_x(cpu), read memory, then or_e(cpu, value).
+In this step, lesson 138 supplies unindexed absolute EOR.  Add exactly the
+following to ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Decode the 16-bit base address first, then add X.
+    def eor_absolute_x(cpu: CPU):
+        addr = absolute_x(cpu)
+        value = cpu.bus.read(addr)
+        or_e(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x5D: eor_absolute_x,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute_x`` fetches the little-endian base
+word and then adds X; this helper does not apply an additional
+``& 0xFFFF`` mask.  The handler reads the indexed location and calls
+``instructions.or_e``.  A and Z/N may change; Carry/Overflow, memory, X, and Y
+remain invariant; PC advances three bytes.
+
+Misconception: X indexes the decoded 16-bit address, not its low operand byte.
+Out of scope: absolute,Y and indirect EOR (140-142) and BIT (143-145).
 """
 import inspect
 

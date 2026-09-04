@@ -1,15 +1,26 @@
-"""
-Add the BEQ instruction behavior.
+"""Lesson 166: implement Branch if Equal behavior.
 
-Instruction:
-    BEQ -> Branch if Equal
+Why this step exists:
+Comparisons and other earlier instructions encode equality as Zero set, so BEQ
+only reads that existing condition and applies the signed offset.
 
-Goal:
-implement beq(cpu, offset) in instructions.py.
+In this step, following BCC and BCS, add exactly:
 
-Student guidance:
-BEQ branches when Zero is set. The name comes from comparison instructions:
-after CMP/CPX/CPY, Zero means the compared values were equal.
+``emulator/cpu/instructions.py::beq``::
+
+    def beq(cpu: CPU, offset: int):
+        if cpu.flags.get_zero_flag():
+            cpu.pc = (cpu.pc + offset) & 0xFFFF
+
+The offset is applied to the PC after the operand, and the mask preserves
+16-bit wrapping.
+
+Invariants: Zero set takes the branch and Zero clear leaves PC unchanged;
+neither path changes flags, other registers, or memory.  Misconception: BEQ
+does not compare values itself and does not set Zero; it consumes prior state.
+
+Out of scope: BNE and the remaining branch semantics are lessons 167-171.
+Opcode imports, relative handlers, and table entries wait for lessons 172-179.
 """
 
 from emulator.cpu.instructions import beq

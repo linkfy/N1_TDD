@@ -1,15 +1,30 @@
-"""
-Add the EOR instruction behavior.
+"""Lesson 134: implement addressing-independent EOR behavior.
 
-Instruction:
-    EOR -> A = A ^ value
+Why this step exists:
+Centralizing exclusive-OR semantics in a value-oriented primitive lets every
+later EOR opcode share identical accumulator and Zero/Negative flag behavior.
 
-Goal:
-implement or_e(cpu, value) in instructions.py.
+In this step, after all ORA work, add exactly this symbol to
+``emulator/cpu/instructions.py``:
 
-Student guidance:
-6502 calls exclusive OR `EOR`. It always stores the result in A. The operand
-can come from immediate mode or memory, so this function receives a value.
+    def or_e(cpu: CPU, value: int):
+        result_8 = (cpu.a ^ value) & 0xFF
+
+        # Flags:
+        cpu.flags.set_zero_flag(result_8 == 0)
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+
+        cpu.a = result_8
+
+The value-oriented signature separates EOR semantics from addressing.  XOR is
+masked to eight bits, stored in A, and used to derive Zero and Negative.
+Carry, Overflow, memory, X, Y, and PC are invariant because ``or_e`` does not
+touch them.
+
+Misconception: despite the helper name ``or_e``, EOR is exclusive
+OR (``^``), not inclusive OR, and ``value`` is not an address.  Out of scope:
+importing ``or_e`` in ``emulator/cpu/opcodes.py``, every EOR opcode (135-142),
+and BIT (143-145).
 """
 
 from emulator.cpu.instructions import or_e

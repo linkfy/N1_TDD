@@ -1,11 +1,49 @@
 """
-Add LDY Immediate.
+Test 042 - Add LDY immediate ($A0).
 
-Opcode:
-    0xA0 -> LDY #$nn
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use immediate(cpu), then ldy(cpu, value).
+Locations:
+    opcodes import of ldy
+    opcodes.ldy_immediate
+    opcodes.OPCODE_TABLE[$A0]
+
+Why this step exists:
+The core `ldy` instruction already owns the register and flag behavior. This lesson
+connects its first encoding by fetching one literal operand and passing that value to
+`ldy`.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import immediate
+    from emulator.cpu.instructions import ldy
+
+
+    def ldy_immediate(cpu: CPU):
+        ldy(cpu, immediate(cpu))
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xA0: ldy_immediate,
+    }
+
+Important invariants:
+    - $A0 maps to ldy_immediate
+    - immediate fetches exactly one operand byte, advancing PC by one after the opcode
+    - the operand itself is loaded; it is not treated as a memory address
+    - `ldy` remains responsible for updating Zero and Negative
+
+Common misconception:
+Do not read the bus at the immediate byte's numeric value. For `A0 42`, Y receives
+$42 directly.
+
+Out of scope:
+    - LDY zero-page, indexed, and absolute encodings
+    - STY opcode handlers
+    - cycle timing
 """
 import inspect
 

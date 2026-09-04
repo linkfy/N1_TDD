@@ -1,42 +1,30 @@
-"""
-Add a minimal CPU trace formatter.
-
-File to create:
-    emulator/debug/cpu_trace.py
-
-Function to implement:
-    format_cpu_trace(cpu)
+"""Step 211: add `emulator/debug/cpu_trace.py::format_cpu_trace`.
 
 Why this step exists:
-Before loading simple ROMs or comparing against known CPU logs, we need a way to
-observe CPU execution without changing CPU behavior.
+In this step, add a formatter that provides observability before ROM-log
+comparison without coupling debugging to CPU execution. Its line reports the
+next PC/opcode and the A, X, Y, P, and S register values before execution:
 
-A CPU trace line should answer:
-    - Which address is about to execute?
-    - Which opcode byte is at that address?
-    - What are the core CPU registers before execution?
-
-Minimal trace format:
-    PC OPCODE A:xx X:xx Y:xx P:xx S:xx
-
-Example:
     8000 A9 A:00 X:00 Y:00 P:04 S:FD
 
-Important design rule:
-    The trace formatter must observe CPU state only.
-    It must not call cpu.step().
-    It must not increment PC.
-    It must not modify registers or flags.
+Suggested implementation:
 
-Exact implementation shape:
+    from __future__ import annotations
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from emulator.cpu.cpu import CPU
+
 
     def format_cpu_trace(cpu: CPU):
         opcode = cpu.bus.read(cpu.pc)
         return f"{cpu.pc:04X} {opcode:02X} A:{cpu.a:02X} X:{cpu.x:02X} Y:{cpu.y:02X} P:{cpu.p:02X} S:{cpu.s:02X}"
 
-Common mistake:
-Do not fetch using cpu.fetch_byte(). That would mutate PC.
-Use cpu.bus.read(cpu.pc), because trace must be read-only.
+Invariants: formatting performs one non-advancing bus read, returns uppercase
+fixed-width hexadecimal fields, and leaves PC, registers, and flags unchanged.
+Do not use `CPU.fetch_byte()` or call `CPU.step()`; both confuse observation with
+execution, and `fetch_byte()` advances PC. Out of scope: ROM and cartridge
+support belong to later numbered steps.
 """
 
 import inspect

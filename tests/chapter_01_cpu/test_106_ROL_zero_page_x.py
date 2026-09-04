@@ -1,15 +1,34 @@
-"""
-Add ROL Zero Page,X.
+"""Lesson 106: wire ROL Zero Page,X (opcode ``0x36``).
 
-Opcode:
-    0x36 -> ROL $nn,X
+In this step, extend lesson 105 with only the indexed zero-page adapter and
+dispatch entry.
 
-Goal:
-create rol_zero_page_x(cpu), use zero_page_x(cpu), then rol(cpu, address).
+Complete example implementation in the production locations:
 
-Student guidance:
-Zero Page,X wraps inside the zero page. For base=0xFE and X=0x03, the final
-address is (0xFE + 0x03) & 0xFF == 0x01.
+``emulator/cpu/opcodes.py::rol_zero_page_x``::
+
+    def rol_zero_page_x(cpu: CPU):
+        addr = zero_page_x(cpu)
+        rol(cpu, addr)
+
+``emulator/cpu/opcodes.py::OPCODE_TABLE``::
+
+    0x36: rol_zero_page_x,
+
+Why this step exists:
+Reuse the established addressing helper so wrapping policy is not
+duplicated in the instruction primitive.
+
+Invariants: one operand byte is consumed; effective address is
+``(operand + cpu.x) & 0xFF``; PC ends at start+2; ``rol`` mutates only that
+byte with the C/Z/N behavior from lesson 102.  Base ``0xFE`` plus X ``0x03``
+therefore targets ``$0001``.
+
+Misconception: zero-page indexing does not spill into ``$0101`` and is not
+16-bit absolute indexing; wrapping to eight bits is required.
+
+Out of scope: absolute modes are lessons 107-108, ROR starts at 109, and
+cycle-accurate indexed read/modify/write sequencing is later work.
 """
 import inspect
 

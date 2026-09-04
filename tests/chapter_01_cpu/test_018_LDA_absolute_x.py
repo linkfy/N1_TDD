@@ -1,18 +1,52 @@
 """
-Add one more LDA addressing mode: Absolute,X.
+Test 018 — Add absolute,X LDA ($BD).
 
-Create one function inside emulator/cpu/addressing_modes.py:
+Files to update:
+    emulator/cpu/addressing_modes.py
+    emulator/cpu/opcodes.py
 
-    def absolute_x(cpu):
-        ...
+Locations:
+    addressing_modes.absolute_x
+    opcodes.lda_absolute_x
+    opcodes.OPCODE_TABLE[$BD]
 
-Then create one opcode handler inside emulator/cpu/opcodes.py:
+Why this step exists:
+Absolute,X adds X to a complete 16-bit base address. Unlike zero-page,X, the result
+can cross from one 256-byte page into the next.
 
-    def lda_absolute_x(cpu):
-        ...
+Complete example implementation:
 
-The goal is simple:
-learn how the X register can change a 16-bit address.
+    # emulator/cpu/addressing_modes.py
+    def absolute_x(cpu) -> int:
+        base = cpu.fetch_word()
+        return base + cpu.x
+
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import absolute_x
+
+
+    def lda_absolute_x(cpu) -> None:
+        address = absolute_x(cpu)
+        lda(cpu, cpu.bus.read(address))
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xBD: lda_absolute_x,
+    }
+
+Important invariant:
+$12FF + X=$01 becomes $1300; it does not wrap inside zero page.
+
+Common misconception:
+Crossing a page does not change the effective address calculation. Additional cycle
+behavior is intentionally outside this lesson.
+
+Out of scope:
+    - page-cross cycle penalties
+    - absolute,Y
+    - indirect addressing
 """
 import inspect
 

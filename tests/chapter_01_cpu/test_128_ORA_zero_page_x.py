@@ -1,14 +1,31 @@
-"""
-Add ORA Zero Page,X.
+"""Lesson 128: add ORA zero-page,X opcode ``0x15``.
 
-Opcode:
-    0x15 -> ORA $nn,X
+Why this step exists:
+This enables compact indexed ORA access and verifies that adding X obeys
+zero-page wraparound before the selected byte is combined with A.
 
-Goal:
-create ora_zero_page_x(cpu), use zero_page_x(cpu), read memory, then or_a(cpu, value).
+In this step, following lesson 127, add only this handler and table entry to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Zero Page,X wraps inside zero page: (base + X) & 0xFF.
+    def ora_zero_page_x(cpu: CPU):
+        addr = zero_page_x(cpu)
+        value = cpu.bus.read(addr)
+        or_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x15: ora_zero_page_x,
+    }
+
+``emulator/cpu/addressing_modes.py::zero_page_x`` computes
+``(base + cpu.x) & 0xFF`` before the bus read.  The resolved value feeds
+``instructions.or_a``; A and Z/N change, X, Carry/Overflow, and memory do not,
+and PC advances two bytes.  Thus base ``0xFE`` plus X ``0x03`` reads
+``$0001``.
+
+Misconception: zero-page indexing wraps to ``$0001``, not ``$0101``; X does
+not alter the loaded value.  Out of scope: absolute and indirect ORA modes
+(lessons 129-133).
 """
 import inspect
 

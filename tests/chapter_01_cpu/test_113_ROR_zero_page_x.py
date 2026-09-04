@@ -1,15 +1,32 @@
-"""
-Add ROR Zero Page,X.
+"""Lesson 113: add ROR zero-page,X opcode ``0x76``.
 
-Opcode:
-    0x76 -> ROR $nn,X
+In this step, with ``ror`` imported by lesson 112, add only the indexed
+zero-page handler and table entry in ``emulator/cpu/opcodes.py``.
 
-Goal:
-create ror_zero_page_x(cpu), use zero_page_x(cpu), then ror(cpu, address).
+Why this step exists:
+Indexed zero-page ROR must combine X with an eight-bit base address, including
+zero-page wraparound, before applying the already-established rotation rules.
 
-Student guidance:
-Zero Page,X wraps inside the zero page. For base=0xFE and X=0x03, the final
-address is (0xFE + 0x03) & 0xFF == 0x01.
+Suggested implementation:
+
+    def ror_zero_page_x(cpu: CPU):
+        addr = zero_page_x(cpu)
+        ror(cpu, addr)
+
+    OPCODE_TABLE = {
+        ...
+        0x76: ror_zero_page_x,
+    }
+
+``emulator/cpu/addressing_modes.py::zero_page_x`` fetches the base byte and
+computes ``(base + cpu.x) & 0xFF``.  ``instructions.ror`` owns the memory
+read/write and C/Z/N changes.  The invariant is zero-page wrapping: base
+``0xFE`` plus X ``0x03`` targets ``0x0001``, never ``0x0101``; PC advances
+two bytes and A is unchanged.
+
+Misconception: ordinary integer addition is not sufficient for zero-page
+indexing.  Out of scope: absolute and absolute,X ROR (lessons 114-115), and
+any new rotate implementation or addressing helper.
 """
 import inspect
 

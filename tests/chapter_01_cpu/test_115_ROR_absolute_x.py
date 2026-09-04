@@ -1,15 +1,32 @@
-"""
-Add ROR Absolute,X.
+"""Lesson 115: complete ROR with absolute,X opcode ``0x7E``.
 
-Opcode:
-    0x7E -> ROR $hhhh,X
+In this step, after lesson 114, add only the Absolute,X handler and table entry
+in ``emulator/cpu/opcodes.py``.
 
-Goal:
-create ror_absolute_x(cpu), use absolute_x(cpu), then ror(cpu, address).
+Why this step exists:
+This completes ROR addressing coverage by resolving a full little-endian base
+address plus X before rotating the selected memory byte.
 
-Student guidance:
-Absolute,X first decodes the 16-bit little-endian base address, then adds X.
-For `7E 00 02` with X=0x04, the target address is $0204.
+Suggested implementation:
+
+    def ror_absolute_x(cpu: CPU):
+        addr = absolute_x(cpu)
+        ror(cpu, addr)
+
+    OPCODE_TABLE = {
+        ...
+        0x7E: ror_absolute_x,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute_x`` fetches the little-endian
+16-bit base and then adds ``cpu.x``.  ``7E 00 02`` with X ``0x04`` therefore
+read/modifies/writes ``$0204`` through ``instructions.ror``.  A stays fixed,
+C/Z/N retain ROR semantics, and PC advances three bytes.  Unlike zero-page,X,
+absolute,X does not wrap at ``$00FF``.
+
+Misconception: X indexes the decoded address, not either operand byte or the
+loaded value.  Out of scope: cycle/page-cross timing and all AND work, which
+starts at lesson 116; no additional ROR modes were added after this lesson.
 """
 import inspect
 

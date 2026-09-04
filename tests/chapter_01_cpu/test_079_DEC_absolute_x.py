@@ -1,11 +1,31 @@
-"""
-Add DEC Absolute,X.
+"""Lesson 079: wire DEC Absolute,X (`0xDE`).
 
-Opcode:
-    0xDE -> DEC $hhhh,X
+In this step, add `emulator/cpu/opcodes.py:dec_absolute_x` and
+`OPCODE_TABLE[0xDE]` after the DEC work from lessons 076-078.
 
-Goal:
-use absolute_x(cpu), then dec(cpu, address).
+Why this step exists:
+Compose the established absolute-X address resolver with the DEC
+primitive instead of duplicating indexing, bus access, or flag logic.
+
+Suggested implementation in `emulator/cpu/opcodes.py`:
+
+    def dec_absolute_x(cpu: CPU):
+        addr = absolute_x(cpu)
+        dec(cpu, addr)
+
+Add this exact entry to the existing `OPCODE_TABLE`:
+
+    0xDE: dec_absolute_x,
+
+Invariants: the two-byte base address is little-endian; X participates only in
+effective-address resolution and is unchanged; page crossing is allowed; PC
+advances by two operand bytes; DEC stores an 8-bit result and changes only Z/N.
+
+Misconception: this instruction decrements memory at `base + X`, not the X
+register. Register decrement is the later DEX instruction.
+
+Out of scope: INX/DEX primitives and their implied opcodes are lessons 080-083;
+cycle accounting is not part of this step.
 """
 import inspect
 

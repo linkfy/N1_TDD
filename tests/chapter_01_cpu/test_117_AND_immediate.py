@@ -1,15 +1,33 @@
-"""
-Add AND Immediate.
+"""Lesson 117: expose AND immediate as opcode ``0x29``.
 
-Opcode:
-    0x29 -> AND #$nn
+In this step, use the instruction from lesson 116 and add its import, immediate
+handler, and opcode-table entry in ``emulator/cpu/opcodes.py``.
 
-Goal:
-create and_immediate(cpu), use immediate(cpu), then and_a(cpu, value).
+Why this step exists:
+The immediate form makes the newly introduced AND primitive executable with a
+literal operand and establishes its first opcode-table integration.
 
-Student guidance:
-Immediate mode returns the operand value directly. Do not read from memory
-again for the operand.
+Suggested implementation:
+
+    from emulator.cpu.instructions import (..., and_a)
+
+    def and_immediate(cpu: CPU):
+        and_a(cpu, immediate(cpu))
+
+    OPCODE_TABLE = {
+        ...
+        0x29: and_immediate,
+    }
+
+``emulator/cpu/addressing_modes.py::immediate`` calls ``CPU.fetch_byte`` and
+returns that byte as the value.  ``and_a`` stores A & value and changes only
+Z/N, so Carry and Overflow remain invariant; the opcode and operand advance
+PC by two bytes and memory is not modified.
+
+Misconception: immediate mode does not return an address, so an extra
+``cpu.bus.read`` would interpret the literal as a pointer. Out of scope:
+zero-page through indirect,Y AND handlers (lessons 118-124), and the ORA/EOR/
+BIT work in lessons 125-145.
 """
 import inspect
 

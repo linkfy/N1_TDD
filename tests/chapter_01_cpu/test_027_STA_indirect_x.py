@@ -1,12 +1,45 @@
 """
-Add STA (Indirect,X).
+Test 027 — Add indexed-indirect STA ($81, written `(d,X)`).
 
-Opcode:
-    0x81 -> STA ($nn,X)
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use indirect_x(cpu) to get the target address,
-then store register A there with sta(cpu, address).
+Locations:
+    opcodes.sta_indirect_x
+    opcodes.OPCODE_TABLE[$81]
+
+Why this step exists:
+Test 020 established `(d,X)` pointer resolution for loads. This lesson reuses that
+same final-address calculation as a store destination, keeping pointer mechanics out
+of the `sta` instruction.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def sta_indirect_x(cpu) -> None:
+        address = indirect_x(cpu)
+        sta(cpu, address)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0x81: sta_indirect_x,
+    }
+
+Important invariants:
+    - X indexes the zero-page pointer location before dereferencing
+    - pointer selection and its high-byte read wrap within zero page
+    - the pointer's 16-bit result is the write destination
+    - $81 consumes one operand byte and does not update flags
+
+Common misconception:
+Do not add X to the final pointer value. In `(d,X)`, X chooses where the pointer is
+read, and `sta` writes A to the address held by that pointer.
+
+Out of scope:
+    - changes to indirect_x or sta
+    - indirect,Y STA
+    - cycle timing
 """
 import inspect
 

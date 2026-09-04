@@ -1,14 +1,29 @@
-"""
-Add EOR Zero Page.
+"""Lesson 136: add EOR zero-page opcode ``0x45``.
 
-Opcode:
-    0x45 -> EOR $nn
+Why this step exists:
+EOR needs a compact memory form that interprets its operand as a zero-page
+address, reads that location, and applies the common exclusive-OR behavior.
 
-Goal:
-create eor_zero_page(cpu), use zero_page(cpu), read memory, then or_e(cpu, value).
+In this step, ``or_e`` and EOR immediate already exist.  Add exactly the
+following to ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-The operand byte is the zero-page address where the value lives.
+    def eor_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        value = cpu.bus.read(addr)
+        or_e(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x45: eor_zero_page,
+    }
+
+``emulator/cpu/addressing_modes.py::zero_page`` fetches the one-byte address;
+the handler performs the separate data read and passes that value to
+``instructions.or_e``.  A and Z/N may change; Carry/Overflow, memory, X, and Y
+remain invariant; opcode plus operand advances PC two bytes.
+
+Misconception: ``$nn`` is an address in page zero, not the literal XOR value.
+Out of scope: indexed and wider EOR modes (137-142) and BIT (143-145).
 """
 import inspect
 

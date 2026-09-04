@@ -1,14 +1,47 @@
 """
-Add ADC Immediate.
+Test 054 - Connect ADC immediate (opcode $69) to CPU dispatch.
 
-Opcode:
-    0x69 -> ADC #$nn
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use immediate(cpu), then adc(cpu, value).
+Symbols to create/update:
+    opcodes.adc_immediate
+    OPCODE_TABLE[$69]
+    the `adc` instruction import
 
-Reference:
-https://www.nesdev.org/wiki/Instruction_reference#ADC
+Why this step exists:
+Test 053 supplied arithmetic on an already-resolved value. Immediate mode
+supplies the next program byte itself, so this handler passes the return value
+of `immediate(cpu)` directly to `adc`.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.instructions import ..., adc
+
+    def adc_immediate(cpu):
+        value = immediate(cpu)
+        adc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ...existing entries...
+        0x69: adc_immediate,
+    }
+
+Important invariants:
+    - the handler accepts only `cpu`
+    - immediate mode consumes exactly one operand byte
+    - PC advances by two bytes total: opcode plus operand
+    - the handler delegates all arithmetic and flag changes to `adc`
+
+Common misconception:
+Do not treat the immediate byte as an address and read the bus a second time;
+`immediate(cpu)` already returns the operand value.
+
+Out of scope:
+    - all memory-addressed ADC opcodes
+    - changes to `adc` or the addressing helpers
+    - cycle accounting
 """
 import inspect
 

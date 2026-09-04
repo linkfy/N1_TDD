@@ -1,30 +1,31 @@
-"""
-Add PLA Implied.
+"""Step 196: register implied PLA.
 
-Opcode:
-    0x68 -> PLA
+Prerequisite: step 195 added ``pla``. In this step, change only
+``emulator/cpu/opcodes.py`` by importing ``pla`` and adding its ``OPCODE_TABLE``
+entry.
 
-Goal:
-add opcode 0x68 to OPCODE_TABLE.
+Why this step exists:
+PLA's input is the hardware stack selected by S. Opcode $68 has no
+operand, so ``CPU.step()`` must dispatch directly to ``pla(cpu)``.
 
-Student guidance:
-PLA uses implied addressing. It has no operand bytes.
+Suggested implementation::
 
-The instruction knows what to pull from its name:
+    from emulator.cpu.instructions import pla
 
-    PLA -> Pull Accumulator
+    OPCODE_TABLE = {
+        # existing entries
+        0x68: pla,
+    }
 
-Execution steps:
-    1. CPU.step() fetches opcode 0x68.
-    2. OPCODE_TABLE dispatches directly to pla(cpu).
-    3. PLA increments S.
-    4. PLA reads from $0100 | S.
-    5. PLA stores the value in A.
-    6. PLA updates Zero and Negative flags.
+Invariants: preserve existing mappings; map exactly $68 to ``pla``; use no
+addressing-mode wrapper; consume only the opcode byte; retain step 195's Z/N
+effects.
 
-Common mistake:
-Do not fetch an operand byte for PLA. The byte after opcode 0x68 is the next
-instruction, not data used by PLA.
+Misconception: program memory after $68 does not supply the pulled value; the
+incremented stack address does.
+
+Out of scope: ``pla`` behavior is step 195. PHP begins at step 197, and its
+function and opcode mapping must not be introduced by this transition.
 """
 import inspect
 

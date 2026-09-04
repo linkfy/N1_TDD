@@ -1,11 +1,43 @@
 """
-Add ADC (Indirect),Y.
+Test 061 - Add ADC (Indirect),Y.
 
-Opcode:
-    0x71 -> ADC ($nn),Y
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use indirect_y(cpu), read value, then adc(cpu, value).
+Symbols to add/update:
+    opcodes.adc_indirect_y and OPCODE_TABLE[0x71]
+
+Why this step exists:
+This final ADC addressing variant connects the existing `indirect_y` address helper
+to the existing value-based `adc` instruction for opcode $71.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def adc_indirect_y(cpu: CPU):
+        addr = indirect_y(cpu)
+        value = cpu.bus.read(addr)
+        adc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0x71: adc_indirect_y,
+    }
+
+Important invariants:
+    - `indirect_y` fetches the one-byte operand and returns the final address
+    - the handler reads the value at that address exactly once
+    - `adc`, rather than the handler, updates A and arithmetic flags
+    - executing the two-byte instruction advances PC by two bytes
+
+Common misconception:
+Do not pass the address returned by `indirect_y` directly to `adc`; `adc` accepts
+the byte stored at that address.
+
+Out of scope:
+    - SBC and its opcode handlers
+    - new addressing-mode helpers or refactors
+    - cycle timing and page-cross penalties
 """
 import inspect
 

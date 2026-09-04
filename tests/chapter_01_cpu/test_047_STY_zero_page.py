@@ -1,11 +1,50 @@
 """
-Add STY Zero Page.
+Test 047 - Add STY zero page ($84).
 
-Opcode:
-    0x84 -> STY $nn
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use zero_page(cpu), then sty(cpu, address).
+Locations:
+    opcodes imports of zero_page and sty
+    opcodes.sty_zero_page
+    opcodes.OPCODE_TABLE[$84]
+
+Why this step exists:
+The core `sty` instruction already performs the write. This lesson connects its first
+encoding by resolving a one-byte zero-page destination and passing that address to
+`sty`.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import zero_page
+    from emulator.cpu.instructions import sty
+
+
+    def sty_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        sty(cpu, addr)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0x84: sty_zero_page,
+    }
+
+Important invariants:
+    - $84 maps to sty_zero_page and consumes one operand byte
+    - the operand resolves to $00nn and is passed as an address
+    - `sty` writes Y through the bus
+    - STY leaves Zero and Negative unchanged
+
+Common misconception:
+Do not read from the resolved address before calling `sty`; stores pass a destination
+address to the core instruction, not a value.
+
+Out of scope:
+    - zero-page,X and absolute STY encodings
+    - new addressing modes
+    - cycle timing
 """
 import inspect
 

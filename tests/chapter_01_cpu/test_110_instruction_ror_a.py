@@ -1,15 +1,38 @@
-"""
-Add the ROR accumulator instruction behavior.
+"""Lesson 110: implement accumulator-targeted ROR.
 
-Instruction:
-    ROR A -> rotate A right through Carry
+In this step, use memory ``ror`` from lesson 109 as a prerequisite and add only
+``ror_a``. Opcode ``0x6A`` is deferred to lesson 111.
 
-Goal:
-implement ror_a(cpu) in instructions.py for the accumulator destination.
+Complete example implementation in the production location:
+``emulator/cpu/instructions.py::ror_a``::
 
-Student guidance:
-ROR A is separate from ror(cpu, address) because it reads and writes cpu.a,
-not memory. The accumulator is a register, not an address.
+    def ror_a(cpu: CPU):
+        value = cpu.a
+        old_carry = int(cpu.flags.get_carry_flag())
+
+        result = (value >> 1) | (old_carry << 7)
+        result_8 = result & 0xFF
+
+        # Set flags
+
+        cpu.flags.set_carry_flag((value & 0x1) != 0)
+        cpu.flags.set_zero_flag(result_8 == 0)
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+
+        cpu.a = result_8
+
+Why this step exists:
+Accumulator mode has no effective address, so it needs a register
+primitive with the same rotate-through-Carry semantics as memory ROR.
+
+Invariants: old Carry is captured first and enters bit 7; original A bit 0
+becomes Carry; A remains eight-bit; Z/N describe new A; memory is untouched.
+
+Misconception: A is a register value, not an address for ``ror``.  Passing it
+to the memory primitive would rotate RAM[A] instead of the accumulator.
+
+Out of scope: ``0x6A`` dispatch is lesson 111, memory opcode modes are
+112-115, and timing/cycle fidelity is later work.
 """
 
 from emulator.cpu.instructions import ror_a

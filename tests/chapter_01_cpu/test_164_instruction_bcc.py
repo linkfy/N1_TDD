@@ -1,24 +1,26 @@
-"""
-Add the BCC instruction behavior.
+"""Lesson 164: implement Branch if Carry Clear behavior.
 
-Instruction:
-    BCC -> Branch if Carry Clear
+Why this step exists:
+Lesson 163 already returns a signed displacement and leaves PC at the next
+instruction.  BCC owns only the Carry-clear decision and target addition.
 
-Goal:
-implement bcc(cpu, offset) in instructions.py.
+In this step, add exactly this implementation to
+``emulator/cpu/instructions.py::bcc``:
 
-Student guidance:
-The offset is already signed by relative(cpu). BCC only decides whether to add
-that offset to PC.
+    def bcc(cpu: CPU, offset: int):
+        if not cpu.flags.get_carry_flag():
+            cpu.pc = (cpu.pc + offset) & 0xFFFF
 
-Important:
-PC is a 16-bit register. When the branch is taken, remember to keep PC inside
-0x0000..0xFFFF:
+The mask preserves the CPU's 16-bit address space.
 
-    cpu.pc = (cpu.pc + offset) & 0xFFFF
+Invariants: Carry clear adds positive, zero, or negative ``offset`` modulo
+``0x10000``; Carry set leaves PC unchanged.  Flags, registers other than PC,
+and memory are untouched.  Misconception: BCC means Carry *clear*, and it must
+not fetch or sign-convert the operand inside this instruction function.
 
-Without `& 0xFFFF`, branching near the beginning or end of memory can produce
-an invalid PC value.
+Out of scope: BCS/BEQ/BNE/BPL/BMI/BVC/BVS are lessons 165-171.  Importing branch
+functions into ``emulator/cpu/opcodes.py``, relative handlers, and opcode table
+entries belong to lessons 172-179.
 """
 
 from emulator.cpu.instructions import bcc

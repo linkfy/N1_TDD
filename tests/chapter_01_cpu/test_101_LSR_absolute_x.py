@@ -1,15 +1,35 @@
-"""
-Add LSR Absolute,X.
+"""Lesson 101: wire LSR Absolute,X (opcode ``0x5E``).
 
-Opcode:
-    0x5E -> LSR $hhhh,X
+In this step, add only the final LSR addressing-mode adapter and dispatch entry
+below. The instruction primitive and other LSR modes from lessons 095-100 are
+prerequisites.
 
-Goal:
-create lsr_absolute_x(cpu), use absolute_x(cpu), then lsr(cpu, address).
+Suggested implementation in the production locations:
 
-Student guidance:
-Absolute,X first decodes the 16-bit little-endian base address, then adds X.
-For `5E 00 02` with X=0x04, the target address is $0204.
+``emulator/cpu/opcodes.py::lsr_absolute_x``::
+
+    def lsr_absolute_x(cpu: CPU):
+        addr = absolute_x(cpu)
+        lsr(cpu, addr)
+
+``emulator/cpu/opcodes.py::OPCODE_TABLE``::
+
+    0x5E: lsr_absolute_x,
+
+Why this step exists:
+Opcode handlers translate encoded operands into effective
+addresses; ``instructions.lsr`` remains independent of addressing mode.
+
+Invariants: ``absolute_x(cpu)`` consumes the little-endian two-byte operand,
+adds ``cpu.x``, and leaves the PC three bytes past the opcode; ``lsr`` performs
+the read/modify/write and flag updates at that address.  Thus ``5E 00 02``
+with X=``0x04`` targets ``$0204``.
+
+Misconception: the operand is neither the value to shift nor an 8-bit
+zero-page address; do not add X to only one operand byte or call ``lsr_a``.
+
+Out of scope: ROL/ROR behavior and opcodes begin in lessons 102 onward; cycle
+accuracy and page-cross timing are not part of this step.
 """
 import inspect
 

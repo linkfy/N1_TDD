@@ -1,15 +1,32 @@
-"""
-Add ROL Accumulator.
+"""Lesson 104: expose ROL A as opcode ``0x2A``.
 
-Opcode:
-    0x2A -> ROL A
+In this step, after lessons 102-103 define ``rol`` and ``rol_a``, add the ROL
+imports needed by opcodes and the accumulator dispatch entry. Later memory
+modes and ROR remain in their numbered steps.
 
-Goal:
-map opcode 0x2A directly to rol_a(cpu).
+Suggested implementation in the production locations:
 
-Student guidance:
-Accumulator mode has no operand byte. Do not call an addressing helper here.
-Opcode 0x2A is one byte long, so PC advances by exactly 1.
+``emulator/cpu/opcodes.py`` import list gains::
+
+    rol, rol_a
+
+``emulator/cpu/opcodes.py::OPCODE_TABLE`` gains::
+
+    0x2A: rol_a,
+
+Why this step exists:
+Accumulator mode needs no adapter because ``rol_a(cpu)`` already
+matches the opcode handler signature.
+
+Invariants: fetching ``0x2A`` advances PC once before dispatch; ``rol_a``
+consumes no operand, so final PC is start+1, only A is rotated, and its C/Z/N
+flags retain lesson 103 semantics.
+
+Misconception: do not create an addressing-mode wrapper or call ``rol`` with
+A.  Accumulator mode is one byte and directly maps to ``rol_a``.
+
+Out of scope: memory opcode adapters ``0x26``, ``0x36``, ``0x2E``, and
+``0x3E`` are lessons 105-108; all ROR dispatch is lesson 111 onward.
 """
 import inspect
 

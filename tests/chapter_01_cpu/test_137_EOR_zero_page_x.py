@@ -1,14 +1,30 @@
-"""
-Add EOR Zero Page,X.
+"""Lesson 137: add EOR zero-page,X opcode ``0x55``.
 
-Opcode:
-    0x55 -> EOR $nn,X
+Why this step exists:
+This adds indexed zero-page EOR and verifies that X indexing wraps within the
+page before the addressed value is combined with the accumulator.
 
-Goal:
-create eor_zero_page_x(cpu), use zero_page_x(cpu), read memory, then or_e(cpu, value).
+In this step, following lesson 136, add exactly the following to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Zero Page,X wraps inside zero page: (base + X) & 0xFF.
+    def eor_zero_page_x(cpu: CPU):
+        addr = zero_page_x(cpu)
+        value = cpu.bus.read(addr)
+        or_e(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x55: eor_zero_page_x,
+    }
+
+``emulator/cpu/addressing_modes.py::zero_page_x`` fetches the base and computes
+``(base + cpu.x) & 0xFF`` before the handler reads data.  Thus indexing stays
+inside page zero.  A and Z/N may change; Carry/Overflow, memory, X, and Y are
+invariant; opcode plus operand advances PC two bytes.
+
+Misconception: an overflow such as ``$FE + $03`` wraps to ``$01``, not
+``$0101``.  Out of scope: absolute and indirect EOR modes (138-142) and BIT
+(143-145).
 """
 import inspect
 

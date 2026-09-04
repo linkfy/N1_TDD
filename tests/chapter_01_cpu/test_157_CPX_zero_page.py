@@ -1,14 +1,30 @@
-"""
-Add CPX Zero Page.
+"""Lesson 157: add CPX zero-page opcode ``0xE4``.
 
-Opcode:
-    0xE4 -> CPX $nn
+Why this step exists:
+Zero-page CPX distinguishes a compact memory address from an immediate value
+and passes the fetched byte to the existing comparison primitive.
 
-Goal:
-create cpx_zero_page(cpu), use zero_page(cpu), read memory, then cpx(cpu, value).
+In this step, with ``cpx`` and immediate mode already present, add to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-The operand byte is the zero-page address where the compared value lives.
+    def cpx_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        value = cpu.bus.read(addr)
+        cpx(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0xE4: cpx_zero_page,
+    }
+
+``emulator/cpu/addressing_modes.py::zero_page`` fetches the one-byte address;
+the handler must read that address before calling ``instructions.cpx``.  Only
+C/Z/N change; X and memory remain invariant, and opcode plus operand advances
+PC two bytes.
+
+Misconception: unlike immediate CPX, the operand byte names a memory location
+rather than the compared value.  Out of scope: CPX absolute (158) and all CPY
+work (159-162).
 """
 import inspect
 

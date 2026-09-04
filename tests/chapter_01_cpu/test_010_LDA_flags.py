@@ -1,3 +1,62 @@
+"""
+Test 010 — Update Zero and Negative flags after immediate LDA.
+
+File to update:
+    emulator/cpu/cpu.py
+
+Location:
+    CPU.step, inside the existing $A9 immediate-LDA branch
+
+Why this step exists:
+The 6502 records whether an LDA result is zero and whether bit 7 is set. Later branch
+instructions consume these status bits, so both setting and clearing must work.
+
+Complete example implementation:
+
+    class CPU:
+        # Keep the existing methods from Tests 004, 008, and 009.
+
+        def step(self) -> None:
+            opcode = self.fetch_byte()
+
+            if opcode == 0xA9:
+                self.a = self.fetch_byte()
+
+                if self.a == 0:
+                    self.p |= 1 << 1
+                else:
+                    self.p &= ~(1 << 1)
+
+                if self.a & (1 << 7):
+                    self.p |= 1 << 7
+                else:
+                    self.p &= ~(1 << 7)
+
+                return
+
+            raise NotImplementedError(
+                f"Opcode ${opcode:02X} is not implemented"
+            )
+
+Result table:
+    A=$00 -> Z=1, N=0
+    A=$7F -> Z=0, N=0
+    A=$80 -> Z=0, N=1
+
+Important invariant:
+Only the Zero and Negative bits are changed; reset's Interrupt Disable bit and every
+other status bit retain their previous values.
+
+Common misconception:
+"Negative" does not perform signed arithmetic here. It means that bit 7 of the
+8-bit result is set.
+
+Out of scope:
+    - named flag constants and the shared helper, introduced in Test 012
+    - absolute and zero-page LDA
+    - instruction cycle counts
+"""
+
 from emulator.cpu.cpu import CPU
 from emulator.bus.cpu_bus import CpuBus
 from emulator.memory.fake_rom import FakeROM
@@ -121,4 +180,3 @@ def test_lda_clears_negative_flag():
 
     assert cpu.a == 0x7F
     assert (cpu.p & ( 1 << 7 )) == 0 # N = 0
-

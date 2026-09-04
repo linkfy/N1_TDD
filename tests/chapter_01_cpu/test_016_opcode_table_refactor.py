@@ -1,14 +1,80 @@
 """
-Refactor CPU.step() to use an opcode table.
+Test 016 — Replace CPU.step branches with an opcode table.
 
-Before this test, CPU.step() had direct if/elif blocks for each opcode.
-That works at the beginning, but the CPU has many opcodes.
+File to create:
+    emulator/cpu/opcodes.py
 
-The goal is simple:
-- Move concrete opcode logic into emulator/cpu/opcodes.py.
-- Keep CPU.step() small.
-- Keep instructions.py focused on instruction behavior.
-- Keep addressing_modes.py focused on getting values or addresses.
+File to update:
+    emulator/cpu/cpu.py
+
+Locations:
+    opcodes.lda_immediate
+    opcodes.lda_zero_page
+    opcodes.lda_absolute
+    opcodes.OPCODE_TABLE
+    CPU.step
+
+Why this step exists:
+Direct branches work for three opcodes but scale poorly across the 6502 instruction
+set. A table makes byte-to-handler dispatch data-driven while retaining the existing
+addressing and instruction boundaries.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import absolute, immediate, zero_page
+    from emulator.cpu.instructions import lda
+
+
+    def lda_immediate(cpu) -> None:
+        lda(cpu, immediate(cpu))
+
+
+    def lda_zero_page(cpu) -> None:
+        address = zero_page(cpu)
+        lda(cpu, cpu.bus.read(address))
+
+
+    def lda_absolute(cpu) -> None:
+        address = absolute(cpu)
+        lda(cpu, cpu.bus.read(address))
+
+
+    OPCODE_TABLE = {
+        0xA9: lda_immediate,
+        0xA5: lda_zero_page,
+        0xAD: lda_absolute,
+    }
+
+
+    # emulator/cpu/cpu.py
+    from emulator.cpu.opcodes import OPCODE_TABLE
+
+
+    class CPU:
+        def step(self) -> None:
+            opcode = self.fetch_byte()
+            handler = OPCODE_TABLE.get(opcode)
+
+            if handler is None:
+                raise NotImplementedError(
+                    f"Opcode ${opcode:02X} is not implemented"
+                )
+
+            return handler(self)
+
+Important boundary:
+CPU.step dispatches; an opcode handler coordinates addressing, memory access, and the
+instruction; `lda` performs the register-and-flags state transition.
+
+Common misconception:
+An opcode handler is not the same as an instruction. Three LDA opcodes share one `lda`
+instruction but use different operand acquisition mechanisms.
+
+Out of scope:
+    - indexed LDA handlers
+    - cycle-count return values
+    - a generic instruction decoder object
 """
 import inspect
 from pathlib import Path
@@ -115,17 +181,11 @@ def test_cpu_step_uses_opcode_table():
              
             handler(self)
 
-            # Later tutorial steps may return extra metadata, such as the base
-            # cycle count for this opcode.
-            # Example:
-            #     return OPCODE_CYCLES[opcode]
-
     Why:
     CPU.step() is now responsible for:
     - fetch opcode
     - find handler
     - run handler
-    - optionally return step metadata added by later chapters
 
     The opcode handler is responsible for:
     - use the addressing mode

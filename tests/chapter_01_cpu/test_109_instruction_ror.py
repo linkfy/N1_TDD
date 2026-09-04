@@ -1,15 +1,39 @@
-"""
-Add the ROR memory instruction behavior.
+"""Lesson 109: implement memory-targeted ROR.
 
-Instruction:
-    ROR memory -> rotate memory[address] right through Carry
+In this step, after lessons 102-108 complete ROL, add only the ROR memory
+primitive. ROR opcode wiring belongs to lessons 111-115.
 
-Goal:
-implement ror(cpu, address) in instructions.py for memory destinations.
+Complete example implementation in the production location:
+``emulator/cpu/instructions.py::ror``::
 
-Student guidance:
-ROR is not the same as LSR. LSR always inserts 0 into bit 7. ROR inserts the
-old Carry flag into bit 7, and old bit 0 becomes the new Carry flag.
+    def ror(cpu: CPU, addr: int):
+        value = cpu.bus.read(addr)
+        old_carry = int(cpu.flags.get_carry_flag())
+
+        result = (value >> 1) | (old_carry << 7)
+        result_8 = result & 0xFF
+
+        # Set flags
+
+        cpu.flags.set_carry_flag((value & 0x1) != 0)
+        cpu.flags.set_zero_flag(result_8 == 0)
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+
+        cpu.bus.write(addr, result_8)
+
+Why this step exists:
+A single addressing-independent memory primitive supplies every
+later ROR addressing mode with identical read/modify/write semantics.
+
+Invariants: sample Carry before flags change; old Carry enters bit 7, original
+bit 0 becomes Carry, result is eight-bit, and Z/N derive from the stored
+result.  Exactly the addressed memory byte changes; A does not.
+
+Misconception: ROR is not LSR.  LSR inserts zero at bit 7, whereas ROR inserts
+old Carry; Carry cannot be derived from the shifted result.
+
+Out of scope: accumulator ROR is lesson 110, opcode/addressing wiring is
+111-115, and cycle-level bus sequencing is later work.
 """
 
 from emulator.cpu.instructions import ror

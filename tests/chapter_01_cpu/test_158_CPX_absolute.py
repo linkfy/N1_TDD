@@ -1,14 +1,29 @@
-"""
-Add CPX Absolute.
+"""Lesson 158: add CPX absolute opcode ``0xEC``.
 
-Opcode:
-    0xEC -> CPX $hhhh
+Why this step exists:
+Absolute CPX extends the comparison to a byte anywhere in CPU memory while
+keeping little-endian address decoding outside the CPX primitive.
 
-Goal:
-create cpx_absolute(cpu), use absolute(cpu), read memory, then cpx(cpu, value).
+In this step, complete CPX by adding exactly the following to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Absolute operands are little-endian. `EC 00 02` targets $0200.
+    def cpx_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        value = cpu.bus.read(addr)
+        cpx(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0xEC: cpx_absolute,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute`` obtains a little-endian word
+through ``CPU.fetch_word``; ``EC 00 02`` therefore compares X with the value
+at ``$0200``.  Only C/Z/N change; X, memory, and Overflow are invariant, and
+opcode plus word advances PC three bytes.
+
+Misconception: the operand word is an address, not a 16-bit compared value.
+Out of scope: the CPY instruction and its three opcodes (lessons 159-162).
 """
 import inspect
 

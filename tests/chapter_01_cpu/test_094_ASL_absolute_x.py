@@ -1,15 +1,40 @@
 """
-Add ASL Absolute,X.
+Test 094 - Add ASL Absolute,X.
 
-Opcode:
-    0x1E -> ASL $hhhh,X
+In this step, complete the ASL addressing sequence with Absolute,X.
 
-Goal:
-create asl_absolute_x(cpu), use absolute_x(cpu), then asl(cpu, address).
+File and symbols:
+    emulator/cpu/opcodes.py: asl_absolute_x, OPCODE_TABLE[0x1E]
 
-Student guidance:
-Absolute,X first decodes the 16-bit little-endian base address, then adds X.
-For `1E 00 02` with X=0x04, the target address is $0204.
+Why this step exists:
+This is the final ASL addressing transition. It composes the existing
+`absolute_x` resolver with the memory `asl` implementation introduced earlier.
+
+Suggested implementation for this step:
+
+    # emulator/cpu/opcodes.py
+    def asl_absolute_x(cpu: CPU):
+        addr = absolute_x(cpu)
+        asl(cpu, addr)
+
+    OPCODE_TABLE = {
+        # existing entries unchanged
+        0x1E: asl_absolute_x,
+    }
+
+Important invariants:
+    - decode the little-endian 16-bit base before adding X
+    - the instruction remains three bytes; X is a register, not another operand
+    - `asl` owns read/modify/write and flag updates at the effective address
+    - the accumulator is unchanged
+
+Common misconception:
+For `1E 00 02` with X=0x04, add X to $0200, not to either operand byte.
+
+Out of scope:
+    - LSR introduced by Tests 095-101
+    - modifying `absolute_x` or `asl`
+    - page-cross and read/modify/write cycle timing
 """
 import inspect
 

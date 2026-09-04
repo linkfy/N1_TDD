@@ -1,20 +1,58 @@
 """
-Add a new instruction: STA.
+Test 022 — Add the STA instruction and zero-page opcode ($85).
 
-STA means Store Accumulator.
+Files to update:
+    emulator/cpu/instructions.py
+    emulator/cpu/opcodes.py
 
-Create one function inside emulator/cpu/instructions.py:
+Locations:
+    instructions.sta
+    opcodes imports of sta and zero_page
+    opcodes.sta_zero_page
+    opcodes.OPCODE_TABLE[$85]
 
-    def sta(cpu, address):
-        ...
+Why this step exists:
+The load lessons passed values into `lda`. STA establishes the complementary write
+boundary: an addressing mode supplies a destination address, while the instruction
+writes A through the CPU bus without changing processor flags.
 
-Then create one opcode handler inside emulator/cpu/opcodes.py:
+Complete example implementation:
 
-    def sta_zero_page(cpu):
-        ...
+    # emulator/cpu/instructions.py
+    def sta(cpu, address: int) -> None:
+        value = cpu.a
+        cpu.bus.write(address, value)
 
-The goal is simple:
-learn the difference between loading a value and storing into an address.
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import zero_page
+    from emulator.cpu.instructions import sta
+
+
+    def sta_zero_page(cpu) -> None:
+        address = zero_page(cpu)
+        sta(cpu, address)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0x85: sta_zero_page,
+    }
+
+Important invariants:
+    - sta receives an address, not a value read from that address
+    - the write goes through cpu.bus.write
+    - $85 consumes one operand byte and stores A at $00nn
+    - STA leaves Zero and Negative unchanged, including when A is $00 or has bit 7 set
+
+Common misconception:
+Do not copy an LDA handler's `cpu.bus.read(address)`: STA writes A to the resolved
+address and does not derive flags from the stored byte.
+
+Out of scope:
+    - other STA addressing modes
+    - adding new addressing-mode helpers
+    - cycle timing and write-side hardware effects
 """
 import inspect
 

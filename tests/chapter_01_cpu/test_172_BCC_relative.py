@@ -1,15 +1,32 @@
-"""
-Add BCC Relative.
+"""Step 172: connect BCC to its relative opcode.
 
-Opcode:
-    0x90 -> BCC offset
+In this step, add these pieces to ``emulator/cpu/opcodes.py``:
 
-Goal:
-create bcc_relative(cpu), use relative(cpu), then bcc(cpu, offset).
+    from emulator.cpu.instructions import bcc
+    from emulator.cpu.addressing_modes import relative
 
-Student guidance:
-Branch opcodes are two bytes: opcode + signed offset. Even when the branch is
-not taken, the offset byte must still be consumed, so PC advances by 2.
+    def bcc_relative(cpu: CPU):
+        offset = relative(cpu)
+        bcc(cpu, offset)
+
+    OPCODE_TABLE[0x90] = bcc_relative
+
+The imports may be folded into the file's existing grouped imports, and the
+table entry belongs in its literal.
+
+Why this step exists:
+``CPU.step`` has consumed the
+opcode, ``relative`` consumes and signs the one-byte operand, and step 164's
+``bcc`` applies it only when Carry is clear.
+
+Invariants: opcode ``0x90`` resolves to the one-argument handler; every path
+consumes the operand, so an untaken branch finishes at ``0x8002`` and a ``+5``
+branch targets ``0x8007``.  The handler itself changes no flags or memory.
+Misconception: the displacement is relative to PC after the operand, not to the
+opcode address, and it must be fetched even when Carry prevents the branch.
+
+Out of scope: BCS, BEQ, BNE, BPL, BMI, BVC, and BVS handlers/table entries are
+steps 173-179.  Indirect JMP addressing begins at step 180.
 """
 import inspect
 

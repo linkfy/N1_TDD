@@ -1,14 +1,31 @@
-"""
-Add EOR (Indirect),Y.
+"""Lesson 142: add EOR (indirect),Y opcode ``0x51``.
 
-Opcode:
-    0x51 -> EOR ($nn),Y
+Why this step exists:
+This completes EOR addressing coverage with post-indexed pointer access, using
+the indirect,Y helper before passing the fetched value to the EOR primitive.
 
-Goal:
-create eor_indirect_y(cpu), use indirect_y(cpu), read memory, then or_e(cpu, value).
+In this step, lesson 141 completes the other indirect EOR form.  Add exactly
+the following to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Indirect,Y reads the zero-page pointer first, then adds Y to the final address.
+    def eor_indirect_y(cpu: CPU):
+        addr = indirect_y(cpu)
+        value = cpu.bus.read(addr)
+        or_e(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x51: eor_indirect_y,
+    }
+
+``emulator/cpu/addressing_modes.py::indirect_y`` first reads the wrapped
+little-endian pointer from zero page and then adds Y to that target.  The
+handler reads the resulting address and passes its value to ``or_e``.  A and
+Z/N may change; Carry, Overflow, X, Y, and memory remain invariant; PC advances
+two bytes.
+
+Misconception: Y does not select the zero-page pointer bytes; it indexes the
+decoded target.  Out of scope: BIT behavior and opcodes are lessons 143-145.
 """
 import inspect
 

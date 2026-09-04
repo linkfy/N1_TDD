@@ -1,35 +1,45 @@
-"""
-CPU VERIFICATION: final integration check before moving to the next emulator layer.
+"""Step 210: verify the completed CPU instruction slice.
 
-Purpose:
-This is a "final boss" test file for the CPU-only phase.
+In this step, integrate existing ``emulator/cpu/cpu.py::CPU.reset``/``CPU.step``,
+``emulator/cpu/opcodes.py::OPCODE_TABLE``, instruction symbols ``lda``, ``ldx``,
+``ldy``, ``sta``, ``stx``, ``sty``, ``adc``, ``sbc``, ``inc``, ``dec``,
+``and_a``, ``or_a``, ``or_e``, ``bit``, ``cmp``, ``beq``, ``bne``, ``pha``,
+``pla``, ``php``, ``plp``, ``asl_a``, ``lsr_a``, ``rol_a``, ``ror_a``, ``tax``,
+``txa``, ``tay``, ``tya``, ``txs``, ``tsx``, ``inx``, ``dex``, ``iny``, ``dey``,
+``jsr``, ``rts``, ``clc``, ``sec``, ``cld``, ``sed``, ``clv``, ``cli``, ``sei``,
+and ``nop`` in ``emulator/cpu/instructions.py``, plus
+``emulator/bus/cpu_bus.py::CpuBus.read``/``write`` and
+``emulator/memory/fake_rom.py::FakeROM.read``/``write``.
 
-Until now, most tests checked one concept at a time:
+The complete transition is test support, added to ``tests/helpers.py``::
 
-    - one addressing mode
-    - one instruction
-    - one opcode table entry
+    from emulator.memory.fake_rom import FakeROM
 
-That is good for learning and debugging. But before moving toward ROM loading,
-cartridge mapping, PPU registers, VBlank, or NMI, we need evidence that the CPU
-can execute small real programs across multiple CPU.step() calls.
+    def make_cpu_with_rom():
+        rom = FakeROM()
+        bus = CpuBus(program_rom=rom)
+        return CPU(bus), bus, rom
 
-This file uses real opcode bytes loaded into FakeROM with load_program().
+    def write_reset_vector(rom, addr: int):
+        rom.write(0x7FFC, addr & 0xFF)
+        rom.write(0x7FFD, (addr >> 8) & 0xFF)
 
-Mental model:
-    CPU.step() should repeatedly:
-        1. fetch opcode at PC
-        2. advance PC
-        3. dispatch through OPCODE_TABLE
-        4. let the instruction update CPU state
+    def load_program(rom, start_addr: int, program: list[int]):
+        for offset, byte in enumerate(program):
+            rom.write((start_addr - 0x8000) + offset, byte)
 
-These tests are intentionally small. If one fails, the failure should point to a
-specific subsystem: PC sequencing, stack behavior, branches, subroutines, or
-flags.
+Why this step exists:
+Although this validation adds no production implementation, short byte programs
+expose integration defects hidden by direct
+operation tests.  Invariants include sequential PC ownership by CPU.step,
+balanced stack round trips, branch targets relative to post-operand PC,
+preservation of unrelated flags, and RAM writes at the addressed locations.
+The misconception is that passing isolated instruction tests proves dispatch,
+PC, stack, and flag interactions also compose correctly.
 
-Why this is the next step:
-If these tests pass, the student has enough CPU confidence to proceed to a
-trace logger, then simple ROM loading / NROM mapping, and later PPU work.
+Out of scope: the trace formatter is step 211. The iNES reader, cartridge/NROM
+mapping, PPU, VBlank, and NMI belong to later steps and must not be anticipated
+here.
 """
 
 from tests.helpers import (

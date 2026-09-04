@@ -1,17 +1,57 @@
 """
-Add transfer instructions.
+Test 050 - Add the core TAX, TXA, TAY, and TYA instructions.
 
-These instructions use implied addressing mode.
-That means they do not read extra operand bytes.
+File to update:
+    emulator/cpu/instructions.py
 
-Instructions:
-    TAX -> Transfer A to X
-    TXA -> Transfer X to A
-    TAY -> Transfer A to Y
-    TYA -> Transfer Y to A
+Locations:
+    instructions.tax
+    instructions.txa
+    instructions.tay
+    instructions.tya
 
-Goal:
-copy one register into another register and update Zero/Negative flags.
+Why this step exists:
+These implied-addressing operations copy between A, X, and Y without fetching an
+operand. Each destination value then uses the same Zero/Negative update already used
+by load instructions.
+
+Complete example implementation:
+
+    # emulator/cpu/instructions.py
+    def tax(cpu: CPU):
+        cpu.x = cpu.a
+        cpu._update_zero_and_negative_flags(cpu.x)
+
+
+    def txa(cpu: CPU):
+        cpu.a = cpu.x
+        cpu._update_zero_and_negative_flags(cpu.a)
+
+
+    def tay(cpu: CPU):
+        cpu.y = cpu.a
+        cpu._update_zero_and_negative_flags(cpu.y)
+
+
+    def tya(cpu: CPU):
+        cpu.a = cpu.y
+        cpu._update_zero_and_negative_flags(cpu.a)
+
+Important invariants:
+    - TAX copies A to X, TXA copies X to A, TAY copies A to Y, and TYA copies Y to A
+    - the source register remains unchanged
+    - Zero is set exactly for $00 and Negative mirrors destination bit 7
+    - both flags are also cleared when the copied value no longer satisfies them
+    - these functions fetch no bytes and perform no bus access
+
+Common misconception:
+Updating only flags that become set leaves stale state behind. Reuse
+`cpu._update_zero_and_negative_flags` with the destination register after every copy.
+
+Out of scope:
+    - transfer opcode imports and OPCODE_TABLE entries, introduced in Test 051
+    - stack-pointer transfers
+    - cycle timing
 """
 import inspect
 

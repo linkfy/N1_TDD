@@ -1,15 +1,39 @@
 """
-Add LSR Accumulator.
+Test 097 - Add the LSR Accumulator opcode.
 
-Opcode:
-    0x4A -> LSR A
+In this step, expose the accumulator behavior from Test 096 through opcode
+dispatch.
 
-Goal:
-map opcode 0x4A directly to lsr_a(cpu).
+File and symbols:
+    emulator/cpu/opcodes.py: imported lsr_a, OPCODE_TABLE[0x4A]
 
-Student guidance:
-Accumulator mode has no operand byte. Do not call an addressing helper here.
-Opcode 0x4A is one byte long, so PC advances by exactly 1.
+Why this step exists:
+Test 096 established accumulator behavior. This transition makes CPU dispatch reach
+that function directly because accumulator mode has no operand or address decoding.
+
+Suggested implementation for this step:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.instructions import lsr_a
+
+    OPCODE_TABLE = {
+        # existing entries unchanged
+        0x4A: lsr_a,
+    }
+
+Important invariants:
+    - the table maps directly to `instructions.lsr_a`; no wrapper is needed
+    - no addressing helper consumes bytes
+    - CPU.step has already consumed the opcode, so PC advances exactly one byte
+    - only A and C/Z/N can change
+
+Common misconception:
+Accumulator mode is not zero-page mode with an implicit address; 0x4A has no operand.
+
+Out of scope:
+    - memory LSR opcodes in Tests 098-101
+    - changes to CPU dispatch or `lsr_a`
+    - cycle timing
 """
 import inspect
 

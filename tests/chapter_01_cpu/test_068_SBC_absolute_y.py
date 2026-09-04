@@ -1,11 +1,43 @@
 """
-Add SBC Absolute,Y.
+Test 068 - Add SBC Absolute,Y.
 
-Opcode:
-    0xF9 -> SBC $hhhh,Y
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute_y(cpu), read value, then sbc(cpu, value).
+Symbols to add/update:
+    opcodes.sbc_absolute_y and OPCODE_TABLE[0xF9]
+
+Why this step exists:
+This lesson parallels Absolute,X using the existing `absolute_y` resolver so SBC
+can subtract a byte from a Y-indexed 16-bit address.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def sbc_absolute_y(cpu: CPU):
+        addr = absolute_y(cpu)
+        value = cpu.bus.read(addr)
+        sbc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0xF9: sbc_absolute_y,
+    }
+
+Important invariants:
+    - `absolute_y` consumes two operand bytes and adds Y, not X
+    - the handler reads from the final indexed address exactly once
+    - `sbc` receives the byte value and owns arithmetic flag updates
+    - executing the three-byte instruction advances PC by three bytes
+
+Common misconception:
+Do not copy the Absolute,X wrapper and leave it using X or `absolute_x`; opcode $F9
+must resolve through Y.
+
+Out of scope:
+    - indirect SBC wrappers
+    - page-cross cycle penalties
+    - changes to addressing helpers or SBC arithmetic
 """
 import inspect
 

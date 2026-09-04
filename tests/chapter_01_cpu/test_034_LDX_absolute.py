@@ -1,11 +1,46 @@
 """
-Add LDX Absolute.
+Test 034 - Add LDX absolute ($AE).
 
-Opcode:
-    0xAE -> LDX $hhhh
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute(cpu), read value, then ldx(cpu, value).
+Locations:
+    opcodes.ldx_absolute
+    opcodes.OPCODE_TABLE[$AE]
+
+Why this step exists:
+This lesson extends LDX from one-byte addresses to a full 16-bit memory address while
+preserving the established boundary: `absolute` decodes the operand, the handler
+reads memory, and `ldx` updates X and its flags.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def ldx_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        value = cpu.bus.read(addr)
+        ldx(cpu, value)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xAE: ldx_absolute,
+    }
+
+Important invariants:
+    - $AE maps to ldx_absolute
+    - absolute consumes the low operand byte before the high operand byte
+    - one byte is read from the resulting 16-bit address and passed to ldx
+    - the full instruction advances PC by three bytes
+
+Common misconception:
+`AE 00 02` addresses $0200 because 6502 operands are little-endian; it does not
+address $0002 or load either operand byte directly.
+
+Out of scope:
+    - absolute,Y LDX
+    - changes to absolute or ldx
+    - cycle timing
 """
 import inspect
 

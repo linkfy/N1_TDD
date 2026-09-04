@@ -1,15 +1,33 @@
-"""
-Add ROL Zero Page.
+"""Lesson 105: wire ROL Zero Page (opcode ``0x26``).
 
-Opcode:
-    0x26 -> ROL $nn
+In this step, after the accumulator wiring in lesson 104, add only the
+zero-page adapter and table entry.
 
-Goal:
-create rol_zero_page(cpu), use zero_page(cpu), then rol(cpu, address).
+Complete example implementation in the production locations:
 
-Student guidance:
-The operand byte is the zero-page address, not the value to rotate. For
-`26 10`, read/modify/write RAM[$0010].
+``emulator/cpu/opcodes.py::rol_zero_page``::
+
+    def rol_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        rol(cpu, addr)
+
+``emulator/cpu/opcodes.py::OPCODE_TABLE``::
+
+    0x26: rol_zero_page,
+
+Why this step exists:
+The opcode layer resolves the operand; the lesson-102 primitive
+owns read/modify/write and flags.
+
+Invariants: ``zero_page(cpu)`` consumes one operand byte and returns an
+address in ``$0000-$00FF``; ``26 10`` rotates RAM ``$0010`` and final PC is
+start+2.  A remains unchanged and ROL's C/Z/N rules are preserved.
+
+Misconception: ``$10`` is the address of the byte to rotate, not the byte
+value itself; do not rotate the instruction stream operand.
+
+Out of scope: indexed zero page is 106, absolute modes are 107-108, ROR starts
+at 109, and exact cycle timing is later work.
 """
 import inspect
 

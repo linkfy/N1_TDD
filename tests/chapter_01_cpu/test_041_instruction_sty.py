@@ -1,15 +1,36 @@
 """
-Add a new instruction: STY.
+Test 041 - Add the core STY instruction.
 
-STY means Store Y Register.
+File to update:
+    emulator/cpu/instructions.py
 
-Create one function inside emulator/cpu/instructions.py:
+Location:
+    instructions.sty, beside ldy
 
-    def sty(cpu, address):
-        ...
+Why this step exists:
+STY completes the Y-register instruction pair. Like STA and STX, it receives an
+already-resolved destination address and writes the register through the CPU bus.
 
-Goal:
-write register Y into the given memory address.
+Complete example implementation:
+
+    # emulator/cpu/instructions.py
+    def sty(cpu: CPU, address: int):
+        value = cpu.y
+        cpu.bus.write(address, value)
+
+Important invariants:
+    - sty receives an address, not a value
+    - the value written is Y and the write goes through cpu.bus.write
+    - Y and the processor flags remain unchanged
+
+Common misconception:
+Do not call `cpu._update_zero_and_negative_flags`; store instructions do not derive
+flags from the byte they write, even when Y is $00 or has bit 7 set.
+
+Out of scope:
+    - all STY opcode handlers and opcode-table entries
+    - adding or changing addressing-mode helpers
+    - cycle timing and write-side hardware effects
 """
 import inspect
 

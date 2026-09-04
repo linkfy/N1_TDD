@@ -1,12 +1,45 @@
 """
-Add STA (Indirect),Y.
+Test 028 — Add indirect-indexed STA ($91, written `(d),Y`).
 
-Opcode:sta_zero_page_x
-    0x91 -> STA ($nn),Y
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use indirect_y(cpu) to get the target address,
-then store register A there with sta(cpu, address).
+Locations:
+    opcodes.sta_indirect_y
+    opcodes.OPCODE_TABLE[$91]
+
+Why this step exists:
+This completes the STA modes in this sequence by reusing Test 021's `indirect_y`
+address resolution. The handler obtains the final Y-indexed destination and delegates
+the write to `sta`.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def sta_indirect_y(cpu) -> None:
+        address = indirect_y(cpu)
+        sta(cpu, address)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0x91: sta_indirect_y,
+    }
+
+Important invariants:
+    - the zero-page pointer is read before Y is added
+    - the pointer high-byte read wraps from $00FF to $0000
+    - Y indexes the assembled 16-bit destination
+    - $91 stores A without changing flags
+
+Common misconception:
+`(d),Y` does not index the zero-page pointer location. Read the pointer at `d` first,
+then add Y to the resulting address.
+
+Out of scope:
+    - changes to indirect_y or sta
+    - page-cross cycle behavior
+    - refactoring the STA handlers into a generic helper
 """
 import inspect
 

@@ -1,14 +1,30 @@
-"""
-Add EOR Absolute,Y.
+"""Lesson 140: add EOR absolute,Y opcode ``0x59``.
 
-Opcode:
-    0x59 -> EOR $hhhh,Y
+Why this step exists:
+The Y-indexed absolute opcode provides the corresponding EOR data-access form
+without creating a second implementation of accumulator or flag behavior.
 
-Goal:
-create eor_absolute_y(cpu), use absolute_y(cpu), read memory, then or_e(cpu, value).
+In this step, following lesson 139, add exactly the following to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Decode the 16-bit base address first, then add Y.
+    def eor_absolute_y(cpu: CPU):
+        addr = absolute_y(cpu)
+        value = cpu.bus.read(addr)
+        or_e(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x59: eor_absolute_y,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute_y`` fetches the little-endian base
+word and then adds Y; this helper does not apply an additional
+``& 0xFFFF`` mask.  The handler reads the indexed location and calls
+``instructions.or_e``.  A and Z/N may change; Carry/Overflow, memory, X, and Y
+remain invariant; PC advances three bytes.
+
+Misconception: Y indexes the decoded address, not either encoded byte.  Out of
+scope: EOR (indirect,X)/(indirect),Y (141-142) and BIT (143-145).
 """
 import inspect
 

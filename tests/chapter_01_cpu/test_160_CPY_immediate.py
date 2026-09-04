@@ -1,14 +1,29 @@
-"""
-Add CPY Immediate.
+"""Lesson 160: expose CPY immediate as opcode ``0xC0``.
 
-Opcode:
-    0xC0 -> CPY #$nn
+Why this step exists:
+Immediate CPY exposes Y comparison through CPU execution using a literal byte
+without an additional data-memory read.
 
-Goal:
-create cpy_immediate(cpu), use immediate(cpu), then cpy(cpu, value).
+In this step, after lesson 159 creates the instruction, make these additions
+in ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Immediate mode returns the compared value directly. CPY does not modify Y.
+    from emulator.cpu.instructions import (..., cpy)
+
+    def cpy_immediate(cpu: CPU):
+        cpy(cpu, immediate(cpu))
+
+    OPCODE_TABLE = {
+        ...
+        0xC0: cpy_immediate,
+    }
+
+``emulator/cpu/addressing_modes.py::immediate`` returns ``CPU.fetch_byte()``
+as the value.  CPY changes only C/Z/N; Y, memory, and Overflow remain
+invariant, and opcode plus operand advances PC two bytes.
+
+Misconception: immediate mode does not identify a bus address, and CPY does
+not store the subtraction in Y.  Out of scope: CPY zero-page and absolute
+(lessons 161-162).
 """
 import inspect
 

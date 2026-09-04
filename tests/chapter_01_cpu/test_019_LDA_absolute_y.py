@@ -1,18 +1,54 @@
 """
-Add one more LDA addressing mode: Absolute,Y.
+Test 019 — Add absolute,Y LDA ($B9).
 
-Create one function inside emulator/cpu/addressing_modes.py:
+Files to update:
+    emulator/cpu/addressing_modes.py
+    emulator/cpu/opcodes.py
 
-    def absolute_y(cpu):
-        ...
+Locations:
+    addressing_modes.absolute_y
+    opcodes.lda_absolute_y
+    opcodes.OPCODE_TABLE[$B9]
 
-Then create one opcode handler inside emulator/cpu/opcodes.py:
+Why this step exists:
+Absolute,Y has the same 16-bit addressing behavior as absolute,X but uses register Y.
+Keeping separate helpers makes the selected index register explicit and testable.
 
-    def lda_absolute_y(cpu):
-        ...
+Complete example implementation:
 
-The goal is simple:
-learn how the Y register can change a 16-bit address.
+    # emulator/cpu/addressing_modes.py
+    def absolute_y(cpu) -> int:
+        base = cpu.fetch_word()
+        return base + cpu.y
+
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import absolute_y
+
+
+    def lda_absolute_y(cpu) -> None:
+        address = absolute_y(cpu)
+        lda(cpu, cpu.bus.read(address))
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xB9: lda_absolute_y,
+    }
+
+Important invariants:
+    - the helper uses Y, not X
+    - two operand bytes are consumed before adding Y
+    - page crossing preserves the full 16-bit result
+
+Common misconception:
+Copying absolute_x and forgetting to change `cpu.x` to `cpu.y` can pass tests where
+both registers happen to contain the same value.
+
+Out of scope:
+    - page-cross cycle penalties
+    - indirect indexed modes
+    - generic indexed-address helpers
 """
 import inspect
 

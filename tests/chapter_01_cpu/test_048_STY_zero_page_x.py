@@ -1,11 +1,49 @@
 """
-Add STY Zero Page,X.
+Test 048 - Add STY zero page,X ($94).
 
-Opcode:
-    0x94 -> STY $nn,X
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use zero_page_x(cpu), then sty(cpu, address).
+Locations:
+    opcodes imports of zero_page_x and sty
+    opcodes.sty_zero_page_x
+    opcodes.OPCODE_TABLE[$94]
+
+Why this step exists:
+This encoding combines STY's address-oriented instruction boundary with the existing
+zero-page,X helper, including wraparound inside page $00.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import zero_page_x
+    from emulator.cpu.instructions import sty
+
+
+    def sty_zero_page_x(cpu: CPU):
+        addr = zero_page_x(cpu)
+        sty(cpu, addr)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0x94: sty_zero_page_x,
+    }
+
+Important invariants:
+    - $94 maps to sty_zero_page_x and consumes one operand byte
+    - X indexes the operand and the effective address wraps to eight bits
+    - the effective address, not its current contents, is passed to sty
+    - Y and processor flags are unchanged by the store
+
+Common misconception:
+`$FF,X` with X equal to $01 stores at $0000, not $0100; zero-page indexing must not
+escape page $00.
+
+Out of scope:
+    - absolute STY
+    - changing zero_page_x
+    - cycle timing
 """
 import inspect
 

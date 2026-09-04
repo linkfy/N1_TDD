@@ -1,15 +1,39 @@
-"""
-Add the ROL accumulator instruction behavior.
+"""Lesson 103: implement accumulator-targeted ROL.
 
-Instruction:
-    ROL A -> rotate A left through Carry
+In this step, use memory ``rol`` from lesson 102 as a prerequisite and add only
+the register variant. Dispatch is deferred to lesson 104.
 
-Goal:
-implement rol_a(cpu) in instructions.py for the accumulator destination.
+Complete example implementation in the production location:
+``emulator/cpu/instructions.py::rol_a``::
 
-Student guidance:
-ROL A is separate from rol(cpu, address) because it reads and writes cpu.a,
-not memory. The accumulator is a register, not an address.
+    def rol_a(cpu: CPU):
+        value = cpu.a
+        old_carry = int(cpu.flags.get_carry_flag())
+
+        result = (value << 1) | old_carry
+        result_8 = result & 0xFF
+
+        # Set flags
+
+        cpu.flags.set_carry_flag((value & 0b1000_0000) != 0)
+        cpu.flags.set_zero_flag(result_8 == 0)
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+
+        cpu.a = result_8
+
+Why this step exists:
+Accumulator mode has no effective memory address, so a dedicated
+primitive preserves the same rotation semantics while writing ``cpu.a``.
+
+Invariants: old Carry is sampled first and enters bit 0; original A bit 7
+becomes Carry; A is constrained to eight bits; Z/N describe the new A; no bus
+write occurs.
+
+Misconception: ``cpu.a`` is a value, not an address to pass to ``rol``.  Doing
+so would mutate memory at address A and leave the register unchanged.
+
+Out of scope: mapping opcode ``0x2A`` is lesson 104, memory modes are 105-108,
+ROR starts at 109, and timing/cycle fidelity is later work.
 """
 
 from emulator.cpu.instructions import rol_a

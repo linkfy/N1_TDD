@@ -1,4 +1,30 @@
-"""Add BNE Relative: 0xD0 -> BNE offset."""
+"""Step 175: connect BNE to its relative opcode.
+
+Prerequisite: step 174 wired BEQ. In this step, add these pieces to
+``emulator/cpu/opcodes.py``:
+
+    from emulator.cpu.instructions import bne
+
+    def bne_relative(cpu: CPU):
+        offset = relative(cpu)
+        bne(cpu, offset)
+
+    OPCODE_TABLE[0xD0] = bne_relative
+
+Merge the import and table item into their existing grouped forms.
+
+Why this step exists:
+The opcode layer consumes and decodes the displacement, then delegates the
+Zero-clear decision to step 167's ``instructions.bne``.
+
+Invariants: ``0xD0`` always consumes one operand byte; Zero clear applies the
+signed offset to post-operand PC and Zero set leaves that PC unchanged.  The
+handler changes no flags or memory.  Misconception: BNE does not perform a
+comparison, and an untaken branch must not leave PC on its operand.
+
+Out of scope: BPL/BMI/BVC/BVS opcode wiring follows in steps 176-179.  The
+next addressing-mode feature, indirect JMP, is step 180.
+"""
 import inspect
 
 from emulator.bus.cpu_bus import CpuBus

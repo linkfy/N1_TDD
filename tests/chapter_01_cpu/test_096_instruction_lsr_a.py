@@ -1,15 +1,44 @@
 """
-Add the LSR accumulator instruction behavior.
+Test 096 - Add the LSR accumulator instruction behavior.
 
-Instruction:
-    LSR A -> A = A >> 1
+In this step, add accumulator-targeted LSR behavior after the memory primitive
+from Test 095.
 
-Goal:
-implement lsr_a(cpu) in instructions.py for the accumulator destination.
+File and symbol:
+    emulator/cpu/instructions.py: lsr_a
 
-Student guidance:
-LSR A is separate from lsr(cpu, address) because it reads and writes cpu.a,
-not memory. The accumulator is a register, not an address.
+Why this step exists:
+Accumulator LSR shares the shift and flags of Test 095 but has a different data
+destination, so it must update `cpu.a` without treating that register as an address.
+
+Suggested implementation for this step:
+
+    # emulator/cpu/instructions.py
+    def lsr_a(cpu: CPU):
+        value = cpu.a
+        result = value >> 1
+        result_8 = result & 0xFF
+
+        # Set flags
+        cpu.flags.set_carry_flag((value & 0x01) != 0)
+        cpu.flags.set_negative_flag(False)
+        cpu.flags.set_zero_flag(result_8 == 0)
+
+        cpu.a = result_8
+
+Important invariants:
+    - old A bit 0 replaces Carry
+    - Zero follows the final A value and Negative is always cleared
+    - no bus read or write occurs
+    - memory at an address numerically equal to the old A remains unchanged
+
+Common misconception:
+`cpu.a` is the value and destination, not an address to pass to memory `lsr`.
+
+Out of scope:
+    - opcode 0x4A wiring in Test 097
+    - memory addressing opcodes in Tests 098-101
+    - refactoring shared LSR logic or adding cycle timing
 """
 
 from emulator.cpu.instructions import lsr_a

@@ -1,4 +1,29 @@
-"""Add BPL Relative: 0x10 -> BPL offset."""
+"""Step 176: connect BPL to its relative opcode.
+
+Prerequisite: step 175 wired BNE. In this step, add the following to
+``emulator/cpu/opcodes.py``:
+
+    from emulator.cpu.instructions import bpl
+
+    def bpl_relative(cpu: CPU):
+        offset = relative(cpu)
+        bpl(cpu, offset)
+
+    OPCODE_TABLE[0x10] = bpl_relative
+
+Fold the import and entry into the existing grouped import and table literal.
+Why this step exists:
+``relative`` consumes the operand and step 168's
+``instructions.bpl`` interprets "plus" as Negative clear before changing PC.
+
+Invariants: ``0x10`` maps to the one-argument handler; both outcomes consume
+the signed operand; Negative clear branches from post-operand PC and Negative
+set does not.  Flags and memory remain unchanged.  Misconception: BPL does not
+test whether the offset or PC is positive; it tests only the Negative flag.
+
+Out of scope: BMI/BVC/BVS opcode wiring is introduced by steps 177-179, and
+indirect JMP addressing is step 180.
+"""
 import inspect
 
 from emulator.bus.cpu_bus import CpuBus

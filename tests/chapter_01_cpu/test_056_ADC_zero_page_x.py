@@ -1,11 +1,45 @@
 """
-Add ADC Zero Page,X.
+Test 056 - Connect ADC zero page,X (opcode $75) to CPU dispatch.
 
-Opcode:
-    0x75 -> ADC $nn,X
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use zero_page_x(cpu), read value, then adc(cpu, value).
+Symbols to create/update:
+    opcodes.adc_zero_page_x
+    OPCODE_TABLE[$75]
+
+Why this step exists:
+This mode reuses the established `zero_page_x` resolver, including its
+page-zero wraparound. The opcode handler then reads the resolved location and
+passes its value to `adc`.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def adc_zero_page_x(cpu):
+        addr = zero_page_x(cpu)
+        value = cpu.bus.read(addr)
+        adc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ...existing entries...
+        0x75: adc_zero_page_x,
+    }
+
+Important invariants:
+    - X is added by `zero_page_x`, not by the handler a second time
+    - `(operand + X) & 0xFF` keeps the effective address in page zero
+    - the byte at the effective address, not the address, is passed to `adc`
+    - PC advances by two bytes total
+
+Common misconception:
+Do not use ordinary 16-bit addition for the index; `$FF + $01` must resolve to
+`$0000`, not `$0100`.
+
+Out of scope:
+    - absolute indexed and indirect ADC modes
+    - page-crossing timing
+    - changes to the existing addressing helper
 """
 import inspect
 

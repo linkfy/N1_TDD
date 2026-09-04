@@ -1,25 +1,106 @@
 """
-Refactor CPU flag helpers into a new FlagsHandler class.
+Test 052 - Introduce a public helper for processor-status flag access.
 
-Create this file:
-
+Files to create/update:
     emulator/cpu/flags_handler.py
+    emulator/cpu/cpu.py
 
-Inside that file, create:
+Symbols to create/update:
+    FlagsHandler
+    CPU.flags
+    CPU.__post_init__
 
+Why this step exists:
+The existing CPU helper covers only Zero and Negative. The next arithmetic
+instruction also needs Carry and Overflow, so status-bit access is collected in
+an object that mutates the CPU-owned `p` register. The existing
+`CPU._update_zero_and_negative_flags` stays intact for earlier instructions.
+
+Complete example implementation:
+
+    # emulator/cpu/flags_handler.py
+    from __future__ import annotations
+    from dataclasses import dataclass
+    from typing import TYPE_CHECKING
+
+    if TYPE_CHECKING:
+        from emulator.cpu.cpu import CPU
+
+    CARRY_FLAG = 1 << 0
+    ZERO_FLAG = 1 << 1
+    OVERFLOW_FLAG = 1 << 6
+    NEGATIVE_FLAG = 1 << 7
+
+    @dataclass
     class FlagsHandler:
-        ...
+        cpu: CPU
 
-The goal is simple:
-move new flag helper logic to a dedicated object, while keeping old CPU
-methods for compatibility with previous tests.
+        def set_zero_flag(self, enabled: bool):
+            if enabled:
+                self.cpu.p |= ZERO_FLAG
+            else:
+                self.cpu.p &= ~ZERO_FLAG
 
-Tradeoff:
-For a short time, cpu._update_zero_and_negative_flags and FlagsHandler will both know how to change some flags.
-That is acceptable during a refactor.
+        def set_negative_flag(self, enabled: bool):
+            if enabled:
+                self.cpu.p |= NEGATIVE_FLAG
+            else:
+                self.cpu.p &= ~NEGATIVE_FLAG
 
-Long term, new code should prefer FlagsHandler, because flag bit logic should
-live in one clear place.
+        def set_overflow_flag(self, enabled: bool):
+            if enabled:
+                self.cpu.p |= OVERFLOW_FLAG
+            else:
+                self.cpu.p &= ~OVERFLOW_FLAG
+
+        def set_carry_flag(self, enabled: bool):
+            if enabled:
+                self.cpu.p |= CARRY_FLAG
+            else:
+                self.cpu.p &= ~CARRY_FLAG
+
+        def get_zero_flag(self) -> bool:
+            return bool(self.cpu.p & ZERO_FLAG)
+
+        def get_negative_flag(self) -> bool:
+            return bool(self.cpu.p & NEGATIVE_FLAG)
+
+        def get_overflow_flag(self) -> bool:
+            return bool(self.cpu.p & OVERFLOW_FLAG)
+
+        def get_carry_flag(self) -> bool:
+            return bool(self.cpu.p & CARRY_FLAG)
+
+    # emulator/cpu/cpu.py
+    from dataclasses import dataclass, field
+    from emulator.cpu.flags_handler import FlagsHandler
+
+    @dataclass
+    class CPU:
+        bus: CpuBus
+        flags: FlagsHandler = field(init=False)
+
+        def __post_init__(self):
+            self.flags = FlagsHandler(self)
+
+        # Keep the existing registers, fetch/reset/step methods, and
+        # _update_zero_and_negative_flags implementation unchanged.
+
+Important invariants:
+    - `cpu.p` remains the single processor-status value
+    - every setter changes only its own bit and supports both set and clear
+    - every getter returns a bool
+    - each CPU owns a handler whose `cpu` reference points back to that CPU
+    - the old Zero/Negative CPU helper remains callable
+
+Common misconception:
+Do not give FlagsHandler a separate status byte or replace the old CPU helper;
+that would split state or break the instructions introduced in earlier tests.
+
+Out of scope:
+    - ADC, which first consumes these public helpers in test 053
+    - Break, interrupt-disable, decimal, and bit-5 helpers
+    - stack and interrupt behavior
 """
 import inspect
 from pathlib import Path
@@ -121,9 +202,6 @@ def test_flags_handler_set_methods_exist():
         def set_carry_flag(self, enabled: bool):
             ...
 
-        def set_one_flag(self, enabled: bool):
-            ...
-
     Important:
     enabled=True means set the flag.
     enabled=False means clear the flag.
@@ -139,6 +217,7 @@ def test_flags_handler_set_methods_exist():
     assert hasattr(FlagsHandler, "set_negative_flag")
     assert hasattr(FlagsHandler, "set_overflow_flag")
     assert hasattr(FlagsHandler, "set_carry_flag")
+    # Required by Test 188; outside lesson 052's API.
     assert hasattr(FlagsHandler, "set_one_flag")
 
 
@@ -159,9 +238,6 @@ def test_flags_handler_get_methods_exist():
         def get_carry_flag(self) -> bool:
             ...
 
-        def get_one_flag(self) -> bool:
-            ...
-
     Example implementation:
         return bool(self.cpu.p & ZERO_FLAG)
 
@@ -176,6 +252,7 @@ def test_flags_handler_get_methods_exist():
     assert hasattr(FlagsHandler, "get_negative_flag")
     assert hasattr(FlagsHandler, "get_overflow_flag")
     assert hasattr(FlagsHandler, "get_carry_flag")
+    # Required by Test 188; outside lesson 052's API.
     assert hasattr(FlagsHandler, "get_one_flag")
 
 
@@ -237,12 +314,11 @@ def test_flags_handler_sets_and_clears_carry_flag():
 
 def test_flags_handler_sets_and_clears_one_flag():
     """
-    Objective:
-    set_one_flag(True) sets bit 5, and False clears bit 5.
+    Test 188 compatibility check, outside the scope of Test 052.
 
-    Important:
-    This bit has no normal CPU behavior effect in this tutorial model. It is used
-    when creating pushed status bytes for BRK/PHP/NMI.
+    This verifies that the bit-5 helper required by Test 188 can set and clear
+    only that bit. In this step, the suggested implementation intentionally
+    stops at C, Z, V, and N.
     """
     cpu = make_cpu()
     flags = FlagsHandler(cpu)
@@ -300,16 +376,8 @@ def test_cpu_keeps_old_zero_and_negative_update_method_for_compatibility():
     For now, old instructions can keep calling:
         cpu._update_zero_and_negative_flags(value)
 
-    But new or refactored code should prefer:
-        cpu.flags.set_zero_flag(value == 0)
-        cpu.flags.set_negative_flag((value & 0x80) != 0)
-
-    Good future cleanup:
-        def _update_zero_and_negative_flags(self, value):
-            self.flags.set_zero_flag(value == 0)
-            self.flags.set_negative_flag((value & 0x80) != 0)
-
-    That keeps compatibility while moving the real flag logic into FlagsHandler.
+    In this step, leave that method unchanged. Delegating it to FlagsHandler is
+    not required by this lesson.
     """
     cpu = make_cpu()
 

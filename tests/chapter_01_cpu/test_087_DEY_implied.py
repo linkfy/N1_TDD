@@ -1,15 +1,39 @@
 """
-Add DEY Implied.
+Test 087 - Wire the DEY implied opcode.
 
-Opcode:
-    0x88 -> DEY
+In this step, use `instructions.dey` from Test 086 and add only its opcode
+integration.
 
-Goal:
-map opcode 0x88 directly to dey(cpu).
+Production location and symbols:
+    emulator/cpu/opcodes.py: imported `dey` and `OPCODE_TABLE[0x88]`
 
-Why direct mapping?
-DEY uses implied addressing: the operand is implied by the instruction itself.
-There is no address or immediate byte to decode.
+Why this step exists:
+DEY's Y-register operand is implicit, allowing direct table dispatch with no
+addressing-mode wrapper.
+
+Suggested implementation for this step:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.instructions import dey  # alongside existing imports
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0x88: dey,
+    }
+
+Important invariants:
+    - opcode 0x88 dispatches to the exact `dey(cpu)` function
+    - no operand is consumed and PC advances by one byte
+    - Y wrapping and Z/N updates remain owned by test 086's `dey`
+
+Common misconception:
+Do not build a memory-decrement wrapper around `dec`; DEY modifies the register
+and performs no bus read or write.
+
+Out of scope:
+    - prior INY behavior/mapping from tests 084-085
+    - ASL behavior and opcodes beginning at test 088
+    - cycle timing
 """
 import inspect
 

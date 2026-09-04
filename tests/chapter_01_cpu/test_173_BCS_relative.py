@@ -1,4 +1,32 @@
-"""Add BCS Relative: 0xB0 -> BCS offset."""
+"""Step 173: connect BCS to its relative opcode.
+
+Prerequisite: step 172 imported ``relative`` and wired BCC. In this step, add
+these pieces
+to ``emulator/cpu/opcodes.py``:
+
+    from emulator.cpu.instructions import bcs
+
+    def bcs_relative(cpu: CPU):
+        offset = relative(cpu)
+        bcs(cpu, offset)
+
+    OPCODE_TABLE[0xB0] = bcs_relative
+
+Fold the import and table item into the existing grouped import and table
+literal.
+
+Why this step exists:
+Addressing remains in the opcode layer, while step 165's ``instructions.bcs``
+owns the complementary Carry-set decision.
+
+Invariants: ``0xB0`` maps to ``bcs_relative(cpu)``; the signed operand is always
+consumed; Carry set branches from post-operand PC and Carry clear leaves that PC
+unchanged.  Flags and memory are untouched.  Misconception: BCS means Carry
+set, not Carry clear, and the handler must not duplicate sign conversion.
+
+Out of scope: BEQ/BNE/BPL/BMI/BVC/BVS opcode wiring remains for steps 174-179;
+JMP addressing is step 180.
+"""
 import inspect
 
 from emulator.bus.cpu_bus import CpuBus

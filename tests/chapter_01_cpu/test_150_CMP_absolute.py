@@ -1,14 +1,31 @@
-"""
-Add CMP Absolute.
+"""Lesson 150: add CMP absolute opcode ``0xCD``.
 
-Opcode:
-    0xCD -> CMP $hhhh
+Why this step exists:
+Absolute CMP allows A to be compared with a byte anywhere in CPU memory while
+keeping little-endian effective-address decoding separate from flag semantics.
 
-Goal:
-create cmp_absolute(cpu), use absolute(cpu), read memory, then cmp(cpu, value).
+In this step, lessons 146-149 already provide CMP semantics, import, and
+immediate/zero-page modes.  Add exactly the following to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Absolute operands are little-endian. `CD 00 02` targets $0200.
+    def cmp_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        value = cpu.bus.read(addr)
+        cmp(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0xCD: cmp_absolute,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute`` obtains a little-endian word
+through ``CPU.fetch_word``; ``CD 00 02`` therefore compares A with the value
+read at ``$0200``.  C/Z/N may change; A, Overflow, X, Y, and memory remain
+invariant; opcode plus word advances PC three bytes.
+
+Misconception: the operand word is an address, not an immediate comparison
+value, and its bytes are not big-endian.  Out of scope: CMP absolute,X,
+absolute,Y, (indirect,X), and (indirect),Y are lessons 151-154; CPX/CPY follow.
 """
 import inspect
 

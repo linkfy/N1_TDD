@@ -1,43 +1,31 @@
-"""
-Add the PLP instruction behavior.
+"""Step 199: implement PLP behavior.
 
-Instruction:
-    PLP -> Pull Processor Status
+In this step, change only ``emulator/cpu/instructions.py`` by adding
+``plp(cpu)``. Prerequisites: ``STACK_BASE`` and RTI's status-mask convention
+already exist.
 
-Goal:
-implement plp(cpu) in instructions.py.
+Why this step exists:
+PLP advances S to the saved status byte and replaces P with that
+byte after removing this emulator model's non-persistent bits 4 and 5.
 
-Student guidance:
-PLP restores the processor status register P from the CPU stack.
-
-6502 stack rule:
-    Pull increments S first, then reads from the stack.
-
-So if:
-    S = $FC
-    $01FD = saved status byte
-
-Then PLP must:
-    1. increment S to $FD
-    2. read saved status from $01FD
-    3. restore CPU flags from that byte
-
-Important status-byte detail:
-    In this emulator model, bits 4 and 5 are not kept as persistent CPU state.
-    That matches the model already used by RTI:
-
-        cpu.p = flags & 0b1100_1111
-
-Common mistakes:
-    - Reading before incrementing S.
-    - Forgetting to mask out Break/unused bits.
-    - Treating PLP like PLA and updating Z/N from a data value.
-
-Implementation shape:
+Suggested implementation::
 
     cpu.s = (cpu.s + 1) & 0xFF
     flags = cpu.bus.read(0x0100 | cpu.s)
     cpu.p = flags & 0b1100_1111
+
+Place those statements in ``def plp(cpu: CPU)``; the equivalent
+``STACK_BASE + cpu.s`` address also selects stack page $0100.
+
+Invariants: increment and wrap S before reading; replace rather than merge P;
+clear bits 4 and 5; restore all other saved flag bits exactly; do not compute Z
+or N from the numeric byte as PLA does.
+
+Misconception: PLP does not selectively OR flags into the old P. Doing so
+leaves stale flags that the stacked status explicitly cleared.
+
+Out of scope: opcode $28 registration belongs to step 200. Later flag APIs must
+not be added to this implementation.
 """
 
 from emulator.cpu.instructions import plp

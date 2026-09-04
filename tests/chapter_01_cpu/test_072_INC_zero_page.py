@@ -1,11 +1,38 @@
-"""
-Add INC Zero Page.
+"""Lesson 072: wire INC Zero Page (`0xE6`).
 
-Opcode:
-    0xE6 -> INC $nn
+In this step, with `emulator/cpu/instructions.py:inc` from lesson 071 as a
+prerequisite, add only the zero-page wiring in `emulator/cpu/opcodes.py`.
 
-Goal:
-use zero_page(cpu), then inc(cpu, address).
+Why this step exists:
+Opcode handlers translate instruction bytes into an effective
+address. Reusing `addressing_modes.zero_page` preserves operand fetching and PC
+movement while `instructions.inc` remains independent of addressing mode.
+
+Suggested implementation in `emulator/cpu/opcodes.py`:
+
+    from emulator.cpu.instructions import lda, sta, ldx, stx, ldy, sty, tax, txa, tay, tya, adc, sbc, inc
+
+    def inc_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        inc(cpu, addr)
+
+Add this exact entry to the existing `OPCODE_TABLE`:
+
+    0xE6: inc_zero_page,
+
+The handler was inserted under `# ------ INC Opcodes`, and the mapping was
+appended to `OPCODE_TABLE`.
+
+Invariants: `zero_page(cpu)` consumes one operand byte, returns a page-zero
+address, and advances PC once; the handler delegates one read-modify-write to
+`inc`; `0xE6` maps to the function object; instruction length is two bytes; INC
+still changes only memory and Z/N.
+
+Misconception: the operand byte is an address, not the byte to increment. Do not
+read it in the handler or duplicate INC arithmetic there.
+
+Out of scope: `inc_zero_page_x`, `inc_absolute`, and `inc_absolute_x`, plus their
+`0xF6`, `0xEE`, and `0xFE` mappings, are lessons 073-075.
 """
 import inspect
 

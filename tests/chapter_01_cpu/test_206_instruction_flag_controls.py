@@ -1,45 +1,34 @@
-"""
-Add the flag-control instruction behavior.
+"""Step 206: implement flag-control operations.
 
-Instructions:
-    CLC -> Clear Carry flag
-    SEC -> Set Carry flag
-    CLI -> Clear Interrupt Disable flag
-    SEI -> Set Interrupt Disable flag
-    CLD -> Clear Decimal flag
-    SED -> Set Decimal flag
-    CLV -> Clear Overflow flag
+Why this step exists:
+In this step, add ``emulator/cpu/instructions.py`` symbols ``clc``, ``sec``,
+``cli``, ``sei``, ``cld``, ``sed``, and ``clv``.  Each delegates one status-bit
+change to the existing ``cpu.flags`` API, including Decimal helpers from 205.
 
-Goal:
-implement these functions in instructions.py:
+Suggested implementation::
 
-    clc(cpu)
-    sec(cpu)
-    cli(cpu)
-    sei(cpu)
-    cld(cpu)
-    sed(cpu)
-    clv(cpu)
+    def clc(cpu: CPU):
+        cpu.flags.set_carry_flag(False)
+    def sec(cpu: CPU):
+        cpu.flags.set_carry_flag(True)
+    def cli(cpu: CPU):
+        cpu.flags.set_interrupt_disable_flag(False)
+    def sei(cpu: CPU):
+        cpu.flags.set_interrupt_disable_flag(True)
+    def cld(cpu: CPU):
+        cpu.flags.set_decimal_flag(False)
+    def sed(cpu: CPU):
+        cpu.flags.set_decimal_flag(True)
+    def clv(cpu: CPU):
+        cpu.flags.set_overflow_flag(False)
 
-Student guidance:
-These instructions are small but important. Each one changes exactly one status
-flag and should leave all other CPU state untouched.
+Invariant: each function changes exactly its named bit and preserves all other
+flags, registers, S, PC, and memory.  CLI clears the interrupt-disable mask; it
+does not clear an interrupt event.  Another common misconception is treating
+CLV or any clear operation as a reset of the complete status register.
 
-Mental model:
-    CLC/SEC control Carry.
-    CLI/SEI control Interrupt Disable.
-    CLD/SED control Decimal.
-    CLV clears Overflow.
-
-Important NES note:
-The NES CPU still has the Decimal flag bit and SED/CLD still modify it, even
-though decimal arithmetic mode is not used like on a full BCD 6502.
-
-Common mistakes:
-    - Updating Zero/Negative accidentally.
-    - Clearing all flags instead of only one flag.
-    - Confusing CLI with "clear interrupt happened". CLI clears Interrupt Disable.
-    - Confusing CLV with a generic flag reset. CLV clears only Overflow.
+Prerequisite: step 205 added the Decimal helpers. Out of scope: the
+``emulator/cpu/opcodes.py`` imports and mappings belong to step 207.
 """
 
 from emulator.cpu.instructions import clc, cld, cli, clv, sec, sed, sei

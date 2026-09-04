@@ -1,4 +1,32 @@
-"""Add BVS Relative: 0x70 -> BVS offset."""
+"""Step 179: connect BVS to its relative opcode.
+
+Prerequisite: step 171 added ``instructions.bvs``. In this step, add these
+pieces to ``emulator/cpu/opcodes.py``:
+
+    from emulator.cpu.instructions import bvs
+
+    def bvs_relative(cpu: CPU):
+        offset = relative(cpu)
+        bvs(cpu, offset)
+
+    OPCODE_TABLE[0x70] = bvs_relative
+
+Fold the import and mapping into the existing grouped structures.
+
+Why this step exists:
+``relative`` consumes and signs the displacement, then step 171's
+``instructions.bvs`` branches from post-operand PC when Overflow is set.
+
+Invariants: ``0x70`` maps to a one-argument handler and consumes its operand on
+both paths; Overflow set applies the offset and Overflow clear leaves PC after
+the operand.  Flags and memory are unchanged.  Misconception: BVS does not set
+Overflow, and an untaken branch still occupies and consumes two instruction
+bytes including its opcode.
+
+Out of scope: step 180 independently adds ``addressing_modes.indirect`` for
+JMP.  The ``jmp`` instruction and absolute/indirect JMP opcode APIs arrive only
+in later steps 181-183 and must not be added here.
+"""
 import inspect
 
 from emulator.bus.cpu_bus import CpuBus

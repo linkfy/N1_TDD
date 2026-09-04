@@ -1,11 +1,51 @@
 """
-Add LDY Absolute.
+Test 045 - Add LDY absolute ($AC).
 
-Opcode:
-    0xAC -> LDY $hhhh
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute(cpu), read value, then ldy(cpu, value).
+Locations:
+    opcodes imports of absolute and ldy
+    opcodes.ldy_absolute
+    opcodes.OPCODE_TABLE[$AC]
+
+Why this step exists:
+Absolute addressing extends LDY beyond page zero. The handler decodes the existing
+little-endian 16-bit operand, reads that address, and delegates the loaded value to
+`ldy`.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import absolute
+    from emulator.cpu.instructions import ldy
+
+
+    def ldy_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        value = cpu.bus.read(addr)
+        ldy(cpu, value)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xAC: ldy_absolute,
+    }
+
+Important invariants:
+    - $AC maps to ldy_absolute and consumes two operand bytes
+    - absolute combines the low byte first and high byte second
+    - the handler reads the effective address and passes the resulting value to ldy
+    - execution advances three bytes total, including the opcode
+
+Common misconception:
+Do not reverse `AC 00 02`; the established absolute helper resolves those operand
+bytes to $0200, not $0002.
+
+Out of scope:
+    - absolute,X LDY
+    - changing the absolute addressing helper
+    - cycle timing
 """
 import inspect
 

@@ -1,15 +1,35 @@
-"""
-Add the INX instruction behavior.
+"""Lesson 080: add the INX instruction primitive.
 
-Instruction:
-    INX -> X = X + 1
+In this step, add only `emulator/cpu/instructions.py:inx`. Opcode `0xE8` is
+lesson 081, while `dex` and opcode `0xCA` are lessons 082-083.
 
-Goal:
-implement inx(cpu) in instructions.py.
+Why this step exists:
+INX is implied register behavior, so it needs no addressing helper or
+bus access. The primitive performs 8-bit arithmetic and derives flags directly
+from the new X value.
 
-Important:
-INX only modifies the X register, Zero flag, and Negative flag.
-It must not modify Carry or Overflow.
+Suggested implementation in `emulator/cpu/instructions.py`, after
+`dec`:
+
+    def inx(cpu: CPU):
+        result = cpu.x + 1
+        result_8 = result & 0xFF
+
+        # Set flags
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+        cpu.flags.set_zero_flag(result_8 == 0)
+
+        cpu.x = result_8
+
+Invariants: X remains eight-bit (`$FF + 1 == $00`); Zero and Negative reflect
+the masked result; A, Y, memory, Carry, and Overflow remain unchanged; this
+primitive itself does not fetch operands or advance PC.
+
+Misconception: INX is not memory INC with X as an address. It mutates the X
+register directly and takes only `cpu`.
+
+Out of scope: importing and mapping `inx`, adding `dex`, and mapping `0xCA`
+belong to lessons 081-083.
 """
 
 from emulator.cpu.instructions import inx

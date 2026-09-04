@@ -1,24 +1,53 @@
 """
-Add a new instruction: ADC.
+Test 053 - Add the addressing-independent ADC instruction.
 
-ADC means Add with Carry.
+File to update:
+    emulator/cpu/instructions.py
 
-Create one function inside emulator/cpu/instructions.py:
+Symbol to create:
+    instructions.adc(cpu, value)
 
-    def adc(cpu, value):
-        ...
+Why this step exists:
+ADC is arithmetic behavior, not operand decoding. It accepts the value already
+resolved by an opcode handler, adds it to A with the incoming Carry, truncates
+the result to one byte, and updates C, Z, N, and V through the FlagsHandler from
+test 052.
 
-Goal:
-add register A + value + Carry flag, store the 8-bit result in A,
-and update Carry, Zero, Negative, and Overflow flags.
+Complete example implementation:
+
+    # emulator/cpu/instructions.py
+    def adc(cpu, value: int):
+        carry = int(cpu.flags.get_carry_flag())
+        old_a = cpu.a
+        total = old_a + value + carry
+        result = total & 0xFF
+
+        cpu.flags.set_carry_flag(total > 0xFF)
+        cpu.flags.set_zero_flag(result == 0)
+        cpu.flags.set_negative_flag((result & 0x80) != 0)
+        overflow = (result ^ old_a) & (result ^ value) & 0x80
+        cpu.flags.set_overflow_flag(overflow != 0)
+        cpu.a = result
+
+Important invariants:
+    - incoming Carry is read before any flags are changed
+    - A stores only the low eight bits of the full sum
+    - Carry reports unsigned overflow; Overflow reports signed overflow
+    - Zero and Negative are derived from the truncated result
+    - flags not named above and registers X/Y remain unchanged
+
+Common misconception:
+Carry and Overflow are not interchangeable. Carry comes from bit 8 of the
+unsigned sum, while Overflow occurs when equal-sign operands produce a result
+with the opposite sign.
+
+Out of scope:
+    - every ADC addressing-mode handler and opcode-table entry
+    - SBC and decimal-mode arithmetic
+    - cycle accounting
 
 Reference:
-https://www.nesdev.org/wiki/Instruction_reference#ADC
-
-Use that page to check:
-- which flags ADC updates
-- how Carry works
-- the Overflow formula
+    https://www.nesdev.org/wiki/Instruction_reference#ADC
 """
 import inspect
 

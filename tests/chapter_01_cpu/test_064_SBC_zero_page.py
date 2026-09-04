@@ -1,11 +1,43 @@
 """
-Add SBC Zero Page.
+Test 064 - Add SBC Zero Page.
 
-Opcode:
-    0xE5 -> SBC $nn
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use zero_page(cpu), read value, then sbc(cpu, value).
+Symbols to add/update:
+    opcodes.sbc_zero_page and OPCODE_TABLE[0xE5]
+
+Why this step exists:
+This lesson adds the first memory-addressed SBC wrapper, reusing the established
+zero-page address resolver and the core value-based `sbc` operation.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def sbc_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        value = cpu.bus.read(addr)
+        sbc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0xE5: sbc_zero_page,
+    }
+
+Important invariants:
+    - `zero_page` fetches one operand and returns an address in page $00
+    - the handler reads one byte from that address and passes the value to `sbc`
+    - SBC's arithmetic and flag behavior remains centralized in `sbc`
+    - executing the two-byte instruction advances PC by two bytes
+
+Common misconception:
+`zero_page` returns an address, not the byte to subtract; the handler must perform
+the bus read before calling `sbc`.
+
+Out of scope:
+    - indexed, absolute, and indirect SBC wrappers
+    - changes to zero-page addressing or SBC arithmetic
+    - cycle timing
 """
 import inspect
 

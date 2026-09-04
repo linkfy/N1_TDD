@@ -1,14 +1,27 @@
-"""
-Add the BMI instruction behavior.
+"""Lesson 169: implement Branch if Minus behavior.
 
-Instruction:
-    BMI -> Branch if Minus
+Why this step exists:
+"Minus" means the Negative flag from an earlier result is set, so BMI consumes
+that status without recomputing it.
 
-Goal:
-implement bmi(cpu, offset) in instructions.py.
+In this step, add only this implementation:
 
-Student guidance:
-In 6502 terminology, "minus" means Negative flag is set.
+``emulator/cpu/instructions.py::bmi``::
+
+    def bmi(cpu: CPU, offset: int):
+        if cpu.flags.get_negative_flag():
+            cpu.pc = (cpu.pc + offset) & 0xFFFF
+
+BMI applies the already decoded signed displacement to the PC after its
+operand, masking the target to 16 bits.
+
+Invariants: Negative set takes the branch and Negative clear leaves PC alone;
+flags, other registers, and memory are unchanged.  Misconception: BMI does not
+inspect the sign of ``offset`` or perform arithmetic to establish Negative.
+
+Out of scope: BVC/BVS are lessons 170-171.  Imports into
+``emulator/cpu/opcodes.py``, relative handlers, and opcode table entries belong
+to lessons 172-179.
 """
 
 from emulator.cpu.instructions import bmi

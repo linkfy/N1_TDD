@@ -1,15 +1,42 @@
 """
-Add ASL Zero Page.
+Test 091 - Add ASL Zero Page.
 
-Opcode:
-    0x06 -> ASL $nn
+In this step, add the first addressed ASL form. Tests 088-090 are prerequisites
+for memory and accumulator behavior and accumulator dispatch.
 
-Goal:
-create asl_zero_page(cpu), use zero_page(cpu), then asl(cpu, address).
+File and symbols:
+    emulator/cpu/opcodes.py: asl_zero_page, OPCODE_TABLE[0x06]
 
-Student guidance:
-The operand byte is not the value to shift. It is the zero-page address where
-the value lives. For `06 10`, read/modify/write RAM[$0010].
+Why this step exists:
+Tests 088-090 already established `instructions.asl`, `instructions.asl_a`, and
+the accumulator opcode. This transition exposes the memory implementation through
+the first addressed form without duplicating shift or flag behavior in the handler.
+
+Suggested implementation for this step:
+
+    # emulator/cpu/opcodes.py
+    def asl_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        asl(cpu, addr)
+
+    OPCODE_TABLE = {
+        # existing entries unchanged
+        0x06: asl_zero_page,
+    }
+
+Important invariants:
+    - `zero_page(cpu)` consumes one operand byte, so the full instruction is two bytes
+    - the operand is an address; `asl` performs the read/modify/write at that address
+    - old bit 7 sets Carry; Zero and Negative come from the masked result
+    - A is unchanged
+
+Common misconception:
+For `06 10`, 0x10 is not shifted directly. It selects RAM[$0010].
+
+Out of scope:
+    - ASL Zero Page,X and absolute forms in Tests 092-094
+    - LSR beginning in Test 095
+    - cycle timing and read/modify/write bus-cycle accuracy
 """
 import inspect
 

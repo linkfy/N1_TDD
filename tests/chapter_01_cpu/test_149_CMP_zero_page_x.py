@@ -1,14 +1,29 @@
-"""
-Add CMP Zero Page,X.
+"""Lesson 149: add CMP zero-page,X opcode ``0xD5``.
 
-Opcode:
-    0xD5 -> CMP $nn,X
+Why this step exists:
+Indexed zero-page CMP supports compact table lookups and confirms that X
+addition wraps within zero page before the comparison value is read.
 
-Goal:
-create cmp_zero_page_x(cpu), use zero_page_x(cpu), read memory, then cmp(cpu, value).
+In this step, building only on lessons 146-148, add exactly the following to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Zero Page,X wraps inside zero page: (base + X) & 0xFF.
+    def cmp_zero_page_x(cpu: CPU):
+        addr = zero_page_x(cpu)
+        value = cpu.bus.read(addr)
+        cmp(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0xD5: cmp_zero_page_x,
+    }
+
+``addressing_modes.zero_page_x`` computes ``(operand + X) & 0xFF`` before the
+bus read.  C/Z/N may change; A, Overflow, X, Y, and memory remain invariant;
+opcode plus operand advances PC two bytes.
+
+Misconception: indexing past ``$FF`` does not carry into page one; it wraps
+within zero page.  Out of scope: absolute CMP starts in lesson 150, with its
+indexed and indirect variants deferred to lessons 151-154.
 """
 import inspect
 

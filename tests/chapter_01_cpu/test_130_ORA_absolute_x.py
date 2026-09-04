@@ -1,14 +1,31 @@
-"""
-Add ORA Absolute,X.
+"""Lesson 130: add ORA absolute,X opcode ``0x1D``.
 
-Opcode:
-    0x1D -> ORA $hhhh,X
+Why this step exists:
+This permits ORA against full-address tables indexed by X while keeping address
+resolution separate from the operation's accumulator and flag semantics.
 
-Goal:
-create ora_absolute_x(cpu), use absolute_x(cpu), read memory, then or_a(cpu, value).
+In this step, following unindexed absolute ORA in lesson 129, add only this
+code to ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Decode the 16-bit base address first, then add X.
+    def ora_absolute_x(cpu: CPU):
+        addr = absolute_x(cpu)
+        value = cpu.bus.read(addr)
+        or_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x1D: ora_absolute_x,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute_x`` fetches the little-endian
+base word before adding ``cpu.x``.  The handler reads that resolved address
+and passes its value to ``instructions.or_a``.  A and Z/N change; X,
+Carry/Overflow, and memory are invariant; opcode plus word advances PC three
+bytes.
+
+Misconception: X indexes the decoded address, not an operand byte or the data
+read from memory.  Out of scope: ORA absolute,Y and indirect modes (lessons
+131-133), followed by EOR and BIT in lessons 134-145.
 """
 import inspect
 

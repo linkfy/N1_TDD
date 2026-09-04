@@ -1,15 +1,31 @@
-"""
-Add ORA Immediate.
+"""Lesson 126: expose ORA immediate as opcode ``0x09``.
 
-Opcode:
-    0x09 -> ORA #$nn
+Why this step exists:
+The immediate opcode exposes ORA to CPU execution with a literal byte and
+checks that decoding delegates result and flag handling to the shared primitive.
 
-Goal:
-create ora_immediate(cpu), use immediate(cpu), then or_a(cpu, value).
+In this step, after lesson 125 creates ``or_a``, make these additions in
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Immediate mode returns the operand value directly. Do not read from memory
-again for the operand.
+    from emulator.cpu.instructions import (..., and_a, or_a)
+
+    def ora_immediate(cpu: CPU):
+        or_a(cpu, immediate(cpu))
+
+    OPCODE_TABLE = {
+        ...
+        0x09: ora_immediate,
+    }
+
+``emulator/cpu/addressing_modes.py::immediate`` returns the byte fetched by
+``CPU.fetch_byte`` directly.  ``instructions.or_a`` stores A | value and
+changes only Z/N; Carry/Overflow and memory remain invariant, and opcode plus
+operand advances PC two bytes.
+
+Misconception: the immediate byte is the value, so reading it again through
+``cpu.bus`` would wrongly treat it as an address.  Out of scope: memory-based
+ORA handlers (lessons 127-133) and the EOR/BIT imports and handlers in lessons
+134-145.
 """
 import inspect
 

@@ -1,27 +1,27 @@
-"""
-Add TXS Implied.
+"""Step 202: wire implied TXS opcode $9A.
 
-Opcode:
-    0x9A -> TXS
+Why this step exists:
+In this step, the targets are ``emulator/cpu/opcodes.py``'s instruction import and
+``OPCODE_TABLE``; ``emulator/cpu/instructions.py::txs`` already exists from
+step 201.  The opcode wiring makes that isolated behavior executable through
+``emulator/cpu/cpu.py::CPU.step``.
 
-Goal:
-add opcode 0x9A to OPCODE_TABLE.
+Suggested implementation::
 
-Student guidance:
-TXS uses implied addressing. It has no operand bytes.
+    from emulator.cpu.instructions import txs  # add to the existing import
 
-The instruction knows both source and destination from its name:
+    OPCODE_TABLE = {
+        # existing entries
+        0x9A: txs,
+    }
 
-    TXS -> Transfer X to Stack Pointer
+Invariant: TXS is one byte, so CPU.step's opcode fetch is the only PC advance;
+dispatch calls ``txs(cpu)`` directly and preserves X and P.  The common
+misconception is to route implied TXS through an addressing mode and consume
+the next byte as an operand.
 
-Execution steps:
-    1. CPU.step() fetches opcode 0x9A.
-    2. OPCODE_TABLE dispatches directly to txs(cpu).
-    3. TXS copies X into S.
-
-Common mistake:
-Do not fetch an operand byte for TXS. The byte after opcode 0x9A is the next
-instruction, not data used by TXS.
+Out of scope: implementing TSX or registering $BA belongs to steps 203-204;
+cycle accounting and later CPU facilities are not part of this transition.
 """
 import inspect
 

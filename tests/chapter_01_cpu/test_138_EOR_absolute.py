@@ -1,14 +1,30 @@
-"""
-Add EOR Absolute.
+"""Lesson 138: add EOR absolute opcode ``0x4D``.
 
-Opcode:
-    0x4D -> EOR $hhhh
+Why this step exists:
+Absolute EOR allows exclusive OR against any CPU memory location while keeping
+little-endian address decoding outside the instruction primitive.
 
-Goal:
-create eor_absolute(cpu), use absolute(cpu), read memory, then or_e(cpu, value).
+In this step, after the two zero-page forms, add exactly the following to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Absolute operands are little-endian. `4D 00 02` targets $0200.
+    def eor_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        value = cpu.bus.read(addr)
+        or_e(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x4D: eor_absolute,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute`` uses ``CPU.fetch_word`` to
+decode low byte then high byte.  The handler reads the resulting address and
+delegates the XOR and Z/N flags to ``instructions.or_e``.  Carry/Overflow,
+memory, X, and Y remain invariant; opcode plus word advances PC three bytes.
+
+Misconception: the little-endian word is the location of the value, not the
+value itself.  Out of scope: indexed/indirect EOR modes (139-142) and BIT
+(143-145).
 """
 import inspect
 

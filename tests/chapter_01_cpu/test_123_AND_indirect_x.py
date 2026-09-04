@@ -1,15 +1,31 @@
-"""
-Add AND (Indirect,X).
+"""Lesson 123: add AND (indirect,X) opcode ``0x21``.
 
-Opcode:
-    0x21 -> AND ($nn,X)
+Why this step exists:
+AND needs pre-indexed indirect access for pointer tables in zero page, while
+pointer resolution remains an addressing concern rather than logical behavior.
 
-Goal:
-create and_indirect_x(cpu), use indirect_x(cpu), read memory, then and_a(cpu, value).
+In this step, after the earlier AND modes, add exactly the following to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Indirect,X adds X to the zero-page operand first, then reads the 16-bit pointer
-from zero page.
+    def and_indirect_x(cpu: CPU):
+        addr = indirect_x(cpu)
+        value = cpu.bus.read(addr)
+        and_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x21: and_indirect_x,
+    }
+
+``emulator/cpu/addressing_modes.py::indirect_x`` fetches the operand, computes
+``ptr = (base + cpu.x) & 0xFF``, and reads the little-endian pointer from
+``ptr`` and ``(ptr + 1) & 0xFF``.  The handler reads that final address and
+calls ``instructions.and_a``.  A and Z/N change; X, Carry/Overflow, pointer
+bytes, and target memory are invariant; PC advances two bytes.
+
+Misconception: (indirect,X) applies X before dereferencing, not to the final
+16-bit address.  Out of scope: AND (indirect),Y (lesson 124) and all later
+ORA/EOR/BIT work.
 """
 import inspect
 

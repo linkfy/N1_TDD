@@ -1,11 +1,32 @@
-"""
-Add INC Zero Page,X.
+"""Lesson 073: wire INC Zero Page,X (`0xF6`).
 
-Opcode:
-    0xF6 -> INC $nn,X
+In this step, use `instructions.inc` and the INC import from lessons 071-072,
+then add only `emulator/cpu/opcodes.py:inc_zero_page_x` and
+`OPCODE_TABLE[0xF6]`.
 
-Goal:
-use zero_page_x(cpu), then inc(cpu, address).
+Why this step exists:
+The indexed addressing helper, rather than the instruction, owns X
+addition and zero-page wraparound.
+
+Suggested implementation in `emulator/cpu/opcodes.py`:
+
+    def inc_zero_page_x(cpu: CPU):
+        addr = zero_page_x(cpu)
+        inc(cpu, addr)
+
+Add this exact entry to the existing `OPCODE_TABLE`:
+
+    0xF6: inc_zero_page_x,
+
+Invariants: `zero_page_x(cpu)` consumes one byte, adds `cpu.x`, and wraps the
+effective address within `$0000-$00FF`; PC advances to the next two-byte
+instruction; `inc` performs the memory mutation and updates only Z/N.
+
+Misconception: do not calculate `operand + X` as an unrestricted 16-bit address;
+`$FF,X` with X=1 targets `$0000`, not `$0100`.
+
+Out of scope: absolute and absolute-X INC handlers and mappings are lessons
+074-075.
 """
 import inspect
 

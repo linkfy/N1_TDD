@@ -1,15 +1,40 @@
 """
-Add the INY instruction behavior.
+Test 084 - Add INY instruction behavior.
 
-Instruction:
-    INY -> Y = Y + 1
+In this step, add only `iny`, before its Test 085 opcode mapping and the DEY
+work in Tests 086-087.
 
-Goal:
-implement iny(cpu) in instructions.py.
+Production location and symbol:
+    emulator/cpu/instructions.py: `iny(cpu: CPU)`
 
-Important:
-INY only modifies the Y register, Zero flag, and Negative flag.
-It must not modify Carry or Overflow.
+Why this step exists:
+INY increments the Y register independently of opcode decoding and must emulate
+an 8-bit register despite Python's unbounded integers.
+
+Suggested implementation:
+
+    def iny(cpu: CPU):
+        result = cpu.y + 1
+        result_8 = result & 0xFF
+
+        # Set flags
+        cpu.flags.set_negative_flag((result_8 & 0b1000_0000) != 0)
+        cpu.flags.set_zero_flag(result_8 == 0)
+
+        cpu.y = result_8
+
+Important invariants:
+    - Y wraps from 0xFF to 0x00
+    - Zero and Negative are computed from the masked result
+    - Carry, Overflow, memory, and other registers remain unchanged
+
+Common misconception:
+The increment does not set Carry when Y wraps; INY only updates Z and N.
+
+Out of scope:
+    - opcode 0xC8 dispatch (test 085)
+    - DEY behavior and dispatch (tests 086-087)
+    - later ASL work and cycle timing
 """
 
 from emulator.cpu.instructions import iny

@@ -1,60 +1,62 @@
 """
-Add Mapper000 CHR ROM reads.
-
-File already created:
-    emulator/cartridge/mapper000.py
-
-New behavior to add:
-    Mapper000.read_chr(addr: int) -> int
+Lesson 219: add
+`emulator/cartridge/mapper000.py::Mapper000.read_chr`.
 
 Why this step exists:
-Mapper000/NROM cartridges contain two important ROM areas:
+This stabilizes access to NROM's 8 KiB graphics payload before a PPU bus exists.
+Lesson 218's PRG mapping and `Mapper000` structure are prerequisites.
 
-    PRG ROM
-        Program bytes read by the CPU through CPU addresses $8000-$FFFF.
+Complete example implementation after this lesson:
 
-    CHR ROM
-        Graphics pattern bytes that will be read by the PPU through PPU pattern
-        table addresses $0000-$1FFF.
+    from dataclasses import dataclass
 
-We do NOT implement the PPU yet.
-
-But it is useful to stabilize the Mapper000 data shape now:
-
-    Mapper000(prg_rom, chr_rom)
-
-That way, when the PPU exists later, it can ask the mapper for CHR bytes without
-changing the mapper constructor or rewriting cartridge wiring.
-
-Pseudocode for the new constants:
-
+    PRG_ROM_START = 0x8000
+    PRG_ROM_END = 0xFFFF
+    NROM_128_SIZE = 16 * 1024
+    NROM_256_SIZE = 32 * 1024
     CHR_ROM_START = 0x0000
     CHR_ROM_END = 0x1FFF
     CHR_ROM_SIZE = 8 * 1024
 
-Pseudocode for read_chr:
 
-    def read_chr(self, addr):
-        if addr is outside $0000-$1FFF:
-            raise ValueError
+    @dataclass(frozen=True)
+    class Mapper000:
+        prg_rom: bytes
+        chr_rom: bytes
 
-        if chr_rom is not exactly 8KB:
-            raise ValueError
+        def read_prg(self, addr: int) -> int:
+            if not (PRG_ROM_START <= addr <= PRG_ROM_END):
+                raise ValueError(
+                    f"Address out of PRG ROM range: {addr:04X}"
+                )
+            if len(self.prg_rom) == NROM_128_SIZE:
+                offset = (addr - PRG_ROM_START) % NROM_128_SIZE
+            elif len(self.prg_rom) == NROM_256_SIZE:
+                offset = addr - PRG_ROM_START
+            else:
+                raise ValueError(
+                    "Mapper000 supports only 16KB or 32KB PRG ROM"
+                )
+            return self.prg_rom[offset]
 
-        offset = addr - CHR_ROM_START
-        return chr_rom[offset]
+        def read_chr(self, addr: int) -> int:
+            if not (CHR_ROM_START <= addr <= CHR_ROM_END):
+                raise ValueError(
+                    f"Address out of CHR ROM range: {addr:04X}"
+                )
+            if len(self.chr_rom) != CHR_ROM_SIZE:
+                raise ValueError("Mapper000 expects 8KB CHR ROM")
+            offset = addr - CHR_ROM_START
+            return self.chr_rom[offset]
 
-Mapper000 CHR rules for this stage:
-    - valid CHR address range is $0000-$1FFF
-    - CHR ROM size is 8KB
-    - read_chr($0000) returns chr_rom[0]
-    - read_chr($1FFF) returns chr_rom[8191]
+Invariants: accept only PPU $0000-$1FFF, require exactly 8 KiB CHR ROM, and map
+endpoints to offsets 0 and 8191 without changing lesson 218's PRG behavior. Do
+not confuse this PPU-side range with CPU PRG $8000-$FFFF.
 
-Common mistake:
-Do not confuse CPU PRG address range with PPU CHR address range.
-
-    CPU PRG range: $8000-$FFFF
-    PPU CHR range: $0000-$1FFF
+Out of scope for this step:
+    1. Lesson 220 creates mappers from cartridge metadata.
+    2. PPU/PpuBus wiring and writable CHR RAM come later.
+    3. Mapper writes, nametable mirroring, and bank switching come later.
 """
 
 import pytest

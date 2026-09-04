@@ -1,11 +1,50 @@
 """
-Add LDY Zero Page.
+Test 043 - Add LDY zero page ($A4).
 
-Opcode:
-    0xA4 -> LDY $nn
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use zero_page(cpu), read value, then ldy(cpu, value).
+Locations:
+    opcodes imports of zero_page and ldy
+    opcodes.ldy_zero_page
+    opcodes.OPCODE_TABLE[$A4]
+
+Why this step exists:
+Unlike immediate LDY, zero-page LDY resolves the operand to an address, reads the
+byte at that address, and then delegates register and flag behavior to `ldy`.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import zero_page
+    from emulator.cpu.instructions import ldy
+
+
+    def ldy_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        value = cpu.bus.read(addr)
+        ldy(cpu, value)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xA4: ldy_zero_page,
+    }
+
+Important invariants:
+    - $A4 maps to ldy_zero_page and consumes one operand byte
+    - zero_page returns an address in $0000-$00FF
+    - the handler performs one data read and passes that value, not its address, to ldy
+    - `ldy` updates Zero and Negative
+
+Common misconception:
+Passing `addr` directly to `ldy` would load the zero-page location number rather than
+the byte stored there.
+
+Out of scope:
+    - zero-page,X and absolute LDY encodings
+    - new addressing-mode helpers
+    - cycle timing
 """
 import inspect
 

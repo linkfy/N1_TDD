@@ -1,12 +1,44 @@
 """
-Add STA Absolute,Y.
+Test 026 — Add absolute,Y STA ($99).
 
-Opcode:
-    0x99 -> STA $hhhh,Y
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute_y(cpu) to get the target address,
-then store register A there with sta(cpu, address).
+Locations:
+    opcodes.sta_absolute_y
+    opcodes.OPCODE_TABLE[$99]
+
+Why this step exists:
+This is the Y-indexed counterpart to Test 025. It reuses `absolute_y` so the handler
+only coordinates destination resolution and the existing `sta` write.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def sta_absolute_y(cpu) -> None:
+        address = absolute_y(cpu)
+        sta(cpu, address)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0x99: sta_absolute_y,
+    }
+
+Important invariants:
+    - two operand bytes form the base before Y is added
+    - Y, not X, selects the final destination
+    - the full indexed address is passed to sta
+    - STA does not update flags
+
+Common misconception:
+Copying the absolute,X handler without changing the addressing helper silently uses
+the wrong index register when X and Y differ.
+
+Out of scope:
+    - indirect STA opcodes
+    - page-cross cycle behavior
+    - changes to absolute_y or sta
 """
 import inspect
 

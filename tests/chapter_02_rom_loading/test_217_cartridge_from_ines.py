@@ -1,63 +1,24 @@
 """
-Create the Cartridge object from parsed iNES data.
-
-File to create:
-    emulator/cartridge/cartridge.py
-
-Class to implement:
-    Cartridge
+Lesson 217: create
+`emulator/cartridge/cartridge.py::Cartridge`.
 
 Why this step exists:
-The iNES parser understands the .nes file format:
+The iNES parser owns file-layout concerns; this class exposes only the PRG bytes,
+CHR bytes, and mapper identity needed by the emulator. `from_ines_bytes` is the
+boundary between those representations and depends on the parser completed in
+lesson 216.
 
-    raw .nes bytes -> INesRom(header, prg_rom, chr_rom)
-
-But the rest of the emulator should not need to work directly with iNES parser
-objects. It should work with a cartridge-level object:
-
-    Cartridge(prg_rom, chr_rom, mapper_number, chr_ram=None)
-
-Responsibilities of Cartridge at this stage:
-    - store PRG ROM bytes
-    - store CHR ROM bytes
-    - store mapper number declared by the ROM
-    - optionally expose CHR RAM storage for cartridges that need it later
-    - provide from_ines_bytes(data) as a convenient constructor
-
-Why chr_ram exists now:
-Some cartridges do not contain CHR ROM. In iNES, this usually appears as zero
-CHR ROM banks. Those cartridges use writable CHR RAM instead, so games can upload
-tile graphics at runtime.
-
-We add chr_ram to the Cartridge shape now to keep the future mapper/PPU-bus path
-stable. It is allowed to be None by default because Mapper000 CHR RAM behavior is
-not implemented in this step yet.
-
-Future use:
-    - PpuBus will route PPU $0000-$1FFF to the mapper
-    - mappers may read from CHR ROM or writable CHR RAM
-    - more advanced mappers may use different CHR banking behavior
-
-What Cartridge should NOT do yet:
-    - translate CPU addresses
-    - mirror PRG ROM
-    - implement mapper behavior
-    - know about CPU bus reads
-
-Those responsibilities belong to mapper classes and CpuBus integration later.
-
-Expected implementation shape:
+Suggested implementation for this lesson:
 
     from dataclasses import dataclass
     from emulator.cartridge.ines import parse_ines_rom
 
 
-    @dataclass
+    @dataclass(frozen=True)
     class Cartridge:
         prg_rom: bytes
         chr_rom: bytes
         mapper_number: int
-        chr_ram: bytearray | None = None
 
         @classmethod
         def from_ines_bytes(cls, data: bytes) -> "Cartridge":
@@ -66,8 +27,17 @@ Expected implementation shape:
                 prg_rom=ines_rom.prg_rom,
                 chr_rom=ines_rom.chr_rom,
                 mapper_number=ines_rom.header.mapper_number,
-                chr_ram=None,
             )
+
+Invariants: the lesson's class is frozen; required field order is PRG, CHR,
+mapper number; and construction copies parsed values without translating
+addresses. The tests allow an optional `chr_ram` field used by later lessons.
+
+Out of scope for this step:
+    1. Lessons 218-219 put PRG and CHR address translation on `Mapper000`.
+    2. Lesson 220 selects a mapper from the cartridge metadata.
+    3. Lessons 221-222 route CPU-bus reads through that mapper.
+    4. Mirroring metadata and writable graphics behavior come later.
 """
 
 import dataclasses
@@ -113,24 +83,16 @@ def test_cartridge_file_exists():
 
 def test_cartridge_is_dataclass():
     """
-    Objective:
-    Cartridge should be a dataclass.
-
-    Why not frozen anymore:
-    Cartridge can optionally expose CHR RAM. CHR RAM is writable graphics memory
-    for cartridges that do not provide CHR ROM. Keeping Cartridge non-frozen
-    avoids mixing a frozen container with intentionally mutable CHR RAM state.
+    Compatibility objective: Cartridge remains a dataclass when optional
+    cartridge state is present.
     """
     assert dataclasses.is_dataclass(Cartridge)
 
 
 def test_cartridge_has_required_fields_in_order():
     """
-    Objective:
-    Cartridge keeps its original emulator-facing fields first and in order.
-
-    Later tutorial steps may append optional cartridge metadata without invalidating
-    this historical constructor shape.
+    Compatibility objective: the lesson's three required fields remain first,
+    followed by the optional `chr_ram` field used by later lessons.
     """
     required_fields = [
         "prg_rom",
@@ -163,13 +125,8 @@ def test_cartridge_can_be_created_directly():
 
 def test_cartridge_can_optionally_store_chr_ram():
     """
-    Objective:
-    Cartridge can optionally expose CHR RAM for future mapper/PPU-bus behavior.
-
-    Why optional:
-    Cartridges with CHR ROM do not need writable CHR RAM. Cartridges with no CHR
-    ROM banks may use CHR RAM instead, but that behavior will be wired through
-    mappers and PpuBus in later steps.
+    Compatibility objective: a Cartridge can carry optional CHR RAM needed by
+    later graphics lessons. This is not lesson-217 implementation work.
     """
     chr_ram = bytearray(8 * 1024)
     cartridge = Cartridge(

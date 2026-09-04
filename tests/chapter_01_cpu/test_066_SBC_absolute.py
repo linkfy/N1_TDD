@@ -1,11 +1,43 @@
 """
-Add SBC Absolute.
+Test 066 - Add SBC Absolute.
 
-Opcode:
-    0xED -> SBC $hhhh
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute(cpu), read value, then sbc(cpu, value).
+Symbols to add/update:
+    opcodes.sbc_absolute and OPCODE_TABLE[0xED]
+
+Why this step exists:
+This lesson connects SBC to an existing little-endian 16-bit absolute address,
+following the same resolve-read-delegate boundary as other memory opcodes.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def sbc_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        value = cpu.bus.read(addr)
+        sbc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0xED: sbc_absolute,
+    }
+
+Important invariants:
+    - `absolute` consumes two operand bytes and returns the 16-bit address
+    - the handler reads one byte from that address
+    - only `sbc` changes A and arithmetic flags
+    - executing the three-byte instruction advances PC by three bytes
+
+Common misconception:
+The two operand bytes form an address in little-endian order; they are not the
+value to subtract and should not be assembled again in this wrapper.
+
+Out of scope:
+    - indexed absolute and indirect SBC wrappers
+    - changes to absolute addressing or SBC arithmetic
+    - cycle timing
 """
 import inspect
 

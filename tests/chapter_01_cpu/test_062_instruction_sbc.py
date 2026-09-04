@@ -1,34 +1,52 @@
 """
-Add a new instruction: SBC.
+Test 062 - Add the core SBC instruction.
 
-SBC means Subtract with Carry.
+File to update:
+    emulator/cpu/instructions.py
 
-Create one function inside emulator/cpu/instructions.py:
+Symbol to add:
+    instructions.sbc
 
-    def sbc(cpu, value):
-        ...
+Why this step exists:
+SBC introduces subtraction as a value-based core instruction before any opcode is
+wired. The 6502 Carry flag means "no borrow", so subtraction can use addition of
+the operand's eight-bit complement plus Carry.
 
-Goal:
-subtract value from register A, using the Carry flag as "no borrow".
+Complete example implementation:
+
+    # emulator/cpu/instructions.py
+    def sbc(cpu: CPU, value: int):
+        carry = int(cpu.flags.get_carry_flag())
+        a = cpu.a
+        value_inverted = (~value) & 0xFF
+        result = a + value_inverted + carry
+        result_8 = result & 0xFF
+
+        cpu.flags.set_carry_flag(result > 0xFF)
+        cpu.flags.set_zero_flag(result_8 == 0)
+        cpu.flags.set_negative_flag((result_8 & 0x80) != 0)
+        overflow = ((result_8 ^ a) & (result_8 ^ value_inverted)) & 0x80
+        cpu.flags.set_overflow_flag(overflow != 0)
+        cpu.a = result_8
+
+Important invariants:
+    - Carry set subtracts only `value`; Carry clear subtracts one extra
+    - A is reduced to the final eight-bit result
+    - Carry is set exactly when no borrow occurs
+    - Zero and Negative follow the final eight-bit result
+    - Overflow follows signed subtraction, not unsigned borrow
+
+Common misconception:
+Python's raw `~value` is negative because integers are unbounded. Mask it with
+`& 0xFF` before addition; also do not treat Carry as a conventional borrow bit.
+
+Out of scope:
+    - every SBC opcode handler and opcode-table entry
+    - fetching operands or selecting addressing modes inside `sbc`
+    - decimal-mode arithmetic and cycle timing
 
 Reference:
 https://www.nesdev.org/wiki/Instruction_reference#SBC
-
-Important Python note:
-The NES CPU works with 8-bit values.
-Python integers are not limited to 8 bits.
-
-So this is dangerous:
-    ~0x01 == -2
-
-But for an 8-bit CPU, we want:
-    ~0x01 -> 0xFE
-
-That is why the implementation should mask the inverted value:
-    value_inverted = (~value) & 0xFF
-
-SBC can be implemented as ADC with inverted value:
-    A = A + (~value & 0xFF) + Carry
 """
 import inspect
 

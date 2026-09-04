@@ -1,14 +1,29 @@
-"""
-Add CPX Immediate.
+"""Lesson 156: expose CPX immediate as opcode ``0xE0``.
 
-Opcode:
-    0xE0 -> CPX #$nn
+Why this step exists:
+Immediate CPX first exposes the comparison through CPU execution with a
+literal value and no data-memory lookup.
 
-Goal:
-create cpx_immediate(cpu), use immediate(cpu), then cpx(cpu, value).
+In this step, after lesson 155 creates the instruction, make these additions
+in ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Immediate mode returns the compared value directly. CPX does not modify X.
+    from emulator.cpu.instructions import (..., cpx)
+
+    def cpx_immediate(cpu: CPU):
+        cpx(cpu, immediate(cpu))
+
+    OPCODE_TABLE = {
+        ...
+        0xE0: cpx_immediate,
+    }
+
+``emulator/cpu/addressing_modes.py::immediate`` returns ``CPU.fetch_byte()``
+directly as the compared value.  CPX changes only C/Z/N; X, memory, and
+Overflow remain invariant, and opcode plus operand advances PC two bytes.
+
+Misconception: the immediate byte is a value, not an address requiring a bus
+read.  Out of scope: CPX zero-page and absolute (157-158), and every CPY
+symbol and opcode (159-162).
 """
 import inspect
 

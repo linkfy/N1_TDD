@@ -1,5 +1,6 @@
-"""
-Add the JMP instruction behavior.
+"""Step 181: add addressing-independent JMP behavior.
+
+In this step, add ``emulator/cpu/instructions.py::jmp``:
 
 Instruction:
     JMP -> PC = target_address
@@ -15,6 +16,16 @@ Important:
 PC is a 16-bit register, so keep the assigned address inside 0x0000..0xFFFF:
 
     cpu.pc = addr & 0xFFFF
+
+Why this step exists:
+Addressing modes resolve the destination; the instruction primitive
+only installs that address in PC.  Invariants: PC is masked to 16 bits, while
+status, registers, stack, and memory are unchanged.  Misconception: ``addr`` is
+not a memory location whose byte must be loaded.
+
+Out of scope: importing ``jmp`` into ``emulator/cpu/opcodes.py`` and wiring
+absolute/indirect handlers and table entries are steps 182-183.  JSR begins
+at step 184.
 """
 
 from emulator.cpu.instructions import jmp

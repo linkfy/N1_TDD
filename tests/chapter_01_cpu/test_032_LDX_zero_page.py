@@ -1,11 +1,46 @@
 """
-Add LDX Zero Page.
+Test 032 - Add LDX zero page ($A6).
 
-Opcode:
-    0xA6 -> LDX $nn
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use zero_page(cpu), read value, then ldx(cpu, value).
+Locations:
+    opcodes.ldx_zero_page
+    opcodes.OPCODE_TABLE[$A6]
+
+Why this step exists:
+After immediate LDX, this lesson adds the first memory-backed LDX encoding. The
+handler composes the existing zero-page address calculation, a bus read, and the
+existing `ldx` value operation.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def ldx_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        value = cpu.bus.read(addr)
+        ldx(cpu, value)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xA6: ldx_zero_page,
+    }
+
+Important invariants:
+    - $A6 maps to ldx_zero_page
+    - zero_page fetches one operand byte and returns an address in page $00
+    - the handler reads that address and passes the resulting value to ldx
+    - the full instruction advances PC by two bytes and ldx updates the flags
+
+Common misconception:
+Do not pass the zero-page address directly to `ldx`; LDX loads the byte stored at
+that address.
+
+Out of scope:
+    - indexed and absolute LDX encodings
+    - changes to zero_page or ldx
+    - cycle timing
 """
 import inspect
 

@@ -1,14 +1,58 @@
 """
-Refactor the LDA code we already have in CPU.step().
+Test 014 — Extract the LDA instruction mechanism.
 
-Create one function inside emulator/cpu/instructions.py:
+Files to update:
+    emulator/cpu/instructions.py
+    emulator/cpu/cpu.py
 
-    def lda(cpu, value):
-        ...
+Locations:
+    instructions.lda
+    CPU.step, existing $A9 and $AD branches
 
-The goal is simple:
-move the code that changes register A out of CPU.step().
-CPU.step() should get the value, then call lda(cpu, value).
+Why this step exists:
+An instruction defines the state transition after an operand is available. LDA always
+stores a value in A and updates Z/N, regardless of how that value was addressed.
+
+Complete example implementation:
+
+    # emulator/cpu/instructions.py
+    def lda(cpu, value: int) -> None:
+        cpu.a = value
+        cpu._update_zero_and_negative_flags(value)
+
+
+    # emulator/cpu/cpu.py
+    from emulator.cpu.addressing_modes import absolute, immediate
+    from emulator.cpu.instructions import lda
+
+
+    class CPU:
+        def step(self) -> None:
+            opcode = self.fetch_byte()
+
+            if opcode == 0xA9:
+                return lda(self, immediate(self))
+
+            if opcode == 0xAD:
+                return lda(self, absolute(self))
+
+            raise NotImplementedError(
+                f"Opcode ${opcode:02X} is not implemented"
+            )
+
+Important boundaries:
+    - the current addressing helpers return values for LDA
+    - CPU.step selects the addressing mode
+    - lda changes CPU state and flags
+
+Common misconception:
+`lda` should not fetch instruction bytes. If it did, instruction behavior would become
+coupled to one addressing mode.
+
+Out of scope:
+    - zero-page LDA
+    - opcode-handler functions and OPCODE_TABLE
+    - other load instructions
 """
 from emulator.cpu import instructions
 from tests.helpers import NEGATIVE_FLAG, ZERO_FLAG, make_cpu

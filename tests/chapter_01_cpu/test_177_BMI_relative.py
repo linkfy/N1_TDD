@@ -1,4 +1,29 @@
-"""Add BMI Relative: 0x30 -> BMI offset."""
+"""Step 177: connect BMI to its relative opcode.
+
+Prerequisite: step 176 wired BPL. In this step, add these pieces to
+``emulator/cpu/opcodes.py``:
+
+    from emulator.cpu.instructions import bmi
+
+    def bmi_relative(cpu: CPU):
+        offset = relative(cpu)
+        bmi(cpu, offset)
+
+    OPCODE_TABLE[0x30] = bmi_relative
+
+Merge the import and mapping into the file's existing grouped forms.
+Why this step exists:
+``relative`` owns operand decoding, while step 169's
+``instructions.bmi`` interprets "minus" as Negative set and applies the offset.
+
+Invariants: ``0x30`` consumes its operand on taken and untaken paths; Negative
+set branches relative to post-operand PC and Negative clear leaves it there.
+No flags or memory change.  Misconception: BMI tests the Negative status bit,
+not Python integer negativity of the offset or any register.
+
+Out of scope: BVC and BVS opcode wiring are steps 178 and 179.  Indirect JMP
+addressing starts at step 180.
+"""
 import inspect
 
 from emulator.bus.cpu_bus import CpuBus

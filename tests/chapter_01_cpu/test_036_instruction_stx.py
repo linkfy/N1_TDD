@@ -1,15 +1,37 @@
 """
-Add a new instruction: STX.
+Test 036 - Add the core STX instruction.
 
-STX means Store X Register.
+File to update:
+    emulator/cpu/instructions.py
 
-Create one function inside emulator/cpu/instructions.py:
+Location:
+    instructions.stx, beside ldx
 
-    def stx(cpu, address):
-        ...
+Why this step exists:
+STX introduces the store counterpart to LDX. It follows the boundary established by
+STA: the core instruction receives an already-resolved destination address and writes
+the register through the CPU bus without changing flags.
 
-Goal:
-write register X into the given memory address.
+Complete example implementation:
+
+    # emulator/cpu/instructions.py
+    def stx(cpu: CPU, address: int):
+        value = cpu.x
+        cpu.bus.write(address, value)
+
+Important invariants:
+    - stx receives an address, not a value
+    - the written value is X and the write goes through cpu.bus.write
+    - X and the processor flags remain unchanged
+
+Common misconception:
+Do not update Zero or Negative from X. Store instructions only write memory, even
+when the stored byte is $00 or has bit 7 set.
+
+Out of scope:
+    - all STX opcode handlers and opcode-table entries
+    - changes to addressing-mode helpers
+    - cycle timing and write-side hardware effects
 """
 import inspect
 

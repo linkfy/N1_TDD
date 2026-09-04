@@ -1,5 +1,19 @@
-"""
-Add JMP Absolute.
+"""Step 182: wire JMP absolute opcode $4C.
+
+Prerequisite: step 181 added ``jmp``. In this step, add these changes in
+``emulator/cpu/opcodes.py`` (including imports and table entry):
+
+    from emulator.cpu.instructions import jmp
+    from emulator.cpu.addressing_modes import absolute
+
+    def jmp_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        jmp(cpu, addr)
+
+    OPCODE_TABLE = {
+        # existing entries...
+        0x4C: jmp_absolute,
+    }
 
 Opcode:
     0x4C -> JMP $hhhh
@@ -18,6 +32,16 @@ For JMP $1234:
 
 So the opcode handler must not read from memory at the target address. The
 absolute operand is already the new PC value.
+
+Why this step exists:
+``absolute`` consumes the two little-endian operand bytes and
+returns their 16-bit value; ``jmp`` assigns it.  Invariants: one step consumes
+three bytes before replacing PC, preserves flags/registers/stack/memory, and
+maps only $4C.  Misconception: unlike load handlers, this handler must not read
+``cpu.bus.read(addr)``.
+
+Out of scope: JMP indirect and opcode $6C are step 183; JSR and its stack
+effects are steps 184-185.
 """
 import inspect
 

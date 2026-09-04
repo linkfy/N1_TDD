@@ -1,14 +1,30 @@
-"""
-Add ORA Absolute.
+"""Lesson 129: add ORA absolute opcode ``0x0D``.
 
-Opcode:
-    0x0D -> ORA $hhhh
+Why this step exists:
+Absolute ORA extends the operation beyond zero page by decoding a full
+little-endian address and reading its value before updating A and Z/N.
 
-Goal:
-create ora_absolute(cpu), use absolute(cpu), read memory, then or_a(cpu, value).
+In this step, ``or_a`` and the immediate/zero-page handlers already exist, so
+add exactly the following to ``emulator/cpu/opcodes.py``:
 
-Student guidance:
-Absolute operands are little-endian. `0D 00 02` targets $0200.
+    def ora_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        value = cpu.bus.read(addr)
+        or_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x0D: ora_absolute,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute`` obtains a little-endian word
+through ``CPU.fetch_word``.  Therefore ``0D 00 02`` reads ``$0200`` and sends
+that value to ``instructions.or_a``.  A and Z/N change; Carry/Overflow and
+memory are invariant; opcode plus word advances PC three bytes.
+
+Misconception: the operand word is an address, not an immediate value, and
+its low byte comes first.  Out of scope: indexed absolute and indirect ORA
+modes (lessons 130-133).
 """
 import inspect
 

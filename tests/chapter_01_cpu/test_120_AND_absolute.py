@@ -1,14 +1,33 @@
-"""
-Add AND Absolute.
+"""Lesson 120: add AND absolute opcode ``0x2D``.
 
-Opcode:
-    0x2D -> AND $hhhh
+In this step, use ``and_a``, its opcode import, and the simpler modes from
+lessons 116-119, then add only the absolute handler and table entry.
 
-Goal:
-create and_absolute(cpu), use absolute(cpu), read memory, then and_a(cpu, value).
+Why this step exists:
+Absolute mode lets AND read from the full CPU address space and verifies the
+separation between little-endian address decoding and logical operation.
 
-Student guidance:
-Absolute operands are little-endian. `2D 00 02` targets $0200.
+Suggested implementation in ``emulator/cpu/opcodes.py``:
+
+    def and_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        value = cpu.bus.read(addr)
+        and_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x2D: and_absolute,
+    }
+
+``emulator/cpu/addressing_modes.py::absolute`` obtains a little-endian word
+through ``CPU.fetch_word``.  Therefore ``2D 00 02`` reads the value at
+``$0200`` and passes it to ``instructions.and_a``.  A and Z/N change;
+Carry/Overflow and memory are invariant; opcode plus word advances PC three
+bytes.
+
+Misconception: the operand word is an address, not the value, and its bytes
+are not big-endian.  Out of scope later work: AND absolute,X, absolute,Y,
+(indirect,X), and (indirect),Y are lessons 121-124; ORA/EOR/BIT are 125-145.
 """
 import inspect
 

@@ -1,18 +1,67 @@
 """
-Add one more LDA addressing mode: Indexed Indirect, also written as (d,X).
+Test 020 — Add indexed-indirect LDA ($A1, written `(d,X)`).
 
-Create one function inside emulator/cpu/addressing_modes.py:
+Files to update:
+    emulator/cpu/addressing_modes.py
+    emulator/cpu/opcodes.py
 
-    def indirect_x(cpu):
-        ...
+Locations:
+    addressing_modes.indirect_x
+    opcodes.lda_indirect_x
+    opcodes.OPCODE_TABLE[$A1]
 
-Then create one opcode handler inside emulator/cpu/opcodes.py:
+Why this step exists:
+Indexed-indirect addressing uses the operand plus X to select a two-byte pointer in
+zero page. The pointer then supplies the final 16-bit address of the LDA value.
 
-    def lda_indirect_x(cpu):
-        ...
+Complete example implementation:
 
-The goal is simple:
-learn how X selects a pointer inside zero page.
+    # emulator/cpu/addressing_modes.py
+    def indirect_x(cpu) -> int:
+        operand = cpu.fetch_byte()
+        pointer = (operand + cpu.x) & 0xFF
+
+        low = cpu.bus.read(pointer)
+        high = cpu.bus.read((pointer + 1) & 0xFF)
+
+        return low | (high << 8)
+
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import indirect_x
+
+
+    def lda_indirect_x(cpu) -> None:
+        address = indirect_x(cpu)
+        lda(cpu, cpu.bus.read(address))
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xA1: lda_indirect_x,
+    }
+
+Address timeline for `A1 20` with X=$04:
+    fetch operand $20
+        -> pointer location $24
+        -> read low byte from $0024
+        -> read high byte from $0025
+        -> assemble final address
+        -> read value for LDA
+
+Important invariants:
+    - X is added before reading the pointer
+    - pointer selection wraps within zero page
+    - the high-byte read from pointer $FF wraps to $00
+
+Common misconception:
+Do not add X to the final 16-bit address. That is a different addressing mechanism;
+`(d,X)` indexes the zero-page pointer location.
+
+Out of scope:
+    - indirect,Y, introduced in Test 021
+    - page-cross cycle penalties
+    - JMP's distinct indirect behavior
 """
 import inspect
 

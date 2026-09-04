@@ -1,11 +1,46 @@
 """
-Add LDX Absolute,Y.
+Test 035 - Add LDX absolute,Y ($BE).
 
-Opcode:
-    0xBE -> LDX $hhhh,Y
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute_y(cpu), read value, then ldx(cpu, value).
+Locations:
+    opcodes.ldx_absolute_y
+    opcodes.OPCODE_TABLE[$BE]
+
+Why this step exists:
+This lesson completes the LDX opcode family available at this point by reusing the
+existing absolute,Y helper. As with the other memory forms, the handler resolves and
+reads the operand before passing its value to `ldx`.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def ldx_absolute_y(cpu: CPU):
+        addr = absolute_y(cpu)
+        value = cpu.bus.read(addr)
+        ldx(cpu, value)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0xBE: ldx_absolute_y,
+    }
+
+Important invariants:
+    - $BE maps to ldx_absolute_y
+    - the little-endian base address is indexed with Y, not X
+    - the byte at the indexed address is passed to ldx
+    - two operand bytes are consumed, so the full instruction advances PC by three
+
+Common misconception:
+Do not wrap absolute,Y within page $00; unlike zero-page,Y, its indexed address is a
+16-bit result.
+
+Out of scope:
+    - store-X and load-Y instructions
+    - changes to absolute_y or ldx
+    - cycle timing and page-cross penalties
 """
 import inspect
 

@@ -1,29 +1,34 @@
-"""
-Add Relative addressing.
+"""Lesson 163: decode an eight-bit relative branch offset.
 
-Create one function inside emulator/cpu/addressing_modes.py:
+Why this step exists:
+A branch stores a signed displacement from the PC after its operand rather
+than a full target, so decoding must be separate from the branch decision.
 
-    def relative(cpu):
-        ...
+In this step, add only this implementation to
+``emulator/cpu/addressing_modes.py::relative``:
 
-Goal:
-read one byte and interpret it as a signed branch offset.
+    def relative(cpu: CPU) -> int:
+        offset = cpu.fetch_byte()
+        # Transform to signed integer
+        # 0x7F -> +127
+        # 0x80 -> -128
+        # 0xFF -> -1
+        if offset & 0x80: # offset has bit 7 active, is negative
+            offset -= 0x100
+        return offset
 
-Why this exists:
-Branch instructions do not store a full target address. They store a small
-signed offset from the PC after the offset byte has been read.
+``CPU.fetch_byte`` reads the operand and advances PC once;
+subtracting ``0x100`` for bit-7-set values maps unsigned ``0x80..0xFF`` to
+signed ``-128..-1`` while preserving ``0x00..0x7F`` as ``0..127``.
 
-Examples:
-    0x00 -> 0
-    0x01 -> +1
-    0x7F -> +127
-    0x80 -> -128
-    0xFF -> -1
+Invariants: this helper always consumes exactly one byte and never changes PC
+by the returned offset.  It does not inspect flags or alter registers, memory,
+or status.  Misconception: ``relative`` decodes a displacement; it neither
+decides whether a branch is taken nor computes an absolute target itself.
 
-Hint:
-    If the fetched byte has bit 7 set, or is >= 0x80, it represents a negative
-    signed offset. One simple conversion is:
-        offset -= 0x100
+Out of scope: ``instructions.bcc`` belongs to lesson 164.  Other branch
+semantics are lessons 165-171, and opcode handlers/table entries are lessons
+172-179.
 """
 import inspect
 

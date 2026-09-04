@@ -1,11 +1,43 @@
 """
-Add SBC Absolute,X.
+Test 067 - Add SBC Absolute,X.
 
-Opcode:
-    0xFD -> SBC $hhhh,X
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute_x(cpu), read value, then sbc(cpu, value).
+Symbols to add/update:
+    opcodes.sbc_absolute_x and OPCODE_TABLE[0xFD]
+
+Why this step exists:
+SBC gains X-indexed absolute access by reusing the existing `absolute_x` resolver;
+the opcode wrapper remains responsible only for reading and delegating.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def sbc_absolute_x(cpu: CPU):
+        addr = absolute_x(cpu)
+        value = cpu.bus.read(addr)
+        sbc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0xFD: sbc_absolute_x,
+    }
+
+Important invariants:
+    - `absolute_x` consumes two operand bytes and adds X to the base address
+    - the handler reads the byte at the final indexed address
+    - the read value is passed once to `sbc`
+    - executing the three-byte instruction advances PC by three bytes
+
+Common misconception:
+Do not add X again in the wrapper; `absolute_x` already returns the final indexed
+address.
+
+Out of scope:
+    - Absolute,Y and indirect SBC wrappers
+    - page-cross cycle penalties
+    - changes to addressing helpers or SBC arithmetic
 """
 import inspect
 

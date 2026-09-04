@@ -6,8 +6,9 @@ Create one function inside emulator/cpu/addressing_modes.py:
     def indirect(cpu):
         ...
 
-Goal:
-support the special addressing mode used by JMP ($hhhh).
+Why this step exists:
+JMP needs this special addressing mode to resolve an indirect target from the
+16-bit pointer encoded by ``JMP ($hhhh)``.
 
 Student guidance:
 This is different from indirect_x(cpu) and indirect_y(cpu).

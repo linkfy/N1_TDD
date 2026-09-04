@@ -1,11 +1,31 @@
-"""
-Add INC Absolute,X.
+"""Lesson 075: wire INC Absolute,X (`0xFE`).
 
-Opcode:
-    0xFE -> INC $hhhh,X
+In this step, add `emulator/cpu/opcodes.py:inc_absolute_x` and
+`OPCODE_TABLE[0xFE]` after the other INC forms from lessons 071-074.
 
-Goal:
-use absolute_x(cpu), then inc(cpu, address).
+Why this step exists:
+Reuse `addressing_modes.absolute_x` so base-address decoding and X
+indexing remain outside the INC read-modify-write primitive.
+
+Suggested implementation in `emulator/cpu/opcodes.py`:
+
+    def inc_absolute_x(cpu: CPU):
+        addr = absolute_x(cpu)
+        inc(cpu, addr)
+
+Add this exact entry to the existing `OPCODE_TABLE`:
+
+    0xFE: inc_absolute_x,
+
+Invariants: two little-endian operand bytes are consumed; X is added to the
+16-bit base address; PC advances by two after opcode fetch, making a three-byte
+instruction; the resolved memory byte wraps modulo 256; only Z/N follow it.
+
+Misconception: absolute-X indexing does not use zero-page wraparound. It may
+cross a page, so `$02FF,X` with X=1 resolves to `$0300`.
+
+Out of scope: DEC starts in lesson 076. Cycle-count and page-cross timing work
+are not part of this step.
 """
 import inspect
 

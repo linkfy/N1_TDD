@@ -1,12 +1,48 @@
 """
-Add STX Zero Page.
+Test 037 - Add STX zero page ($86).
 
-Opcode:
-    0x86 -> STX $nn
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use zero_page(cpu) to get the target address,
-then store register X there with stx(cpu, address).
+Locations:
+    opcodes import of stx
+    opcodes.stx_zero_page
+    opcodes.OPCODE_TABLE[$86]
+
+Why this step exists:
+Test 036 added the address-level `stx` operation. This lesson connects its first
+encoding by resolving a zero-page destination and passing that address to `stx`.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.instructions import lda, sta, ldx, stx
+
+
+    def stx_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        stx(cpu, addr)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0x86: stx_zero_page,
+    }
+
+Important invariants:
+    - $86 maps to stx_zero_page
+    - zero_page consumes one operand byte and returns a page-$00 address
+    - the address, not its current contents, is passed to stx
+    - the full instruction advances PC by two and leaves flags unchanged
+
+Common misconception:
+Do not read from the resolved address before calling `stx`; STX writes X to that
+destination.
+
+Out of scope:
+    - zero-page,Y and absolute STX encodings
+    - changes to zero_page or stx
+    - cycle timing
 """
 import inspect
 

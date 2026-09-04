@@ -1,12 +1,44 @@
 """
-Add STA Absolute,X.
+Test 025 — Add absolute,X STA ($9D).
 
-Opcode:
-    0x9D -> STA $hhhh,X
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute_x(cpu) to get the target address,
-then store register A there with sta(cpu, address).
+Locations:
+    opcodes.sta_absolute_x
+    opcodes.OPCODE_TABLE[$9D]
+
+Why this step exists:
+This applies the already-tested `absolute_x` address calculation to stores. The
+opcode layer selects X indexing; `sta` remains independent of addressing mode.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def sta_absolute_x(cpu) -> None:
+        address = absolute_x(cpu)
+        sta(cpu, address)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0x9D: sta_absolute_x,
+    }
+
+Important invariants:
+    - two operand bytes form the base address before X is added
+    - the full indexed address is used; indexing is not zero-page wrapped
+    - the handler stores A and consumes three instruction bytes
+    - STA does not update flags
+
+Common misconception:
+Absolute,X does not mask the sum to eight bits. That wrapping rule belongs to
+zero-page,X, not to `$hhhh,X`.
+
+Out of scope:
+    - absolute,Y and indirect STA opcodes
+    - page-cross cycle behavior
+    - changes to absolute_x or sta
 """
 import inspect
 

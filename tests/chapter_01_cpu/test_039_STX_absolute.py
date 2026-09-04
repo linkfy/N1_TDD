@@ -1,12 +1,44 @@
 """
-Add STX Absolute.
+Test 039 - Add STX absolute ($8E).
 
-Opcode:
-    0x8E -> STX $hhhh
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute(cpu) to get the target address,
-then store register X there with stx(cpu, address).
+Locations:
+    opcodes.stx_absolute
+    opcodes.OPCODE_TABLE[$8E]
+
+Why this step exists:
+This lesson adds STX's full 16-bit destination form. The existing `absolute` helper
+decodes the little-endian address, while `stx` remains responsible only for writing X.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def stx_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        stx(cpu, addr)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0x8E: stx_absolute,
+    }
+
+Important invariants:
+    - $8E maps to stx_absolute
+    - absolute consumes low byte then high byte and returns the destination address
+    - the address itself is passed to stx, which writes X through the bus
+    - the full instruction advances PC by three and does not modify flags
+
+Common misconception:
+`8E 00 02` stores X at $0200; the operand is a little-endian destination, not a value
+to load into X or a big-endian address.
+
+Out of scope:
+    - indexed absolute STX encodings, which are not part of the supported STX set
+    - changes to absolute or stx
+    - cycle timing
 """
 import inspect
 

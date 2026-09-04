@@ -1,34 +1,33 @@
-"""
-Add RTI Implied.
+"""Step 192: register implied RTI.
 
-Opcode:
-    0x40 -> RTI
+Prerequisite: step 191 added ``rti``. In this step, change only
+``emulator/cpu/opcodes.py`` by importing that symbol and registering opcode $40
+in ``OPCODE_TABLE``.
 
-Goal:
-add opcode 0x40 to OPCODE_TABLE.
+Why this step exists:
+RTI is a one-byte implied instruction. ``CPU.step()`` has already fetched $40,
+and all remaining inputs come from the stack, so dispatch must be wired directly
+to the operation without consuming an operand.
 
-Student guidance:
-RTI uses implied addressing. It has no operand bytes.
+Suggested implementation::
 
-RTI gets all the information it needs from the stack:
+    from emulator.cpu.instructions import rti
 
-    - saved status flags
-    - saved PC low byte
-    - saved PC high byte
+    OPCODE_TABLE = {
+        # existing entries
+        0x40: rti,
+    }
 
-Execution steps:
-    1. CPU.step() fetches opcode 0x40.
-    2. OPCODE_TABLE dispatches directly to rti(cpu).
-    3. RTI pulls status from the stack.
-    4. RTI pulls PC low and high from the stack.
-    5. PC becomes the exact pulled address.
+Invariants: preserve every existing opcode entry; map exactly integer $40 to
+the same ``rti`` function object; add no operand fetch or wrapper; let
+``rti(cpu)`` determine PC from the stack rather than sequential execution.
 
-Important difference from RTS:
-    RTS returns to pulled_address + 1.
-    RTI returns to pulled_address exactly.
+Misconception: implied does not mean that the byte after $40 is an operand.
+Fetching one would consume the next instruction before RTI restores PC.
 
-Common mistake:
-Do not fetch operand bytes for RTI. It is an implied instruction.
+Out of scope: RTI's stack algorithm is step 191. PHA and the remaining stack
+instructions begin at step 193. NMI entry is later behavior and must not be
+anticipated here.
 """
 import inspect
 

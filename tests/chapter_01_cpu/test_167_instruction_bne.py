@@ -1,15 +1,27 @@
-"""
-Add the BNE instruction behavior.
+"""Lesson 167: implement Branch if Not Equal behavior.
 
-Instruction:
-    BNE -> Branch if Not Equal
+Why this step exists:
+Zero clear records a non-equal result from an earlier operation, so BNE can
+branch without performing another comparison.
 
-Goal:
-implement bne(cpu, offset) in instructions.py.
+In this step, add exactly this implementation:
 
-Student guidance:
-BNE branches when Zero is clear. After CMP/CPX/CPY, Zero clear means the
-compared values were not equal.
+``emulator/cpu/instructions.py::bne``::
+
+    def bne(cpu: CPU, offset: int):
+        if not cpu.flags.get_zero_flag():
+            cpu.pc = (cpu.pc + offset) & 0xFFFF
+
+The function applies the signed displacement to the already advanced PC and
+constrains the target to 16 bits.
+
+Invariants: Zero clear takes the branch, including wrapping underflow or
+overflow; Zero set leaves PC unchanged.  Flags, other registers, and memory
+remain untouched.  Misconception: BNE tests Zero, not Negative, and does not
+perform a comparison or fetch an operand.
+
+Out of scope: BPL/BMI/BVC/BVS are lessons 168-171.  Branch opcode imports,
+handlers, and table entries are deferred to lessons 172-179.
 """
 
 from emulator.cpu.instructions import bne

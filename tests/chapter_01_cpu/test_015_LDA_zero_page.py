@@ -1,14 +1,66 @@
 """
-Add one more LDA addressing mode: Zero Page.
+Test 015 — Add zero-page LDA ($A5).
 
-Create one function inside emulator/cpu/addressing_modes.py:
+Files to update:
+    emulator/cpu/addressing_modes.py
+    emulator/cpu/cpu.py
 
-    def zero_page(cpu):
-        ...
+Locations:
+    addressing_modes.absolute, changed from returning a value to an address
+    addressing_modes.zero_page
+    CPU.step, updated $AD branch and new $A5 branch
 
-The goal is simple:
-move the code that gets an address from page $00 out of CPU.step().
-Then CPU.step() can use that address for opcode 0xA5.
+Why this step exists:
+Zero-page addressing encodes an address using one operand byte. This lesson also
+establishes the reusable rule that memory addressing modes return addresses; opcode
+code performs the final bus read before calling the instruction.
+
+Complete example implementation:
+
+    # emulator/cpu/addressing_modes.py
+    def absolute(cpu) -> int:
+        return cpu.fetch_word()
+
+
+    def zero_page(cpu) -> int:
+        return cpu.fetch_byte()
+
+
+    # emulator/cpu/cpu.py
+    from emulator.cpu.addressing_modes import zero_page
+    from emulator.cpu.instructions import lda
+
+
+    class CPU:
+        def step(self) -> None:
+            opcode = self.fetch_byte()
+
+            if opcode == 0xA5:
+                address = zero_page(self)
+                value = self.bus.read(address)
+                lda(self, value)
+                return
+
+            if opcode == 0xAD:
+                address = absolute(self)
+                value = self.bus.read(address)
+                lda(self, value)
+                return
+
+Important invariants:
+    - zero_page consumes exactly one operand byte
+    - zero_page and absolute now return addresses
+    - CPU.step performs the final bus read
+    - lda remains responsible for A and Z/N
+
+Common misconception:
+The operand $10 means address $0010, not a value of $10 and not an address relative to
+the current program counter.
+
+Out of scope:
+    - opcode-table dispatch, introduced in Test 016
+    - indexed zero-page wrapping
+    - cycle timing
 """
 import inspect
 

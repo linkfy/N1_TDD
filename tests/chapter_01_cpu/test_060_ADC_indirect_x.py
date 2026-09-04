@@ -1,11 +1,45 @@
 """
-Add ADC (Indirect,X).
+Test 060 - Connect ADC (indirect,X) (opcode $61) to CPU dispatch.
 
-Opcode:
-    0x61 -> ADC ($nn,X)
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use indirect_x(cpu), read value, then adc(cpu, value).
+Symbols to create/update:
+    opcodes.adc_indirect_x
+    OPCODE_TABLE[$61]
+
+Why this step exists:
+`indirect_x` first adds X to the zero-page operand, reads a little-endian
+pointer from page zero, and returns the final effective address. The handler
+must then read the ADC value from that final address.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def adc_indirect_x(cpu):
+        addr = indirect_x(cpu)
+        value = cpu.bus.read(addr)
+        adc(cpu, value)
+
+    OPCODE_TABLE = {
+        # ...existing entries...
+        0x61: adc_indirect_x,
+    }
+
+Important invariants:
+    - X indexes the zero-page pointer location before dereferencing
+    - pointer-byte reads wrap within page zero
+    - the pointer target is an address, so the handler performs the final read
+    - PC advances by two bytes total
+
+Common misconception:
+Do not add X to the final 16-bit target. That describes a different operation;
+for (indirect,X), X selects the zero-page pointer before it is dereferenced.
+
+Out of scope:
+    - ADC (indirect),Y, introduced by the next numbered test
+    - cycle accounting
+    - changes to `indirect_x` or `adc`
 """
 import inspect
 

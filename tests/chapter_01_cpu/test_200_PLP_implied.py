@@ -1,29 +1,31 @@
-"""
-Add PLP Implied.
+"""Step 200: register implied PLP.
 
-Opcode:
-    0x28 -> PLP
+Prerequisite: step 199 added ``plp``. In this step, change only
+``emulator/cpu/opcodes.py`` by importing ``plp`` and adding its ``OPCODE_TABLE``
+entry.
 
-Goal:
-add opcode 0x28 to OPCODE_TABLE.
+Why this step exists:
+PLP obtains its value from the stack selected by S. Opcode $28 has
+no operand and must dispatch directly to ``plp(cpu)``.
 
-Student guidance:
-PLP uses implied addressing. It has no operand bytes.
+Suggested implementation::
 
-The instruction knows what to pull from its name:
+    from emulator.cpu.instructions import plp
 
-    PLP -> Pull Processor Status
+    OPCODE_TABLE = {
+        # existing entries
+        0x28: plp,
+    }
 
-Execution steps:
-    1. CPU.step() fetches opcode 0x28.
-    2. OPCODE_TABLE dispatches directly to plp(cpu).
-    3. PLP increments S.
-    4. PLP reads saved status from $0100 | S.
-    5. PLP restores cpu.p, masking out non-persistent bits 4 and 5.
+Invariants: preserve all existing mappings; map exactly $28 to ``plp``; use no
+addressing-mode wrapper; consume only the opcode byte; preserve step 199's
+replace-and-mask semantics.
 
-Common mistake:
-Do not fetch an operand byte for PLP. The byte after opcode 0x28 is the next
-instruction, not data used by PLP.
+Misconception: the byte after $28 is the next instruction, not the status byte
+to restore; status comes exclusively from the incremented stack slot.
+
+Out of scope: PLP behavior is step 199. TXS/TSX belong to steps 201-204. Later
+Break/ONE behavior must not be anticipated.
 """
 import inspect
 

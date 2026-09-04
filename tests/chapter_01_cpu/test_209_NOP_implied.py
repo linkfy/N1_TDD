@@ -1,27 +1,25 @@
-"""
-Add NOP Implied.
+"""Step 209: wire official implied NOP opcode $EA.
 
-Opcode:
-    0xEA -> NOP
+Why this step exists:
+In this step, update ``emulator/cpu/opcodes.py``'s instruction import and
+``OPCODE_TABLE``; ``emulator/cpu/instructions.py::nop`` already exists from
+step 208.  This mapping permits CPU.step to execute padding in real programs.
 
-Goal:
-add opcode 0xEA to OPCODE_TABLE.
+Suggested implementation::
 
-Student guidance:
-NOP uses implied addressing. It has no operand bytes.
+    from emulator.cpu.instructions import nop  # add to the existing import
 
-Execution steps:
-    1. CPU.step() fetches opcode 0xEA.
-    2. Fetching the opcode increments PC by 1.
-    3. OPCODE_TABLE dispatches directly to nop(cpu).
-    4. nop(cpu) does nothing.
+    OPCODE_TABLE = {
+        # existing entries
+        0xEA: nop,
+    }
 
-Therefore, after executing official NOP at $8000:
+Invariant: $EA is one byte, so a step from $8000 ends at $8001 solely because
+CPU.step fetched the opcode; registers, S, P, and memory remain unchanged.  The
+common misconception is to increment PC in ``nop`` or fetch a phantom operand.
 
-    PC = $8001
-
-Common mistake:
-Do not increment PC inside nop(cpu). CPU.step() already consumed the opcode.
+Out of scope: unofficial multi-byte NOP opcodes and timing changes belong to
+later steps. Multi-instruction CPU verification belongs to step 210.
 """
 import inspect
 

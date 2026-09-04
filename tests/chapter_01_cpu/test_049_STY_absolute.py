@@ -1,11 +1,49 @@
 """
-Add STY Absolute.
+Test 049 - Add STY absolute ($8C).
 
-Opcode:
-    0x8C -> STY $hhhh
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use absolute(cpu), then sty(cpu, address).
+Locations:
+    opcodes imports of absolute and sty
+    opcodes.sty_absolute
+    opcodes.OPCODE_TABLE[$8C]
+
+Why this step exists:
+Absolute STY completes the supported STY family by decoding a 16-bit destination and
+passing that address to the existing store instruction.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.addressing_modes import absolute
+    from emulator.cpu.instructions import sty
+
+
+    def sty_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        sty(cpu, addr)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0x8C: sty_absolute,
+    }
+
+Important invariants:
+    - $8C maps to sty_absolute and consumes two operand bytes
+    - the little-endian operand is resolved as a 16-bit destination address
+    - sty writes Y to that address through the bus
+    - execution advances three bytes total and flags remain unchanged
+
+Common misconception:
+Do not pass a value read from the absolute address to `sty`; the core store instruction
+requires the destination address itself.
+
+Out of scope:
+    - transfer instructions and their opcodes
+    - additional STY addressing modes
+    - cycle timing and write-side hardware effects
 """
 import inspect
 

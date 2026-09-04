@@ -1,15 +1,38 @@
 """
-Add INY Implied.
+Test 085 - Wire the INY implied opcode.
 
-Opcode:
-    0xC8 -> INY
+In this step, use `instructions.iny` from Test 084 and add only dispatch.
 
-Goal:
-map opcode 0xC8 directly to iny(cpu).
+Production location and symbols:
+    emulator/cpu/opcodes.py: imported `iny` and `OPCODE_TABLE[0xC8]`
 
-Why direct mapping?
-INY uses implied addressing: the operand is implied by the instruction itself.
-There is no address or immediate byte to decode.
+Why this step exists:
+Because Y is implied by INY, the opcode table can dispatch directly to the
+instruction function without decoding an operand.
+
+Suggested implementation for this step:
+
+    # emulator/cpu/opcodes.py
+    from emulator.cpu.instructions import iny  # alongside existing imports
+
+    OPCODE_TABLE = {
+        # ... existing entries ...
+        0xC8: iny,
+    }
+
+Important invariants:
+    - opcode 0xC8 maps to the exact `iny(cpu)` function
+    - the one-byte instruction advances PC by one
+    - wrapping and Z/N behavior remain in test 084's instruction function
+
+Common misconception:
+Do not use `immediate(cpu)` merely because the table needs a callable; INY has
+no operand byte and an immediate decode would corrupt PC.
+
+Out of scope:
+    - DEY behavior and opcode mapping (tests 086-087)
+    - later ASL instruction forms
+    - cycle timing
 """
 import inspect
 

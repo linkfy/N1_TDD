@@ -1,14 +1,32 @@
-"""
-Add AND Zero Page.
+"""Lesson 118: add AND zero-page opcode ``0x25``.
 
-Opcode:
-    0x25 -> AND $nn
+In this step, with ``and_a`` imported by lesson 117, add only the zero-page
+handler and table entry in ``emulator/cpu/opcodes.py``.
 
-Goal:
-create and_zero_page(cpu), use zero_page(cpu), read memory, then and_a(cpu, value).
+Why this step exists:
+AND must also consume values from memory; zero-page mode verifies that the
+operand byte is treated as an address rather than as an immediate value.
 
-Student guidance:
-The operand byte is the zero-page address where the value lives.
+Suggested implementation:
+
+    def and_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        value = cpu.bus.read(addr)
+        and_a(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0x25: and_zero_page,
+    }
+
+``addressing_modes.zero_page`` fetches the one-byte address; unlike immediate
+mode, the handler must read the value at that address before calling
+``instructions.and_a``.  ``25 10`` uses ``cpu.bus[$0010]``, changes A and
+Z/N, preserves Carry/Overflow and memory, and advances PC two bytes.
+
+Misconception: neither pass address ``0x10`` directly to ``and_a`` nor write
+the result back to ``$0010``; AND is not a read/modify/write instruction.
+Out of scope: zero-page,X and wider AND modes (lessons 119-124).
 """
 import inspect
 

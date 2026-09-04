@@ -1,14 +1,33 @@
-"""
-Add CPY Zero Page.
+"""Lesson 161: add CPY zero-page opcode ``0xC4``.
 
-Opcode:
-    0xC4 -> CPY $nn
+Why this step exists:
+Zero-page CPY interprets its operand as a compact memory address and compares
+Y with the byte read there through the shared CPY primitive.
 
-Goal:
-create cpy_zero_page(cpu), use zero_page(cpu), read memory, then cpy(cpu, value).
+In this step, lessons 159-160 already provide ``instructions.cpy``, its opcode
+import, and immediate CPY.  Add exactly the following to
+``emulator/cpu/opcodes.py``:
 
-Student guidance:
-The operand byte is the zero-page address where the compared value lives.
+    def cpy_zero_page(cpu: CPU):
+        addr = zero_page(cpu)
+        value = cpu.bus.read(addr)
+        cpy(cpu, value)
+
+    OPCODE_TABLE = {
+        ...
+        0xC4: cpy_zero_page,
+    }
+
+``emulator/cpu/addressing_modes.py::zero_page`` consumes the one-
+byte operand as an address; the handler then reads that address and delegates
+flag semantics to ``emulator/cpu/instructions.py::cpy``.
+
+Invariants: Y and memory are unchanged; CPY updates only C/Z/N, and opcode plus
+operand advances PC by two bytes.  Misconception: the operand is not the value
+compared with Y; it identifies the zero-page byte containing that value.
+
+Out of scope: CPY absolute ``0xCC`` is lesson 162.  CMP/CPX and CPY immediate
+belong to lessons 146-160.
 """
 import inspect
 

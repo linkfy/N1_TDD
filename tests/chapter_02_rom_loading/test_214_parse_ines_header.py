@@ -1,51 +1,43 @@
 """
-Implement parse_ines_header(data).
+Lesson 214: add
+`emulator/cartridge/ines.py::parse_ines_header`.
 
-Function to implement:
-    parse_ines_header(data: bytes) -> INesHeader
+Why this step exists:
+The parser validates the fixed envelope before converting bytes 4-7 into the
+immutable `INesHeader` introduced in lesson 213. It depends on the constants
+from lesson 212 and the dataclass from lesson 213.
 
-Why this function exists:
-The emulator should not guess how large PRG/CHR ROM sections are. The iNES
-header declares that information. This function validates the file header and
-turns raw header bytes into a clear INesHeader object.
+Suggested implementation:
 
-Implementation guide:
+    def parse_ines_header(data: bytes) -> INesHeader:
+        if len(data) < INES_HEADER_SIZE:
+            raise ValueError("iNES data is too short")
+        if data[0:4] != INES_MAGIC:
+            raise ValueError("Invalid iNES header")
 
-1. Verify the input has at least 16 bytes.
+        prg_rom_banks = data[4]
+        chr_rom_banks = data[5]
+        flags_6 = data[6]
+        flags_7 = data[7]
+        has_trainer = (flags_6 & 0b0000_0100) != 0
+        mapper_number = (flags_6 >> 4) | (flags_7 & 0xF0)
+        return INesHeader(
+            prg_rom_banks,
+            chr_rom_banks,
+            mapper_number,
+            has_trainer,
+            flags_6,
+            flags_7,
+        )
 
-       if len(data) < INES_HEADER_SIZE:
-           raise ValueError("iNES data is too short")
+Invariants: reject short input before indexing it; require `b"NES\x1A"`; use
+flags 6's upper nibble as mapper bits 0-3 and flags 7's upper nibble as bits 4-7;
+preserve both raw flags. A common mistake is multiplying bytes 4 and 5 here:
+they remain bank counts.
 
-2. Verify the magic bytes.
-
-       if data[0:4] != INES_MAGIC:
-           raise ValueError("Invalid iNES header")
-
-3. Parse fields.
-
-       prg_rom_banks = data[4]
-       chr_rom_banks = data[5]
-       flags_6 = data[6]
-       flags_7 = data[7]
-       has_trainer = (flags_6 & 0b0000_0100) != 0
-       mapper_number = (flags_6 >> 4) | (flags_7 & 0xF0)
-
-4. Return an INesHeader with those parsed values.
-
-       return INesHeader(
-           prg_rom_banks,
-           chr_rom_banks,
-           mapper_number,
-           has_trainer,
-           flags_6,
-           flags_7,
-       )
-
-Important detail:
-Byte 4 and byte 5 are bank counts, not raw byte sizes.
-
-    PRG size in bytes = prg_rom_banks * 16KB
-    CHR size in bytes = chr_rom_banks * 8KB
+Out of scope for this step:
+    1. Lesson 215 groups a parsed header with ROM sections.
+    2. Lesson 216 extracts and validates declared PRG/CHR payload bytes.
 """
 
 import importlib

@@ -1,8 +1,21 @@
 """
 Add optional Cartridge support to CpuBus, part 1.
 
+Prerequisites:
+    - Lesson 217 provides `Cartridge`.
+    - Lessons 218-219 provide `Mapper000`.
+    - Lesson 220 provides `create_mapper`.
+
 File to update:
     emulator/bus/cpu_bus.py
+
+Symbols to update:
+    emulator.bus.cpu_bus.CpuBus.cartridge
+    emulator.bus.cpu_bus.CpuBus.__post_init__
+
+Required imports in that file:
+    from emulator.cartridge.cartridge import Cartridge
+    from emulator.cartridge.mapper_factory import create_mapper
 
 What this part implements:
     - CpuBus accepts an optional cartridge
@@ -14,7 +27,7 @@ What this part does NOT implement yet:
 
 That read behavior is tested in part 2.
 
-Why split this into two parts:
+Why this step exists:
 Adding cartridge support has two separate responsibilities:
 
     1. construction-time wiring
@@ -59,9 +72,23 @@ Expected implementation shape:
             if self.cartridge is not None:
                 self.mapper = create_mapper(self.cartridge)
 
-Read-path reminder:
-Do not change the $8000-$FFFF read behavior in this part unless you are already
-working ahead. Part 2 will guide that exact change.
+Invariants:
+    - program_rom remains the writable MemoryDevice seam used by CPU tests
+    - cartridge and program_rom are mutually exclusive PRG sources
+    - mapper is always initialized, to None without a cartridge and to the
+      factory result with one
+    - Cartridge PRG and CHR bytes reach the mapper unchanged through
+      create_mapper; CpuBus neither parses nor remaps those bytes
+
+Common misconception:
+The cartridge is not itself a MemoryDevice replacement for program_rom. It is
+metadata plus ROM payloads; create_mapper(cartridge) supplies the address-aware
+object that the bus will use.
+
+Out of scope for this step:
+    1. Lesson 222 changes the $8000-$FFFF read path.
+    2. PPU register routing and PPU construction belong to Chapter 3.
+    3. Mapper writes, CHR/PPU bus routing, and later behavior are not added here.
 """
 
 import dataclasses

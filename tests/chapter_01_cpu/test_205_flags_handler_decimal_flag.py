@@ -1,41 +1,32 @@
-"""
-Expand FlagsHandler with Decimal flag helpers.
+"""Step 205: add Decimal-bit support.
 
 Why this step exists:
-We are preparing for instructions that explicitly control the Decimal flag:
+In this step, add ``emulator/cpu/flags_handler.py`` symbols ``DECIMAL_FLAG``,
+``FlagsHandler.set_decimal_flag``, and ``FlagsHandler.get_decimal_flag``.  The
+helper keeps bit-3 manipulation in the status abstraction needed by subsequent
+flag-control operations.  The NES CPU retains D even though ADC/SBC do not use
+6502 BCD arithmetic.
 
-    SED -> Set Decimal Flag
-    CLD -> Clear Decimal Flag
+Suggested implementation::
 
-The 6502 status register has a Decimal flag at bit 3:
+    DECIMAL_FLAG = 1 << 3
 
-    NV-BDIZC
-        ^
-        D = Decimal flag
+    class FlagsHandler:
+        def set_decimal_flag(self, enabled: bool):
+            if enabled:
+                self.cpu.p |= DECIMAL_FLAG
+            else:
+                self.cpu.p &= ~DECIMAL_FLAG
 
-Important NES note:
-The NES CPU has the Decimal flag bit, but decimal arithmetic mode is not used in
-the same way as a full 6502 with BCD arithmetic. Even so, instructions like SED
-and CLD still set and clear the flag bit, so our emulator needs helpers for it.
+        def get_decimal_flag(self) -> bool:
+            return bool(self.cpu.p & DECIMAL_FLAG)
 
-Design goal:
-Keep raw bit manipulation inside FlagsHandler instead of spreading cpu.p masks
-through instruction code.
+Invariant: setting or clearing D preserves every other P bit, especially the
+neighboring Interrupt Disable bit.  The common misconception is clearing with
+``p &= DECIMAL_FLAG``, which retains D and destroys unrelated flags.
 
-Required API:
-    set_decimal_flag(enabled: bool)
-    get_decimal_flag() -> bool
-
-Common mistake:
-When clearing Decimal, use:
-
-    cpu.p &= ~DECIMAL_FLAG
-
-not:
-
-    cpu.p &= DECIMAL_FLAG
-
-The second version destroys all other flags.
+Out of scope: instruction functions and opcode mappings belong to steps 206 and
+207. Decimal-mode ADC/SBC behavior must not be introduced for the NES CPU.
 """
 
 import inspect

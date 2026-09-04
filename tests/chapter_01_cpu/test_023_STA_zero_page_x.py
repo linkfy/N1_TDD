@@ -1,12 +1,45 @@
 """
-Add STA Zero Page,X.
+Test 023 — Add zero-page,X STA ($95).
 
-Opcode:
-    0x95 -> STA $nn,X
+File to update:
+    emulator/cpu/opcodes.py
 
-Goal:
-use zero_page_x(cpu) to get the target address,
-then store register A there with sta(cpu, address).
+Locations:
+    opcodes.sta_zero_page_x
+    opcodes.OPCODE_TABLE[$95]
+
+Why this step exists:
+This reuses the `sta` instruction from Test 022 and the wrapping `zero_page_x`
+addressing mode from Test 017, showing that a store opcode handler only composes an
+existing address calculation with the existing write operation.
+
+Complete example implementation:
+
+    # emulator/cpu/opcodes.py
+    def sta_zero_page_x(cpu) -> None:
+        address = zero_page_x(cpu)
+        sta(cpu, address)
+
+
+    OPCODE_TABLE = {
+        # Preserve existing entries.
+        0x95: sta_zero_page_x,
+    }
+
+Important invariants:
+    - $95 consumes one operand byte
+    - base plus X wraps within page $00
+    - the value written is cpu.a
+    - STA does not modify Zero or Negative
+
+Common misconception:
+Zero-page indexing does not carry into page $01; `$FF,X` with X=$01 targets $0000,
+not $0100.
+
+Out of scope:
+    - changes to zero_page_x or sta
+    - absolute and indirect STA opcodes
+    - cycle timing
 """
 import inspect
 

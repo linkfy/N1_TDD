@@ -1,11 +1,31 @@
-"""
-Add DEC Absolute.
+"""Lesson 078: wire DEC Absolute (`0xCE`).
 
-Opcode:
-    0xCE -> DEC $hhhh
+In this step, after the DEC primitive and zero-page forms from lessons 076-077,
+add `emulator/cpu/opcodes.py:dec_absolute` and `OPCODE_TABLE[0xCE]`.
 
-Goal:
-use absolute(cpu), then dec(cpu, address).
+Why this step exists:
+Let `addressing_modes.absolute` decode the little-endian effective
+address, then reuse `instructions.dec` for mutation and flags.
+
+Suggested implementation in `emulator/cpu/opcodes.py`:
+
+    def dec_absolute(cpu: CPU):
+        addr = absolute(cpu)
+        dec(cpu, addr)
+
+Add this exact entry to the existing `OPCODE_TABLE`:
+
+    0xCE: dec_absolute,
+
+Invariants: two operand bytes are consumed low-byte first; `CE 00 02` resolves
+to `$0200`; PC advances to the next three-byte instruction; DEC wraps the memory
+byte to eight bits and updates only Zero and Negative.
+
+Misconception: `$00 $02` is not address `$0002`; 6502 absolute operands are
+little-endian and therefore identify `$0200`.
+
+Out of scope: absolute-X DEC (`dec_absolute_x`, opcode `0xDE`) belongs to
+lesson 079.
 """
 import inspect
 
