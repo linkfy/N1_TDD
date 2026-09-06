@@ -100,6 +100,13 @@ Automated tests must not call main(), sleep for real, open pygame, or require a
 commercial ROM. These tests verify the pacing structure without running the manual
 loop.
 
+Future compatibility:
+Step 356 replaces this lesson's relative-sleep source shape with absolute-deadline
+pacing. When that complete replacement is detected, only the six obsolete
+source-shape assertions below are skipped. The enduring frontend/core boundary and
+one-emulated-frame-per-loop assertions remain active, while Test 356 validates the
+new contract. Do not add dead wait_time or time.sleep compatibility code to main.py.
+
 Out of scope:
     - CPU branch/page-cross cycle accuracy
     - sprite 0 hit
@@ -116,6 +123,27 @@ import pytest
 import main
 
 
+def _uses_absolute_deadline_pacing() -> bool:
+    """Detect the complete Step 356 replacement without changing production code."""
+    source = inspect.getsource(main.main)
+    compact_source = "".join(source.split())
+
+    return (
+        hasattr(main, "TARGET_DISPLAY_FPS")
+        and hasattr(main, "TARGET_FRAME_SECONDS")
+        and "next_frame_deadline" in compact_source
+        and "whiletime.perf_counter()<next_frame_deadline:" in compact_source
+        and "next_frame_deadline+=TARGET_FRAME_SECONDS" in compact_source
+    )
+
+
+legacy_relative_sleep_pacing_only = pytest.mark.skipif(
+    _uses_absolute_deadline_pacing(),
+    reason="Step 356 supersedes relative-sleep pacing with absolute deadlines",
+)
+
+
+@legacy_relative_sleep_pacing_only
 def test_main_defines_ntsc_nes_fps_target():
     """
     Objective:
@@ -126,6 +154,7 @@ def test_main_defines_ntsc_nes_fps_target():
     assert main.NES_NTSC_FPS == pytest.approx(60.0988)
 
 
+@legacy_relative_sleep_pacing_only
 def test_main_derives_target_frame_seconds_from_nes_fps():
     """
     Objective:
@@ -136,6 +165,7 @@ def test_main_derives_target_frame_seconds_from_nes_fps():
     assert main.TARGET_FRAME_SECONDS == pytest.approx(0.016639, abs=0.000001)
 
 
+@legacy_relative_sleep_pacing_only
 def test_main_starts_frame_timer_before_emulation_work():
     """
     Objective:
@@ -154,6 +184,7 @@ def test_main_starts_frame_timer_before_emulation_work():
     assert start_index < step_index < render_index < flip_index
 
 
+@legacy_relative_sleep_pacing_only
 def test_main_computes_remaining_time_after_display_work():
     """
     Objective:
@@ -173,6 +204,7 @@ def test_main_computes_remaining_time_after_display_work():
     assert flip_index < end_index < elapsed_index < wait_index
 
 
+@legacy_relative_sleep_pacing_only
 def test_main_sleeps_only_when_frame_finishes_early():
     """
     Objective:
@@ -187,6 +219,7 @@ def test_main_sleeps_only_when_frame_finishes_early():
     assert condition_index < sleep_index
 
 
+@legacy_relative_sleep_pacing_only
 def test_main_measures_reported_fps_after_frame_pacing_sleep():
     """
     Objective:

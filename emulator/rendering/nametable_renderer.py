@@ -136,6 +136,25 @@ def nametable_to_nes_framebuffer(
         NES_PALETTE_RGB
     )
 
+@lru_cache(maxsize=8)
+def _cached_nametable_with_palette_ram_pixels(
+    nametable_bytes: bytes,
+    attribute_table: bytes,
+    pattern_table_bytes: bytes,
+    palette_ram: bytes,
+) -> tuple[RGBColor, ...]: # Return a tuple of pixels
+    background_palettes = build_background_palettes_from_palette_ram(palette_ram)
+    
+    framebuffer = nametable_with_attributes_to_framebuffer(
+            nametable_bytes,
+            attribute_table,
+            pattern_table_bytes,
+            background_palettes,
+    )
+
+    return tuple(framebuffer.pixels)
+
+
 # Helper function to use background palettes
 # On framebuffer
 def nametable_with_palette_ram_to_framebuffer(
@@ -144,16 +163,18 @@ def nametable_with_palette_ram_to_framebuffer(
     pattern_table_bytes: bytes,
     palette_ram: bytes,
 ) -> Framebuffer:
-    # Use background palettes from PPU VRAM
-    background_palettes = build_background_palettes_from_palette_ram(palette_ram)
-
-    return nametable_with_attributes_to_framebuffer(
-            nametable_bytes,
-            attribute_table,
-            pattern_table_bytes,
-            background_palettes,
+    cached_pixels = _cached_nametable_with_palette_ram_pixels(
+        nametable_bytes,
+        attribute_table,
+        pattern_table_bytes,
+        palette_ram,
     )
 
+    return Framebuffer(
+        width=BACKGROUND_WIDTH,
+        height=BACKGROUND_HEIGHT,
+        pixels=list(cached_pixels),
+    )
 
 BackgroundOpaqueMask = list[bool]
 

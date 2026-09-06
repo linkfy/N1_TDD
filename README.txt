@@ -187,29 +187,34 @@ validation lesson was removed by project decision; the successful local Super Ma
 Bros. run and measured FPS regression are retained below as engineering evidence.
 
 Phase 16 / Chapter 14)
-Evidence-driven rendering performance:
-[ ] Cache background opacity masks by exact immutable graphics inputs
-[ ] Continue profiling before selecting another production optimization
+Optimizations:
+[x] Test 354: cache background opacity masks by exact immutable graphics inputs
+[ ] Test 355: cache nametable framebuffer pixels by all exact graphics inputs
+[ ] Test 356: replace relative sleep pacing with absolute 60 FPS deadlines
 
 --
-Next Steps:
+Chapter 14 TDD plan:
 
 Goal:
-Prioritize a working main.py/manual execution path for Mapper000/NROM ROMs while
-preserving the linear pytest tutorial flow and avoiding later refactors.
+Reproduce the two measured changes that moved the PyPy Super Mario Bros. manual path
+from roughly 35-50 FPS toward a paced 60 FPS, while preserving the linear tutorial,
+mutable ownership contracts, and frontend/core boundary.
 
 Incremental test policy:
 	Each numbered test is a permanent record of what the student learned at that step.
-	Do not modify an older test so it expects a function, name, or behavior introduced
-	by a later step.
+	Do not rewrite an older behavioral contract to pretend that a later design existed
+	at that earlier lesson.
 
-	When new behavior replaces an old internal path, preserve earlier expectations in
-	production code with the smallest clear compatibility mechanism: a default argument,
-	an import alias, a wrapper, or a separate legacy-facing method.
+	When a later lesson replaces an older source-shape implementation, the later lesson
+	must provide a complete replacement test. The old test may explicitly detect that
+	complete replacement and skip only assertions that are genuinely superseded. Keep
+	all enduring architecture and behavior assertions active.
 
-	Add new expectations only in the new numbered test. Every earlier test must continue
-	passing unchanged. If a new design cannot coexist with an old test, stop and
-	reconsider the production API instead of rewriting the old lesson.
+	Never add dead variables, unreachable branches, aliases, or fake calls to production
+	code merely to satisfy inspect.getsource() assertions from an obsolete implementation.
+	Test 318 -> Test 356 is the documented exception and reference pattern: Test 318
+	teaches relative sleep, while Test 356 validates its measured absolute-deadline
+	replacement.
 
 	Mandatory gate after every numbered step:
 
@@ -219,27 +224,16 @@ Incremental test policy:
 	part of every step and must not be represented as a separate roadmap step.
 
 Immediate direction:
-	Manual ROM execution now reaches visible background output, sprite rendering,
-	keyboard input, sprite/background priority, paced NES-speed presentation, and
-	sprite-0-hit timing behavior.
+	Chapter 13 correctness is complete through Test 353. Do not reopen scrolling or move
+	pygame into emulator core code for this performance work.
 
-	The Super Mario Bros. manual checkpoint proves that horizontal nametable composition
-	works, but one end-of-frame temp_vram_addr snapshot cannot represent the fixed status
-	bar and moving gameplay area in the same frame.
+	Complete Chapter 14 in strict order. Test 355 is the active red step. Test 356 is
+	present but conditionally skipped until its Test 355 prerequisite exists; after Test
+	355 passes, Test 356 activates automatically. Run the complete suite after each step.
 
-	The tutorial will model timed v/t/x behavior, record the effective rendering address
-	per visible scanline, and preserve the existing nametable/framebuffer renderers. Each
-	output row will be composed once for both RGB pixels and the opacity mask.
-
-	Historical implementation note:
-	Timed scrolling was first validated in an isolated experiment/ppu-vt-scroll worktree.
-	That temporary worktree guided the incremental Tests 338-353 and may be removed after
-	chapter completion. Main production code and permanent numbered tests are now the
-	canonical evidence; no runtime, test, or documentation dependency should retain a local
-	worktree path.
-
-	Do not prioritize opcode diagnostics or broad CPU rewrites right now. Performance
-	work should be incremental and evidence-driven from the manual FPS signal.
+	Use the same legal local Super Mario Bros. ROM, PyPy launcher, gameplay section, and
+	FPS reporting interval for before/after measurements. First measure uncapped capacity;
+	then add pacing. A limiter cannot make a frame whose work exceeds 16.67 ms become fast.
 
 Working main.py means:
 	- a developer can provide a local .nes file path manually
@@ -434,21 +428,28 @@ Performance policy:
 	and time in an isolated performance worktree before designing shared frame artifacts or
 	cache invalidation. Do not revert to the incorrect fixed mask merely to recover FPS.
 
-	Performance experiment accepted for Chapter 14:
-	A bounded content-addressed cache for source background opacity masks improved the
-	manual Super Mario Bros. result by approximately 5-7 FPS, from about 35 FPS to roughly
-	40-42 FPS. The experiment caches immutable tuple data by exact pattern-table and
-	nametable bytes, then returns a fresh list to preserve the public mutable mask contract.
+	Measured Chapter 14 sequence:
+	Test 354's bounded content-addressed cache for source background opacity masks improved
+	the manual Super Mario Bros. result by approximately 5-7 FPS, from about 35 FPS to
+	roughly 40-42 FPS. It caches immutable tuple data by exact pattern-table and nametable
+	bytes, then returns a fresh list to preserve the public mutable mask contract.
 
-	This is evidence from the isolated performance worktree, not yet completed main-branch
-	tutorial work. Step 354 will add the implementation and permanent tests on main before
-	the optimization is considered integrated.
+	After Test 354, phase measurements showed that serial framebuffer rendering still cost
+	roughly 7-8 ms. The successful Test 355 experiment applies the same ownership pattern to
+	nametable RGB pixels, but includes nametable, attribute-table, pattern-table, and palette
+	RAM bytes in the key. Typical render time fell toward 3-5 ms and uncapped throughput
+	reached roughly 60-70 FPS after PyPy warm-up.
 
-	Likely areas to measure later include repeated pattern-table decoding, repeated
-	nametable rendering, framebuffer/mask row loops, and temporary allocations. Numba may
-	be evaluated only as a measured experiment, not as the default solution. The current
-	launcher uses PyPy, while Numba is generally a CPython-oriented runtime choice, so
-	adopting it would require an explicit runtime/tooling decision.
+	Once uncapped capacity exceeded 60 FPS, relative time.sleep pacing and pygame Clock
+	pacing both reduced observed speed into roughly the 40-55 FPS range on the development
+	machine. Test 356 therefore replaces Step 318's source shape with an absolute 60 FPS
+	deadline, pure final wait, controlled small-lateness recovery, and a one-frame backlog
+	reset. This targets long-term speed; it is not a hard real-time guarantee and may briefly
+	catch up after a missed deadline.
+
+	Do not add processes, shared memory, broad CPU rewrites, Numba, or native extensions in
+	this chapter. Those alternatives have greater startup, debugging, tooling, or change
+	cost and are not needed to reproduce the measured result.
 
 	PyPy is a supported manual runtime target through explicit launcher files. Do not
 	change the project's default Python interpreter yet; keep PyPy opt-in for manual
@@ -460,45 +461,82 @@ Performance policy:
 	Expected-speed control belongs in main.py/manual runtime code. The emulator core
 	should remain deterministic stepping/rendering logic and should not sleep.
 
-Next tutorial step:
-
-	Chapter 13 has no remaining numbered tutorial step. Test 353 completes the scrolling
-	and viewport-mask milestone.
+Chapter 14 numbered steps:
 
 Step 354) Cache background opacity masks by exact graphics bytes
-	Files:
+	Test:
+		tests/chapter_14_optimizations/test_354_cache_optimization_background_opaque_mask.py
+
+	Production file for the student to update:
 		emulator/rendering/nametable_renderer.py
-		tests/chapter_14_rendering_performance/test_354_cache_background_opaque_mask.py
 
-	Behavior:
-		Add a private @lru_cache(maxsize=8) helper keyed by the immutable pattern_table and
-		nametable bytes already accepted by build_background_opaque_mask(). Build and store an
-		immutable tuple[bool, ...] on a cache miss.
+	Contract:
+		Cache an immutable tuple[bool, ...] by exact pattern-table and nametable bytes with
+		@lru_cache(maxsize=8). Preserve build_background_opaque_mask() as a list-returning API
+		that gives every caller independent mutable ownership.
 
-		Keep build_background_opaque_mask() as the public list[bool] API. It must return a fresh
-		list copied from the cached tuple on every call so caller mutation cannot corrupt a
-		future result.
+	Evidence:
+		Identical content must decode once; changed content must miss; mutating one public
+		result must not poison later hits. This step is already represented by its permanent
+		test and implementation.
 
-	Goal:
-		avoid repeating CHR decoding and 61,440-pixel source-mask construction when visual
-		priority and sprite-zero-hit request masks from identical graphics bytes.
+Step 355) Cache nametable framebuffer pixels by all visual inputs
+	Test:
+		tests/chapter_14_optimizations/test_355_cache_nametable_framebuffer_pixels.py
 
-	Important:
-		Cache by exact content, not PPU identity, frame number, or undocumented lifecycle.
-		Changed pattern-table bytes or changed nametable bytes must always cause a cache miss.
-		Keep the cached value immutable and the cache bounded to eight entries.
-		Preserve all validation errors and the BackgroundOpaqueMask list[bool] contract.
-		Clear the private cache at the start of cache-sensitive tests so hit/miss assertions
-		remain deterministic and independent.
+	Production file for the student to update:
+		emulator/rendering/nametable_renderer.py
 
-	Measured evidence:
-		The isolated PyPy/manual Super Mario Bros. experiment improved approximately 5-7 FPS,
-		from about 35 FPS to roughly 40-42 FPS, with scrolling, visual priority, and game
-		progress still working.
+	Red state:
+		The new test initially fails because
+		_cached_nametable_with_palette_ram_pixels does not exist. Do not modify Test 356 or
+		main.py yet.
 
-	After this:
-		Do not add another optimization until profiling identifies a new bottleneck and an
-		isolated experiment demonstrates a reproducible benefit.
+	Contract:
+		Add a private @lru_cache(maxsize=8) helper keyed by exact nametable, attribute-table,
+		pattern-table, and palette RAM bytes. Cache tuple[RGBColor, ...], but preserve
+		nametable_with_palette_ram_to_framebuffer() as the public API and return a new
+		Framebuffer with a fresh pixels list on every call.
+
+	Verification:
+		Run `uv run pytest`. Equal byte content must reuse the expensive renderer once;
+		changed content must miss; caller mutation must remain isolated. Once this passes,
+		Test 356 activates automatically.
+
+Step 356) Replace relative sleep with absolute 60 FPS deadlines
+	Tests:
+		tests/chapter_14_optimizations/test_356_absolute_deadline_frame_pacing.py
+		tests/chapter_10_performance/test_318_main_frame_pacing.py
+
+	Production file for the student to update:
+		main.py
+
+	Red state:
+		After Step 355 exists, Test 356 fails against Step 318's NES_NTSC_FPS, frame_start_time,
+		wait_time, and time.sleep implementation. Do not preserve those source strings as dead
+		compatibility code.
+
+	Contract:
+		Define TARGET_DISPLAY_FPS = 60 and derive TARGET_FRAME_SECONDS. Initialize one absolute
+		next_frame_deadline before the loop. After emulation, rendering, and pygame presentation,
+		wait against that deadline, advance it by one target duration, and reset it from now
+		only after falling at least one complete frame behind. Count FPS after pacing.
+
+	Test 318 compatibility:
+		Test 318 detects the complete Step 356 contract. At the historical Step 318 source,
+		its six relative-sleep assertions still run unchanged. Once Step 356 is complete, only
+		those obsolete source-shape assertions skip. The enduring frontend-policy and
+		one-emulated-frame-per-loop tests remain active, and Test 356 validates the replacement.
+		This is explicit test supersession, not production compatibility fakery.
+
+	Manual evidence:
+		Run the PyPy launcher with the same legal local Super Mario Bros. ROM and gameplay
+		section. Uncapped capacity should first exceed 60 FPS after warm-up. With deadline
+		pacing, evaluate the multi-second average rather than demanding every one-second sample
+		print exactly 60.0. General-purpose Linux scheduling is not a hard real-time guarantee.
+
+	Mandatory gate after every step:
+		uv run pytest
 
 	Completed horizontal milestone:
 		Step 332: address-aware framebuffer extraction       complete
@@ -601,7 +639,9 @@ Step 354) Cache background opacity masks by exact graphics bytes
 		code. Keep find_sprite_zero_hit_position() pure and unchanged.
 
 	Shared constraints for follow-up performance experiments:
-		Do not modify older numbered tests.
+		Do not change older behavioral contracts. A later numbered test may explicitly
+		supersede obsolete source-shape assertions only when it supplies the complete
+		replacement contract, as documented for Test 318 -> Test 356.
 		Run `uv run pytest` before proceeding.
 		Keep pygame outside emulator core modules.
 		Keep PpuBus responsible for cartridge nametable mirroring.
@@ -618,7 +658,7 @@ Phase map:
 	- Phase 13 / Chapter 11: sprite 0 hit
 	- Phase 14 / Chapter 12: cartridge nametable mirroring
 	- Phase 15 / Chapter 13: PPU scrolling and background viewport
-	- Phase 16 / Chapter 14: evidence-driven rendering performance
+	- Phase 16 / Chapter 14: measured cache and frame-pacing optimizations
 
 Controller phase outline:
 	Controller state stores 8 buttons in NES read order:

@@ -9,16 +9,18 @@ from emulator.console import Console
 from emulator.cpu.cpu import CPU
 from emulator.input.controller import Controller
 from tools.show_framebuffer import draw_framebuffer
-
-#ROM_PATH = Path("MarioBros.nes")
+# OLD TEST GAME First Mario Bros
+# ROM_PATH = Path("MarioBros.nes")
+# NEW TEST GAME Super Mario Bros
 ROM_PATH = Path("/home/linkfy/Downloads/SMB.nes")
 
 debug_mode = False
 SCALE = 3
 FPS_REPORT_INTERVAL_SECONDS = 1.0
 
-NES_NTSC_FPS = 60.0988
-TARGET_FRAME_SECONDS = 1.0 / NES_NTSC_FPS
+TARGET_DISPLAY_FPS = 60
+TARGET_FRAME_SECONDS = 1.0 / TARGET_DISPLAY_FPS
+
 
 KEYS = {
     "a": pygame.K_z,
@@ -87,12 +89,11 @@ def main() -> None:
         
         
         running = True
+        next_frame_deadline = time.perf_counter() + TARGET_FRAME_SECONDS
         last_fps_report_time = time.perf_counter()
         frames_since_last_report = 0
         
         while running:
-            frame_start_time = time.perf_counter()
-
             for event in pygame.event.get():
                 if event.type == pygame.QUIT:
                     running = False
@@ -106,13 +107,25 @@ def main() -> None:
             draw_framebuffer(window, framebuffer, SCALE)
             pygame.display.flip()
 
-            # Sleep to match NES timing
-            frame_end_time = time.perf_counter()
-            frame_elapsed_time = frame_end_time - frame_start_time
-            wait_time = TARGET_FRAME_SECONDS - frame_elapsed_time
+            # Prevent accumulated timing drift: absolute-deadline frame pacing
+            # Explained with example
+            # 1) Loop waits until time is next_frame_deadline 
+            # Imagine that we finish at 14ms, then we wait until 16.67
+            while time.perf_counter() < next_frame_deadline:
+                pass
+            # 2) When we reach 16.67ms deadline, add 16.67 more => 33.34
+            # Every deadline remains exactly one frame period:
+            now = time.perf_counter()
+            next_frame_deadline += TARGET_FRAME_SECONDS
 
-            if wait_time > 0:
-                time.sleep(wait_time)
+            # Suppose current deadline is 50ms + 16.67 => 66.67
+            # and we finish at 90ms
+            # 90 - 66.67 = 23.33 ms late
+            # It is more than one complete frame period,
+            # We need to calculate again for those cases
+            if now - next_frame_deadline >= TARGET_FRAME_SECONDS:
+                # Next iteration is actual time + 16.67ms
+                next_frame_deadline = now + TARGET_FRAME_SECONDS
 
             # Show FPS 
             frames_since_last_report += 1
